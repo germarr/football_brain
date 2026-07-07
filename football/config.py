@@ -18,8 +18,8 @@ DB_PATH = ROOT / "data" / "football.db"  # Layer 2: modeled SQLite store
 BASE_URL = "https://v3.football.api-sports.io"
 KEY_HEADER = "x-apisports-key"
 
-# Ultra plan: 75,000 requests/day, high per-minute cap.
-DAILY_LIMIT = 75000
+# Ultra plan: 150,000 requests/day, high per-minute cap.
+DAILY_LIMIT = 150000
 MIN_REQUEST_INTERVAL_S = 0.1  # ~600/min, well under the Ultra per-minute cap
 
 # Fetch each player's cross-competition career history (players/teams)? Deferred
@@ -39,15 +39,21 @@ COMPETITIONS = [
     {"league_id": 78,  "name": "Bundesliga", "seasons": list(range(2015, 2026))},
     {"league_id": 71,  "name": "Brasileirão", "seasons": list(range(2015, 2026))},
     {"league_id": 262, "name": "Liga MX", "seasons": list(range(2016, 2026))},
-    # Argentina (128) deferred: no 2015 player stats + inconsistent format (ADR 0006).
+    # Argentina: per-player stats from 2016 (2015 empty); format varies by era —
+    # Regular Season / Round / phases + playoffs — so its standings are per-phase
+    # and playoff-excluded, not a clean single table (ADR 0008 supersedes 0006).
+    {"league_id": 128, "name": "Liga Profesional Argentina", "seasons": list(range(2016, 2026))},
 ]
 
 # league_id -> our canonical name (disambiguates the two "Serie A"s).
 COMPETITION_NAMES = {c["league_id"]: c["name"] for c in COMPETITIONS}
 
-# South American leagues run on a single calendar year, so their season number is
-# that year (2024), not a straddling "2024/25". Used for correct season labels.
-CALENDAR_YEAR_LEAGUES = {71}  # Brasileirão
+# Leagues whose season number is a single calendar year (2024), not a straddling
+# "2024/25". Used for correct season labels. Argentina is a mixed case — it
+# straddled pre-2020 but runs calendar-year since — and is labelled calendar-year
+# to match its majority/most-recent seasons (ADR 0008); the stored season integer
+# is always the provider's own and stays correct for API calls regardless.
+CALENDAR_YEAR_LEAGUES = {71, 128}  # Brasileirão, Liga Profesional Argentina
 
 # FC Barcelona is only the default view for exploration, not a data boundary.
 DEFAULT_TEAM_ID = 529

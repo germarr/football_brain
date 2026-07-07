@@ -20,6 +20,8 @@ per-player stats verified back to season 2015:
   inconsistent season to season (26→28 teams, shifting windows, rounds labeled
   `"2nd Phase"` not `"Regular Season"`). Its standings would be unreliable; revisit
   with proper multi-phase handling before adding it.
+  **[Superseded by ADR-0008: added 2016/17 onward, accepting per-phase standings
+  and the format irregularity as a known limitation.]**
 - **Career histories are deferred** (`config.COLLECT_CAREERS = False`). The core
   match+bio collection is ~28k calls; adding players/teams for every player is
   another ~18.5k and is better done as its own run.
