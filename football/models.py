@@ -110,6 +110,36 @@ class SquadEntry(SQLModel, table=True):
     penalty_missed: int = 0
 
 
+class Event(SQLModel, table=True):
+    """One time-stamped occurrence in a Fixture (ADR 0007): a goal, card,
+    substitution, or VAR decision, sourced from the fixtures/events endpoint.
+
+    The provider gives no event id, so the key is (fixture_id, event_index) — the
+    event's position in that fixture's response array: deterministic across a
+    drop-and-rebuild while the raw cache is stable, and chronological.
+
+    `minute`/`extra` split a "90+3'" time into elapsed 90, extra 3 (Added Time;
+    null when there is none). `type` is Goal | Card | subst | Var; `detail`
+    refines it (Normal Goal | Penalty | Own Goal | Yellow Card | Red Card | ...).
+
+    player_id/assist_id are nullable: an assist is only present on a Goal, and the
+    provider occasionally names a coach (a card) or no one (some VAR). Any id not
+    in the Player table is nulled at parse time so the build never fails on an
+    out-of-scope actor. team_id is always one of the fixture's two Teams.
+    """
+    fixture_id: int = Field(foreign_key="fixture.id", primary_key=True)
+    event_index: int = Field(primary_key=True)   # position in the fixture's event list
+    team_id: int = Field(foreign_key="team.id")
+
+    minute: int | None = None                     # time.elapsed
+    extra: int | None = None                      # time.extra (Added Time), null if none
+    type: str                                     # Goal | Card | subst | Var
+    detail: str | None = None                     # Normal Goal | Penalty | Own Goal | Yellow Card | ...
+    player_id: int | None = Field(default=None, foreign_key="player.id")
+    assist_id: int | None = Field(default=None, foreign_key="player.id")
+    comments: str | None = None
+
+
 def age_at(birth_date: dt.date | None, on: dt.date) -> int | None:
     """Age in whole years at a given date (used with a fixture's date)."""
     if birth_date is None:

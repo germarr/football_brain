@@ -16,7 +16,9 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from . import collect, config
 from .client import CachedClient, QuotaExceeded
-from .models import Competition, Fixture, Player, PlayerTeam, SquadEntry, Team, age_at
+from .models import (
+    Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team, age_at,
+)
 
 _NUM = re.compile(r"-?\d+")
 
@@ -167,6 +169,30 @@ def _parse_squad_entry(fixture_id: int, team_id: int, pblock: dict) -> SquadEntr
     )
 
 
+def _parse_event(fixture_id: int, index: int, ev: dict) -> Event:
+    """One fixtures/events entry -> an Event row (ADR 0007).
+
+    player_id/assist_id are taken raw here; build() nulls any that aren't in the
+    Player table (coach cards, off-scope actors) once the full player set is known.
+    """
+    time = ev.get("time") or {}
+    team = ev.get("team") or {}
+    player = ev.get("player") or {}
+    assist = ev.get("assist") or {}
+    return Event(
+        fixture_id=fixture_id,
+        event_index=index,
+        team_id=team.get("id"),
+        minute=_to_int(time.get("elapsed")),
+        extra=_to_int(time.get("extra")),
+        type=ev.get("type") or "Unknown",
+        detail=ev.get("detail"),
+        player_id=player.get("id"),
+        assist_id=assist.get("id"),
+        comments=ev.get("comments"),
+    )
+
+
 def build() -> None:
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     engine = create_engine(f"sqlite:///{config.DB_PATH}")
@@ -178,6 +204,7 @@ def build() -> None:
     competitions: dict[int, str] = {}
     player_season: dict[int, int] = {}
     player_names: dict[int, str] = {}   # fallback name for players lacking a bio
+    events: list[Event] = []            # resolved against the Player set after the loop
 
     with Session(engine) as session:
         for league_id, _name, season in config.targets():
@@ -201,6 +228,16 @@ def build() -> None:
                     session.add(_parse_squad_entry(fid, team_id, pblock))
                     player_season.setdefault(pid, season)
                     player_names[pid] = pblock["player"]["name"]
+
+                # Match-event timeline (ADR 0007). Cache-only: a miss means this
+                # fixture's events aren't backfilled yet, so skip it (same
+                # cache-miss tolerance as bios/careers below).
+                try:
+                    raw_events = collect.fetch_fixture_events(client, fid)
+                except QuotaExceeded:
+                    raw_events = []
+                for idx, ev in enumerate(raw_events):
+                    events.append(_parse_event(fid, idx, ev))
 
         for cid, cname in competitions.items():
             session.add(Competition(id=cid, name=cname))
@@ -226,6 +263,19 @@ def build() -> None:
             for row in _parse_player_teams(pid, response):
                 session.add(row)
 
+        # Events: null any player id without a Player row (coach cards, off-scope
+        # actors) so the nullable player FKs never dangle (ADR 0007). team_id is
+        # always a fixture Team; skip the rare event that carries none.
+        known_players = set(player_season)
+        for ev in events:
+            if ev.team_id is None:
+                continue
+            if ev.player_id not in known_players:
+                ev.player_id = None
+            if ev.assist_id not in known_players:
+                ev.assist_id = None
+            session.add(ev)
+
         session.commit()
         _summary(session)
 
@@ -235,7 +285,8 @@ def _summary(session: Session) -> None:
          for name, model in [("competitions", Competition), ("teams", Team),
                              ("fixtures", Fixture), ("players", Player),
                              ("squad entries", SquadEntry),
-                             ("career stints", PlayerTeam)]}
+                             ("career stints", PlayerTeam),
+                             ("events", Event)]}
     entries = session.exec(select(SquadEntry)).all()
     appearances = sum((e.minutes or 0) > 0 for e in entries)
     print("Built {}: {}".format(
@@ -252,6 +303,27 @@ def _summary(session: Session) -> None:
     print("\nFixtures by competition / season / tournament:")
     for (comp, season, tourn), c in sorted(breakdown.items()):
         print(f"  {comp:10} {season}  {tourn:14} {c:4}")
+
+    # Events breakdown (ADR 0007) — only meaningful once events are backfilled.
+    evs = session.exec(select(Event)).all()
+    if evs:
+        by_type: dict[str, int] = {}
+        goal_detail: dict[str, int] = {}
+        stoppage_goals = 0
+        for e in evs:
+            by_type[e.type] = by_type.get(e.type, 0) + 1
+            if e.type == "Goal":
+                goal_detail[e.detail or "?"] = goal_detail.get(e.detail or "?", 0) + 1
+                if e.extra is not None:
+                    stoppage_goals += 1
+        fixtures_with_events = len({e.fixture_id for e in evs})
+        print(f"\nEvents across {fixtures_with_events} fixtures:")
+        for t, c in sorted(by_type.items(), key=lambda kv: -kv[1]):
+            print(f"  {t:8} {c:6}")
+        print("Goals by type:")
+        for d, c in sorted(goal_detail.items(), key=lambda kv: -kv[1]):
+            print(f"  {d:14} {c:5}")
+        print(f"  ({stoppage_goals} goals in added time)")
 
 
 if __name__ == "__main__":

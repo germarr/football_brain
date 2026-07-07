@@ -9,6 +9,12 @@ full matchday squad of both teams (starters, substitutes who came on, and unused
 subs), per-game stats (minutes, goals, assists, shots, passes, tackles, rating…),
 and each player's biography (nationality, birth, height, weight).
 
+On top of those per-player totals, the **match-event timeline** captures *when*
+and *what kind*: every goal, card, substitution and VAR call with the minute it
+happened, the goal type (normal / penalty / own goal), the assist behind each
+goal, and added time. It comes from a separate endpoint and is collected on its
+own run (see [ADR-0007](docs/adr/0007-match-events-timeline.md)).
+
 See [`CONTEXT.md`](CONTEXT.md) for the project's domain language and
 [`docs/adr/`](docs/adr) for the design decisions behind the scope and architecture.
 
@@ -70,6 +76,21 @@ Edit the `COMPETITIONS` list in `football/config.py` to add/remove a league or
 season. Player career histories (the `players/teams` endpoint, ~18.5k extra
 calls) are deferred by default — enable with `COLLECT_CAREERS = True`.
 
+### 1b. Collect the match-event timeline (network — separate run)
+
+```bash
+uv run python -m football.collect_events
+```
+
+Fetches one `fixtures/events` call per fixture (~20,780 calls — a full day under
+the Ultra plan's cap), populating the goal/card/substitution/VAR timeline. It is a
+**deliberately separate entrypoint** rather than part of `collect`, because it is a
+day-long run in its own right ([ADR-0007](docs/adr/0007-match-events-timeline.md)).
+Cache-first and resumable like `collect`: interrupt and re-run any time; the
+provider's daily quota stops it cleanly. `parse` reads whatever events are cached,
+so you can build the DB before the backfill finishes — those fixtures simply carry
+no events yet.
+
 ### 2. Build the database (offline — no network)
 
 ```bash
@@ -90,18 +111,21 @@ uv run marimo run  football/explore.py   # read-only app
 ```
 
 Pick a Competition, Season, and Tournament (Liga MX splits into Apertura /
-Clausura) to browse squads, appearances, per-90 stats, and standings.
+Clausura) to browse squads, appearances, per-90 stats, and standings. Once the
+event timeline is backfilled, the **Match events** section adds goal-timing
+distributions (by minute and type), most-booked players, and stoppage-time goals.
 
 ## Project layout
 
 ```
 football/
-  config.py     target leagues/seasons, API config, .env key loader
-  client.py     cache-first API-Football client (Layer 1)
-  collect.py    fetch raw responses into data/raw/  (network)
-  parse.py      rebuild data/football.db from the cache  (offline)
-  models.py     SQLModel tables + derived helpers (age_at, …)
-  explore.py    marimo exploration notebook
+  config.py        target leagues/seasons, API config, .env key loader
+  client.py        cache-first API-Football client (Layer 1)
+  collect.py       fetch fixtures, squads, bios, careers into data/raw/  (network)
+  collect_events.py  backfill the match-event timeline — separate run  (network)
+  parse.py         rebuild data/football.db from the cache  (offline)
+  models.py        SQLModel tables (Fixture, Player, SquadEntry, Event, …) + age_at
+  explore.py       marimo exploration notebook
 docs/adr/       architecture decision records
 CONTEXT.md      domain glossary (Competition, Season, Tournament, Appearance…)
 data/           raw cache + SQLite DB (git-ignored, regenerable)

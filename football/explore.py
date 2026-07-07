@@ -53,7 +53,27 @@ def _():
         engine,
         parse_dates=["fixture_date", "birth_date"],
     )
-    return alt, entries, mo, pd, player_teams, players
+    # Match-event timeline (ADR 0007): one row per goal/card/sub/VAR, scoped to the
+    # same Competition/Season/Tournament via the fixture join. Only fixtures that
+    # have been backfilled (football.collect_events) contribute rows, so a scope
+    # can legitimately be empty — every events view below guards for that.
+    events = pd.read_sql(
+        """
+        SELECT e.fixture_id, e.event_index, e.team_id, e.minute, e.extra,
+               e.type, e.detail, e.player_id, e.assist_id, e.comments,
+               f.season, f.league_name, f.tournament, f.date AS fixture_date,
+               t.name AS team_name,
+               p.name AS player_name, a.name AS assist_name
+        FROM event e
+        JOIN fixture f ON e.fixture_id = f.id
+        JOIN team    t ON e.team_id    = t.id
+        LEFT JOIN player p ON e.player_id = p.id
+        LEFT JOIN player a ON e.assist_id = a.id
+        """,
+        engine,
+        parse_dates=["fixture_date"],
+    )
+    return alt, entries, events, mo, pd, player_teams, players
 
 
 @app.cell
@@ -216,6 +236,136 @@ def _(alt, scope):
         .properties(height=420, title="Top 15 scorers")
     )
     chart
+    return
+
+
+@app.cell
+def _(competition_select, events, season_select, tournament_select):
+    events_scope = events[
+        (events["league_name"] == competition_select.value)
+        & (events["season"] == season_select.value)
+        & (events["tournament"] == tournament_select.value)
+    ]
+    # Actual scored goals exclude "Missed Penalty" (the provider files a missed
+    # spot-kick under type=Goal); count it as a shot, not a goal (ADR 0007).
+    scored_goals = events_scope[
+        (events_scope["type"] == "Goal")
+        & (events_scope["detail"] != "Missed Penalty")
+    ]
+    return events_scope, scored_goals
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Match events — timeline
+
+        Goals, cards, substitutions and VAR calls with the **minute** they
+        happened, the **goal type** (normal / penalty / own goal), the **assist**
+        behind each goal, and **added time**. Requires the events backfill
+        (`uv run python -m football.collect_events`, then rebuild with
+        `python -m football.parse`); scopes without cached events show a note.
+        """
+    )
+    return
+
+
+@app.cell
+def _(events_scope, mo, scored_goals):
+    mo.stop(
+        events_scope.empty,
+        mo.callout(
+            mo.md(
+                "**No events cached for this competition / season / tournament "
+                "yet.** Run `uv run python -m football.collect_events` to backfill "
+                "the timeline, then rebuild with `uv run python -m football.parse`."
+            ),
+            kind="info",
+        ),
+    )
+    _pens = scored_goals[scored_goals["detail"] == "Penalty"]
+    _own = scored_goals[scored_goals["detail"] == "Own Goal"]
+    _stoppage = scored_goals[scored_goals["extra"].notna()]
+    _cards = events_scope[events_scope["type"] == "Card"]
+    _yellow = _cards[_cards["detail"].str.contains("Yellow", na=False)]
+    _red = _cards[_cards["detail"].str.contains("Red", na=False)]
+    mo.hstack(
+        [
+            mo.stat(len(scored_goals), label="Goals",
+                    caption=f"in {events_scope['fixture_id'].nunique()} fixtures"),
+            mo.stat(len(_pens), label="Penalties"),
+            mo.stat(len(_own), label="Own goals"),
+            mo.stat(len(_stoppage), label="Stoppage-time goals"),
+            mo.stat(len(_yellow), label="Yellow cards"),
+            mo.stat(len(_red), label="Red cards"),
+        ],
+        justify="start", gap=1,
+    )
+    return
+
+
+@app.cell
+def _(alt, mo, scored_goals):
+    mo.stop(scored_goals.empty, mo.md("_No goals in this scope yet._"))
+    _hist = (
+        alt.Chart(scored_goals)
+        .mark_bar()
+        .encode(
+            x=alt.X("minute:Q", bin=alt.Bin(maxbins=18), title="Match minute"),
+            y=alt.Y("count():Q", title="Goals"),
+            color=alt.Color("detail:N", title="Goal type"),
+            tooltip=["detail:N", "count():Q"],
+        )
+        .properties(height=300, title="When goals are scored (by minute and type)")
+    )
+    _hist
+    return
+
+
+@app.cell
+def _(alt, events_scope, mo):
+    _cards = events_scope[events_scope["type"] == "Card"].copy()
+    mo.stop(_cards.empty, mo.md("_No cards in this scope yet._"))
+    # Fold anything that isn't a clean Red into the Yellow bucket (second yellows,
+    # provider quirks) so the colour split stays binary.
+    _cards["card"] = _cards["detail"].where(
+        _cards["detail"].str.contains("Red", na=False), "Yellow Card"
+    ).where(~_cards["detail"].str.contains("Red", na=False), "Red Card")
+    _order = (_cards.groupby("player_name").size()
+              .sort_values(ascending=False).head(15).index.tolist())
+    _top = (_cards[_cards["player_name"].isin(_order)]
+            .groupby(["player_name", "card"]).size().reset_index(name="n"))
+    _chart = (
+        alt.Chart(_top)
+        .mark_bar()
+        .encode(
+            x=alt.X("n:Q", title="Cards"),
+            y=alt.Y("player_name:N", sort=_order, title=None),
+            color=alt.Color("card:N", title=None,
+                            scale=alt.Scale(domain=["Yellow Card", "Red Card"],
+                                            range=["#E1C340", "#C0202A"])),
+            tooltip=["player_name", "card", "n"],
+        )
+        .properties(height=420, title="Most-booked players")
+    )
+    _chart
+    return
+
+
+@app.cell
+def _(mo, scored_goals):
+    _late = scored_goals[scored_goals["extra"].notna()].copy()
+    mo.stop(_late.empty, mo.md("_No stoppage-time goals in this scope yet._"))
+    _late["when"] = (_late["minute"].astype("Int64").astype(str) + "+"
+                     + _late["extra"].astype("Int64").astype(str) + "'")
+    _late["date"] = _late["fixture_date"].dt.date
+    _view = (_late[["date", "team_name", "player_name", "assist_name", "detail", "when"]]
+             .rename(columns={"team_name": "team", "player_name": "scorer",
+                              "assist_name": "assist", "detail": "type"})
+             .sort_values(["date", "when"]))
+    mo.vstack([mo.md("### Stoppage-time goals *(added-time drama)*"),
+               mo.ui.table(_view, selection=None, pagination=True)])
     return
 
 

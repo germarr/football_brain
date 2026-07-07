@@ -30,6 +30,16 @@ def fetch_fixture_players(client: CachedClient, fixture_id: int) -> dict:
     return client.get("fixtures/players", {"fixture": fixture_id})
 
 
+def fetch_fixture_events(client: CachedClient, fixture_id: int) -> list[dict]:
+    """Time-ordered match events for a fixture (goals, cards, subs, VAR).
+
+    Sourced from fixtures/events (ADR 0007). One call per fixture; backfilled by
+    the dedicated `football.collect_events` entrypoint, not this module's collect().
+    """
+    payload = client.get("fixtures/events", {"fixture": fixture_id})
+    return payload.get("response") or []
+
+
 def fetch_player(client: CachedClient, player_id: int, season: int) -> dict | None:
     """Biography for one player in a season, or None if the provider has no record
     (some players appear in a fixture but return an empty /players response)."""

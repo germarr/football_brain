@@ -2,7 +2,7 @@
 
 Collecting per-match player performance and biographical data across multiple
 competitions — **La Liga, Premier League, Serie A, Bundesliga** and
-**Brasileirão** (2015/16 onward) plus **Liga MX** (2024/25 onward) — sourced from
+**Brasileirão** (2015/16 onward) plus **Liga MX** (2016/17 onward) — sourced from
 the API-Football provider. (FC Barcelona is the default view for exploration, not
 a data boundary.)
 
@@ -77,6 +77,31 @@ The subset of Squad Entries where the player actually played (`minutes > 0`) —
 i.e. `started` or `came_on`. Per-90 and per-appearance stats are computed over
 Appearances, never over all Squad Entries.
 _Avoid_: cap (informal), calling an `unused_sub` an appearance.
+
+**Event**:
+A single time-stamped occurrence within a Fixture — a goal, card, substitution,
+or VAR decision — sourced from the fixtures/events endpoint. Carries the minute it
+happened (plus any Added Time), the Team and Player involved, and a type/detail
+pair (Goal → Normal Goal | Penalty | Own Goal; Card → Yellow | Red; subst; Var).
+An Event is the **timeline**; it is distinct from the aggregate per-match totals
+carried on a Squad Entry (goals, cards, penalties), which say *how many* but not
+*when* or *what kind*.
+_Avoid_: incident, moment; conflating an Event with a Squad Entry's stat totals.
+
+**Assist**:
+The Player credited with setting up a **Goal** — a field on the Goal Event, not an
+Event in its own right. The "minute of an assist" is therefore the minute of the
+goal it created; there is no separate assist timeline.
+_Avoid_: treating an assist as a standalone Event; counting assist minutes apart
+from their goal's minute.
+
+**Added Time**:
+Minutes played beyond a half's nominal end, recorded **per Event** as an `extra`
+value — a goal at 90+3' is minute `90`, extra `3`. We do not store the referee's
+announced total added time per half: the provider does not expose it, and deriving
+it from events undercounts.
+_Avoid_: storing a per-half "stoppage time" total; inferring announced added time
+from Events.
 
 **Career Stint**:
 One `(Player, Team, Season)` the provider records for a player, sourced from the
