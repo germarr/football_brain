@@ -15,5 +15,9 @@ model. Earlier seasons would yield fixtures, final scores, and lineups only —
 not the per-player output that is the point of the project — so they are
 excluded rather than stored as a degraded, half-populated dataset.
 
-Liga MX is left at 2024/25 onward (its own coverage was not investigated further;
-extend `config.COMPETITIONS` if needed).
+Liga MX was originally left at 2024/25 onward (its own coverage was not
+investigated further). It has since been extended to 2016/17 onward via
+`config.COMPETITIONS`, matching the European leagues' depth — but unlike them its
+earliest-season per-player coverage was **not** separately verified, so treat
+pre-2024 Liga MX seasons as provisional until confirmed empirically the way La
+Liga's 2015/16 floor was.

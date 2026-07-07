@@ -4,7 +4,7 @@ Per-match player performance and biographical data across Europe's top leagues
 and beyond, sourced from the [API-Football](https://www.api-football.com/) provider.
 
 **Coverage** — La Liga, Premier League, Serie A, Bundesliga and Brasileirão
-(2015/16 onward) plus Liga MX (2024/25 onward). For each fixture we collect the
+(2015/16 onward) plus Liga MX (2016/17 onward). For each fixture we collect the
 full matchday squad of both teams (starters, substitutes who came on, and unused
 subs), per-game stats (minutes, goals, assists, shots, passes, tackles, rating…),
 and each player's biography (nationality, birth, height, weight).

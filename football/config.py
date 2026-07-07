@@ -24,7 +24,7 @@ MIN_REQUEST_INTERVAL_S = 0.1  # ~600/min, well under the Ultra per-minute cap
 
 # Fetch each player's cross-competition career history (players/teams)? Deferred
 # for now — a separate ~18.5k-call run once the core match data is in (ADR 0006).
-COLLECT_CAREERS = False
+COLLECT_CAREERS = True
 
 # --- target scope (docs/adr/0003, 0004, 0005, 0006) ------------------------
 # Each competition and the seasons to collect. Add a competition or a season by
@@ -38,7 +38,7 @@ COMPETITIONS = [
     {"league_id": 135, "name": "Serie A", "seasons": list(range(2015, 2026))},
     {"league_id": 78,  "name": "Bundesliga", "seasons": list(range(2015, 2026))},
     {"league_id": 71,  "name": "Brasileirão", "seasons": list(range(2015, 2026))},
-    {"league_id": 262, "name": "Liga MX", "seasons": [2024, 2025]},
+    {"league_id": 262, "name": "Liga MX", "seasons": list(range(2016, 2026))},
     # Argentina (128) deferred: no 2015 player stats + inconsistent format (ADR 0006).
 ]
 
