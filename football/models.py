@@ -1,0 +1,120 @@
+"""SQLModel schema — Layer 2 of docs/adr/0002.
+
+Three tables mirroring CONTEXT.md language:
+  - Player      : one row per footballer (biography).
+  - Fixture     : one row per match.
+  - SquadEntry  : one row per player *per fixture* (the ~22-man matchday squad),
+                  tagged started / came_on / unused_sub, carrying per-game stats.
+                  An "Appearance" is the subset where minutes > 0 (not a table).
+
+Age is deliberately NOT stored — it is derived at fixture date (see age_at()).
+Height/weight are nullable ints (some youth players have no recorded measurement).
+"""
+from __future__ import annotations
+
+import datetime as dt
+
+from sqlmodel import Field, SQLModel
+
+
+class Competition(SQLModel, table=True):
+    id: int = Field(primary_key=True)   # provider league id (140, 262)
+    name: str
+
+
+class Team(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    name: str
+
+
+class Player(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    name: str
+    firstname: str | None = None
+    lastname: str | None = None
+    nationality: str | None = None          # canonical "country" (CONTEXT.md)
+    birth_date: dt.date | None = None        # source of truth for age
+    birth_country: str | None = None         # distinct from nationality
+    birth_place: str | None = None
+    height_cm: int | None = None             # unit-stripped from e.g. "187 cm"
+    weight_kg: int | None = None
+    photo: str | None = None
+
+
+class Fixture(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    date: dt.datetime
+    season: int
+    league_id: int = Field(foreign_key="competition.id")
+    league_name: str
+    tournament: str                          # "Regular Season" | "Apertura" | "Clausura"
+    matchday: int | None = None              # numeric round; null for playoff fixtures
+    round: str | None = None                 # full provider round, e.g. "Apertura - 5"
+    status: str | None = None                # e.g. "FT"
+    venue: str | None = None
+    home_team_id: int = Field(foreign_key="team.id")
+    home_team_name: str
+    away_team_id: int = Field(foreign_key="team.id")
+    away_team_name: str
+    home_goals: int | None = None
+    away_goals: int | None = None
+
+
+class PlayerTeam(SQLModel, table=True):
+    """A player's Career Stint: one (Player, Team, Season) the provider records.
+
+    Sourced from the players/teams endpoint, so it spans a player's WHOLE career
+    across every competition and national team — not just the Competitions we
+    collect fixtures for (CONTEXT.md: "Career Stint"). One row per season the
+    provider places the player at a team, e.g. Cristiano Ronaldo -> Manchester
+    United / Real Madrid / Juventus / Al-Nassr / Portugal ...
+
+    team_id is a global provider team id and is intentionally NOT a foreign key to
+    `team`: those clubs and national teams live outside our collected scope, so
+    team_name is denormalized here (as Fixture denormalizes its team names).
+    """
+    player_id: int = Field(foreign_key="player.id", primary_key=True)
+    team_id: int = Field(primary_key=True)
+    season: int = Field(primary_key=True)
+    team_name: str
+
+
+class SquadEntry(SQLModel, table=True):
+    fixture_id: int = Field(foreign_key="fixture.id", primary_key=True)
+    player_id: int = Field(foreign_key="player.id", primary_key=True)
+    team_id: int = Field(foreign_key="team.id")
+
+    status: str                              # started | came_on | unused_sub
+    minutes: int | None = None
+    position: str | None = None
+    rating: float | None = None
+    captain: bool = False
+
+    goals: int = 0
+    assists: int = 0
+    shots_total: int | None = None
+    shots_on: int | None = None
+    passes_total: int | None = None
+    passes_key: int | None = None
+    tackles_total: int | None = None
+    interceptions: int | None = None
+    duels_total: int | None = None
+    duels_won: int | None = None
+    dribbles_attempts: int | None = None
+    dribbles_success: int | None = None
+    fouls_drawn: int | None = None
+    fouls_committed: int | None = None
+    yellow: int = 0
+    red: int = 0
+    penalty_scored: int = 0
+    penalty_missed: int = 0
+
+
+def age_at(birth_date: dt.date | None, on: dt.date) -> int | None:
+    """Age in whole years at a given date (used with a fixture's date)."""
+    if birth_date is None:
+        return None
+    years = on.year - birth_date.year
+    if (on.month, on.day) < (birth_date.month, birth_date.day):
+        years -= 1
+    return years
