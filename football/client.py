@@ -83,9 +83,18 @@ class CachedClient:
             time.sleep(wait)
 
         url = f"{config.BASE_URL}/{endpoint}"
-        resp = self._session.get(url, params=params, timeout=30)
+        # A transient network blip or 5xx shouldn't abort a multi-thousand-call run.
+        # Retry with exponential backoff (like the rate-limit path), giving up only
+        # after several attempts — cached data stays intact for a resume either way.
+        try:
+            resp = self._session.get(url, params=params, timeout=30)
+        except (requests.ConnectionError, requests.Timeout) as e:
+            return self._retry_transient(endpoint, params, _attempt, e.__class__.__name__)
         self._last_call_ts = time.monotonic()
         self.live_requests += 1
+        if resp.status_code >= 500:
+            self.live_requests -= 1  # a server error returned no data
+            return self._retry_transient(endpoint, params, _attempt, f"HTTP {resp.status_code}")
         resp.raise_for_status()
         payload = resp.json()
 
@@ -105,6 +114,16 @@ class CachedClient:
                 )
             raise ApiError(f"{endpoint} {params} -> {errors}")
         return payload
+
+    def _retry_transient(self, endpoint: str, params: dict, attempt: int, reason: str) -> dict:
+        """Back off and retry a transient network/5xx failure; give up after 5 tries."""
+        if attempt > 5:
+            raise ApiError(f"{endpoint} {params} -> gave up after {attempt} attempts ({reason})")
+        backoff = min(2 ** attempt, 30)
+        print(f"    transient failure ({reason}); waiting {backoff}s then retrying "
+              f"(attempt {attempt})")
+        time.sleep(backoff)
+        return self._fetch_live(endpoint, params, attempt + 1)
 
     def status(self) -> dict:
         """Live account/quota status (always a network call; not cached)."""
