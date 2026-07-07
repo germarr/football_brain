@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 
+from sqlalchemy import func
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from . import collect, config
@@ -204,8 +205,12 @@ def build() -> None:
     competitions: dict[int, str] = {}
     player_season: dict[int, int] = {}
     player_names: dict[int, str] = {}   # fallback name for players lacking a bio
-    events: list[Event] = []            # resolved against the Player set after the loop
 
+    # The full store is ~1M squad entries + ~200k career stints + ~400k events.
+    # Holding all of that in one session's identity map exhausts memory (OOM at
+    # full scale), so every phase commits and expunges in batches — the session
+    # never accumulates more than one batch of rows at a time. Only the small
+    # Python dicts above (a few ints/strs per player/team) live across phases.
     with Session(engine) as session:
         for league_id, _name, season in config.targets():
             for fx in collect.fetch_fixtures(client, league_id, season):
@@ -228,23 +233,17 @@ def build() -> None:
                     session.add(_parse_squad_entry(fid, team_id, pblock))
                     player_season.setdefault(pid, season)
                     player_names[pid] = pblock["player"]["name"]
-
-                # Match-event timeline (ADR 0007). Cache-only: a miss means this
-                # fixture's events aren't backfilled yet, so skip it (same
-                # cache-miss tolerance as bios/careers below).
-                try:
-                    raw_events = collect.fetch_fixture_events(client, fid)
-                except QuotaExceeded:
-                    raw_events = []
-                for idx, ev in enumerate(raw_events):
-                    events.append(_parse_event(fid, idx, ev))
+            session.commit()          # flush this season's fixtures + squad entries
+            session.expunge_all()     # and drop them from memory
 
         for cid, cname in competitions.items():
             session.add(Competition(id=cid, name=cname))
         for tid, tname in teams.items():
             session.add(Team(id=tid, name=tname))
+        session.commit()
+        session.expunge_all()
 
-        for pid, season in sorted(player_season.items()):
+        for i, (pid, season) in enumerate(sorted(player_season.items()), 1):
             try:
                 block = collect.fetch_player(client, pid, season)
             except QuotaExceeded:
@@ -253,76 +252,112 @@ def build() -> None:
                 session.add(_parse_player(block))
             else:  # no provider bio (missing or not-yet-cached) — minimal row
                 session.add(Player(id=pid, name=player_names.get(pid, str(pid))))
+            if i % 5000 == 0:
+                session.commit()
+                session.expunge_all()
+        session.commit()
+        session.expunge_all()
 
         # Career Stints: full cross-competition team history per player.
-        for pid in sorted(player_season):
+        for i, pid in enumerate(sorted(player_season), 1):
             try:
                 response = collect.fetch_player_teams(client, pid)
             except QuotaExceeded:
                 continue  # career history not cached yet (backfill in progress)
             for row in _parse_player_teams(pid, response):
                 session.add(row)
-
-        # Events: null any player id without a Player row (coach cards, off-scope
-        # actors) so the nullable player FKs never dangle (ADR 0007). team_id is
-        # always a fixture Team; skip the rare event that carries none.
-        known_players = set(player_season)
-        for ev in events:
-            if ev.team_id is None:
-                continue
-            if ev.player_id not in known_players:
-                ev.player_id = None
-            if ev.assist_id not in known_players:
-                ev.assist_id = None
-            session.add(ev)
-
+            if i % 2000 == 0:
+                session.commit()
+                session.expunge_all()
         session.commit()
+        session.expunge_all()
+
+        _build_events(session, client, set(player_season))
         _summary(session)
 
 
+def _build_events(session: Session, client: CachedClient, known_players: set[int]) -> None:
+    """Second pass over the fixtures (from cache) to insert the event timeline.
+
+    Runs after players exist so the FK guard can resolve, and re-reads events from
+    the cache rather than hoarding ~400k rows from the first pass. Nulls any
+    player/assist id without a Player row (coach cards, off-scope actors) and skips
+    the rare event with no team; commits in batches to bound memory (ADR 0007).
+    """
+    batch: list[Event] = []
+    for league_id, _name, season in config.targets():
+        for fx in collect.fetch_fixtures(client, league_id, season):
+            fid = fx["fixture"]["id"]
+            try:
+                raw_events = collect.fetch_fixture_events(client, fid)
+            except QuotaExceeded:
+                continue  # this fixture's events aren't backfilled yet
+            for idx, ev in enumerate(raw_events):
+                e = _parse_event(fid, idx, ev)
+                if e.team_id is None:
+                    continue
+                if e.player_id not in known_players:
+                    e.player_id = None
+                if e.assist_id not in known_players:
+                    e.assist_id = None
+                batch.append(e)
+            if len(batch) >= 10000:
+                session.add_all(batch)
+                session.commit()
+                session.expunge_all()
+                batch = []
+    if batch:
+        session.add_all(batch)
+        session.commit()
+        session.expunge_all()
+
+
 def _summary(session: Session) -> None:
-    n = {name: len(session.exec(select(model)).all())
-         for name, model in [("competitions", Competition), ("teams", Team),
-                             ("fixtures", Fixture), ("players", Player),
-                             ("squad entries", SquadEntry),
-                             ("career stints", PlayerTeam),
-                             ("events", Event)]}
-    entries = session.exec(select(SquadEntry)).all()
-    appearances = sum((e.minutes or 0) > 0 for e in entries)
+    # Aggregate in SQL — the tables are far too large to pull into memory (ADR 0002).
+    def count(model, *where):
+        stmt = select(func.count()).select_from(model)
+        for w in where:
+            stmt = stmt.where(w)
+        return session.exec(stmt).one()
+
+    n = {"competitions": count(Competition), "teams": count(Team),
+         "fixtures": count(Fixture), "players": count(Player),
+         "squad entries": count(SquadEntry), "career stints": count(PlayerTeam),
+         "events": count(Event)}
+    total_entries = n["squad entries"]
+    appearances = count(SquadEntry, SquadEntry.minutes > 0)
     print("Built {}: {}".format(
         config.DB_PATH.name,
         ", ".join(f"{v} {k}" for k, v in n.items())))
-    print(f"  ({appearances} appearances, {len(entries) - appearances} unused subs)")
+    print(f"  ({appearances} appearances, {total_entries - appearances} unused subs)")
 
     # Fixture breakdown per (competition, season, tournament) — proves the split.
-    fixtures = session.exec(select(Fixture)).all()
-    breakdown: dict[tuple, int] = {}
-    for f in fixtures:
-        key = (f.league_name, f.season, f.tournament)
-        breakdown[key] = breakdown.get(key, 0) + 1
     print("\nFixtures by competition / season / tournament:")
-    for (comp, season, tourn), c in sorted(breakdown.items()):
+    rows = session.exec(
+        select(Fixture.league_name, Fixture.season, Fixture.tournament, func.count())
+        .group_by(Fixture.league_name, Fixture.season, Fixture.tournament)
+        .order_by(Fixture.league_name, Fixture.season, Fixture.tournament)
+    ).all()
+    for comp, season, tourn, c in rows:
         print(f"  {comp:10} {season}  {tourn:14} {c:4}")
 
     # Events breakdown (ADR 0007) — only meaningful once events are backfilled.
-    evs = session.exec(select(Event)).all()
-    if evs:
-        by_type: dict[str, int] = {}
-        goal_detail: dict[str, int] = {}
-        stoppage_goals = 0
-        for e in evs:
-            by_type[e.type] = by_type.get(e.type, 0) + 1
-            if e.type == "Goal":
-                goal_detail[e.detail or "?"] = goal_detail.get(e.detail or "?", 0) + 1
-                if e.extra is not None:
-                    stoppage_goals += 1
-        fixtures_with_events = len({e.fixture_id for e in evs})
+    if n["events"]:
+        fixtures_with_events = session.exec(
+            select(func.count(func.distinct(Event.fixture_id)))
+        ).one()
         print(f"\nEvents across {fixtures_with_events} fixtures:")
-        for t, c in sorted(by_type.items(), key=lambda kv: -kv[1]):
+        for t, c in session.exec(
+            select(Event.type, func.count()).group_by(Event.type).order_by(func.count().desc())
+        ).all():
             print(f"  {t:8} {c:6}")
         print("Goals by type:")
-        for d, c in sorted(goal_detail.items(), key=lambda kv: -kv[1]):
-            print(f"  {d:14} {c:5}")
+        for d, c in session.exec(
+            select(Event.detail, func.count()).where(Event.type == "Goal")
+            .group_by(Event.detail).order_by(func.count().desc())
+        ).all():
+            print(f"  {(d or '?'):14} {c:5}")
+        stoppage_goals = count(Event, Event.type == "Goal", Event.extra.is_not(None))
         print(f"  ({stoppage_goals} goals in added time)")
 
 
