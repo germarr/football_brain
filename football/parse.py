@@ -298,17 +298,26 @@ def build() -> None:
     # full scale), so every phase commits and expunges in batches — the session
     # never accumulates more than one batch of rows at a time. Only the small
     # Python dicts above (a few ints/strs per player/team) live across phases.
+    # A fixture can surface under two targets — a calendar-year season overlap, a
+    # provider double-listing, or the cache shifting under a concurrent collection
+    # mid-build. Adding it twice violates a primary key (Fixture.id here, the
+    # (fixture_id, event_index) key in _build_events), aborting the whole rebuild.
+    # Skip any fixture id already seen this pass so the build stays idempotent.
+    seen_fixtures: set[int] = set()
     with Session(engine) as session:
         venue_ids = _build_venues(session, client)
         for league_id, _name, season in config.targets():
             for fx in collect.fetch_fixtures(client, league_id, season):
+                fid = fx["fixture"]["id"]
+                if fid in seen_fixtures:
+                    continue
+                seen_fixtures.add(fid)
                 session.add(_parse_fixture(fx, venue_ids))
                 _lid = fx["league"]["id"]
                 competitions[_lid] = config.COMPETITION_NAMES.get(_lid, fx["league"]["name"])
                 for side in ("home", "away"):
                     t = fx["teams"][side]
                     teams[t["id"]] = t["name"]
-                fid = fx["fixture"]["id"]
                 try:
                     fp = collect.fetch_fixture_players(client, fid)
                 except QuotaExceeded:
@@ -381,9 +390,13 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
     the rare event with no team; commits in batches to bound memory (ADR 0007).
     """
     batch: list[Event] = []
+    seen: set[int] = set()  # a fixture under two targets would re-key (fid, event_index)
     for league_id, _name, season in config.targets():
         for fx in collect.fetch_fixtures(client, league_id, season):
             fid = fx["fixture"]["id"]
+            if fid in seen:
+                continue
+            seen.add(fid)
             try:
                 raw_events = collect.fetch_fixture_events(client, fid)
             except QuotaExceeded:
