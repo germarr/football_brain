@@ -18,7 +18,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from . import collect, config
 from .client import CachedClient, QuotaExceeded
 from .models import (
-    Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team, age_at,
+    Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team, Venue, age_at,
 )
 
 _NUM = re.compile(r"-?\d+")
@@ -37,6 +37,42 @@ def _parse_round(round_str: str | None) -> tuple[str, int | None]:
         return round_str.strip(), None
     suffix = suffix.strip()
     return prefix.strip(), int(suffix) if suffix.isdigit() else None
+
+
+_GROUP_LETTER = re.compile(r"^Group ([A-Z])(?: - (\d+))?$")
+_SINGLE_TABLE = re.compile(r"^(?:Group Stage|League Stage)(?: - (\d+))?$")
+
+
+def _parse_phase(round_str: str | None) -> tuple[str | None, str | None, str | None, int | None]:
+    """Classify a cup fixture's round into (phase, group_label, stage, matchday).
+
+    Grounded in the real provider vocabulary (ADR 0010):
+      'Play-offs' / 'Preliminary Round' / 'Nth Qualifying Round' -> qualifying,
+      'Group A - 3' -> group, label 'Group A', matchday 3,
+      'Group Stage - 2' / 'League Stage - 5' -> group, no label (letterless),
+      everything else ('Round of 16', 'Final', 'Knockout Round Play-offs', ...) ->
+      knockout, stage = the round string.
+    Qualifying is tested before knockout so bare 'Play-offs' (a qualifier) is never
+    mistaken for the new CL's 'Knockout Round Play-offs' (a real knockout round).
+    """
+    if not round_str:
+        return None, None, None, None
+    r = round_str.strip()
+
+    if r == "Preliminary Round" or r == "Play-offs" or "Qualifying Round" in r:
+        return "qualifying", None, r, None
+
+    m = _GROUP_LETTER.match(r)
+    if m:
+        matchday = int(m.group(2)) if m.group(2) else None
+        return "group", f"Group {m.group(1)}", None, matchday
+
+    m = _SINGLE_TABLE.match(r)
+    if m:
+        matchday = int(m.group(1)) if m.group(1) else None
+        return "group", None, None, matchday
+
+    return "knockout", None, r, None
 
 
 def _to_int(value) -> int | None:
@@ -64,20 +100,45 @@ def _status(substitute: bool, minutes: int | None) -> str:
     return "came_on" if (minutes or 0) > 0 else "unused_sub"
 
 
-def _parse_fixture(fx: dict) -> Fixture:
+def _venue_key(fx: dict) -> tuple[str, str | None] | None:
+    """The (name, city) identity of a fixture's venue, or None if unnamed.
+
+    The provider's venue.id is too sparse/inconsistent to key on (see Venue), so a
+    ground is identified by its name plus city (which disambiguates same-named
+    stadiums in different cities).
+    """
+    v = fx["fixture"].get("venue") or {}
+    name = v.get("name")
+    return (name, v.get("city")) if name else None
+
+
+def _parse_fixture(fx: dict, venue_ids: dict[tuple[str, str | None], int]) -> Fixture:
     f, lg, tm, g = fx["fixture"], fx["league"], fx["teams"], fx["goals"]
-    tournament, matchday = _parse_round(lg.get("round"))
+    lid = lg["id"]
+    league_name = config.COMPETITION_NAMES.get(lid, lg["name"])
+    round_str = lg.get("round")
+    # A cup is one Tournament per Season (its own name); its round encodes the Phase
+    # (ADR 0010). A league keeps the old round-prefix tournament and no phase.
+    if config.COMPETITION_TYPES.get(lid) == "cup":
+        tournament = league_name
+        phase, group_label, stage, matchday = _parse_phase(round_str)
+    else:
+        tournament, matchday = _parse_round(round_str)
+        phase = group_label = stage = None
     return Fixture(
         id=f["id"],
         date=dt.datetime.fromisoformat(f["date"]),
         season=lg["season"],
-        league_id=lg["id"],
-        league_name=config.COMPETITION_NAMES.get(lg["id"], lg["name"]),
+        league_id=lid,
+        league_name=league_name,
         tournament=tournament,
+        phase=phase,
+        group_label=group_label,
+        stage=stage,
         matchday=matchday,
-        round=lg.get("round"),
+        round=round_str,
         status=f["status"]["short"],
-        venue=(f.get("venue") or {}).get("name"),
+        venue_id=venue_ids.get(_venue_key(fx)),  # None when the provider named no venue
         home_team_id=tm["home"]["id"],
         home_team_name=tm["home"]["name"],
         away_team_id=tm["away"]["id"],
@@ -194,6 +255,32 @@ def _parse_event(fixture_id: int, index: int, ev: dict) -> Event:
     )
 
 
+def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str | None], int]:
+    """Sweep every target's fixtures for venues, insert the Venue rows, and return
+    the (name, city) -> surrogate id map the main loop uses to set Fixture.venue_id.
+
+    A cheap pre-pass (fixtures are local cache reads; no player fetches): the main
+    build loop commits and expunges Fixtures per season to bound memory, so the
+    surrogate ids must exist *before* those rows are parsed. provider_id is taken
+    from the first fixture that exposes a non-null venue.id for the ground.
+    """
+    provider_ids: dict[tuple[str, str | None], int | None] = {}
+    for league_id, _name, season in config.targets():
+        for fx in collect.fetch_fixtures(client, league_id, season):
+            key = _venue_key(fx)
+            if key is None:
+                continue
+            provider_ids[key] = provider_ids.get(key) or (fx["fixture"].get("venue") or {}).get("id")
+
+    # Enumerate sorted (name, city) pairs for a deterministic surrogate id (see Venue).
+    venue_ids = {key: i for i, key in enumerate(sorted(provider_ids, key=lambda k: (k[0], k[1] or "")), 1)}
+    for (name, city), sid in venue_ids.items():
+        session.add(Venue(id=sid, name=name, city=city, provider_id=provider_ids[(name, city)]))
+    session.commit()
+    session.expunge_all()
+    return venue_ids
+
+
 def build() -> None:
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     engine = create_engine(f"sqlite:///{config.DB_PATH}")
@@ -212,16 +299,24 @@ def build() -> None:
     # never accumulates more than one batch of rows at a time. Only the small
     # Python dicts above (a few ints/strs per player/team) live across phases.
     with Session(engine) as session:
+        venue_ids = _build_venues(session, client)
         for league_id, _name, season in config.targets():
             for fx in collect.fetch_fixtures(client, league_id, season):
-                session.add(_parse_fixture(fx))
+                session.add(_parse_fixture(fx, venue_ids))
                 _lid = fx["league"]["id"]
                 competitions[_lid] = config.COMPETITION_NAMES.get(_lid, fx["league"]["name"])
                 for side in ("home", "away"):
                     t = fx["teams"][side]
                     teams[t["id"]] = t["name"]
                 fid = fx["fixture"]["id"]
-                fp = collect.fetch_fixture_players(client, fid)
+                try:
+                    fp = collect.fetch_fixture_players(client, fid)
+                except QuotaExceeded:
+                    # No squad data cached for this fixture — a cup season without
+                    # per-player stats coverage (ADR 0010), or a bio/stat backfill
+                    # still in progress. The Fixture row stands; it just carries no
+                    # SquadEntry, like the guarded bio/career/event fetches below.
+                    continue
                 seen_pids: set[int] = set()  # provider lists a few players twice per fixture
                 for team_id, pblock in collect.players_in_fixture(fp):
                     pid = pblock["player"]["id"]
@@ -237,7 +332,8 @@ def build() -> None:
             session.expunge_all()     # and drop them from memory
 
         for cid, cname in competitions.items():
-            session.add(Competition(id=cid, name=cname))
+            session.add(Competition(id=cid, name=cname,
+                                    type=config.COMPETITION_TYPES.get(cid, "league")))
         for tid, tname in teams.items():
             session.add(Team(id=tid, name=tname))
         session.commit()
@@ -321,7 +417,7 @@ def _summary(session: Session) -> None:
         return session.exec(stmt).one()
 
     n = {"competitions": count(Competition), "teams": count(Team),
-         "fixtures": count(Fixture), "players": count(Player),
+         "venues": count(Venue), "fixtures": count(Fixture), "players": count(Player),
          "squad entries": count(SquadEntry), "career stints": count(PlayerTeam),
          "events": count(Event)}
     total_entries = n["squad entries"]
@@ -330,6 +426,9 @@ def _summary(session: Session) -> None:
         config.DB_PATH.name,
         ", ".join(f"{v} {k}" for k, v in n.items())))
     print(f"  ({appearances} appearances, {total_entries - appearances} unused subs)")
+    located = count(Fixture, Fixture.venue_id.is_not(None))
+    with_pid = count(Venue, Venue.provider_id.is_not(None))
+    print(f"  ({located}/{n['fixtures']} fixtures located; {with_pid}/{n['venues']} venues carry a provider id)")
 
     # Fixture breakdown per (competition, season, tournament) — proves the split.
     print("\nFixtures by competition / season / tournament:")
@@ -340,6 +439,21 @@ def _summary(session: Session) -> None:
     ).all()
     for comp, season, tourn, c in rows:
         print(f"  {comp:10} {season}  {tourn:14} {c:4}")
+
+    # Cup phase breakdown (ADR 0010) — proves group/knockout/qualifying tagging.
+    cup_rows = session.exec(
+        select(Fixture.league_name, Fixture.season, Fixture.phase,
+               func.coalesce(Fixture.group_label, Fixture.stage), func.count())
+        .where(Fixture.phase.is_not(None))
+        .group_by(Fixture.league_name, Fixture.season, Fixture.phase,
+                  func.coalesce(Fixture.group_label, Fixture.stage))
+        .order_by(Fixture.league_name, Fixture.season, Fixture.phase,
+                  func.coalesce(Fixture.group_label, Fixture.stage))
+    ).all()
+    if cup_rows:
+        print("\nCup fixtures by competition / season / phase / group-or-stage:")
+        for comp, season, phase, label, c in cup_rows:
+            print(f"  {comp:18} {season}  {phase:10} {(label or '—'):22} {c:4}")
 
     # Events breakdown (ADR 0007) — only meaningful once events are backfilled.
     if n["events"]:

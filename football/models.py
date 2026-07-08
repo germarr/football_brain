@@ -20,11 +20,32 @@ from sqlmodel import Field, SQLModel
 class Competition(SQLModel, table=True):
     id: int = Field(primary_key=True)   # provider league id (140, 262)
     name: str
+    type: str = "league"                # "league" | "cup" (provider's league.type)
 
 
 class Team(SQLModel, table=True):
     id: int = Field(primary_key=True)
     name: str
+
+
+class Venue(SQLModel, table=True):
+    """A stadium, identified by (name, city).
+
+    The provider's own venue.id is null in ~32% of fixtures and inconsistent for
+    the same ground (one fixture carries it, another for the same stadium does
+    not), so it cannot be the key. `id` is instead a surrogate assigned by
+    enumerating the unique (name, city) pairs in sorted order — deterministic
+    across a drop-and-rebuild while the raw cache is stable, the same rationale as
+    the Event table's key.
+
+    provider_id keeps the provider's venue.id when any fixture exposes it (else
+    null): a best-effort handle for a future /venues backfill of capacity /
+    surface / coordinates, none of which the fixtures endpoint carries.
+    """
+    id: int = Field(primary_key=True)        # surrogate, deterministic (see above)
+    name: str
+    city: str | None = None
+    provider_id: int | None = None           # provider venue.id when exposed; else null
 
 
 class Player(SQLModel, table=True):
@@ -47,11 +68,15 @@ class Fixture(SQLModel, table=True):
     season: int
     league_id: int = Field(foreign_key="competition.id")
     league_name: str
-    tournament: str                          # "Regular Season" | "Apertura" | "Clausura"
-    matchday: int | None = None              # numeric round; null for playoff fixtures
+    tournament: str                          # "Regular Season" | "Apertura" | cup name
+    # Phase columns are cup-only (ADR 0010); all null for a league-type Competition.
+    phase: str | None = None                 # "qualifying" | "group" | "knockout"
+    group_label: str | None = None           # "Group A".."Group H"; null if not exposed
+    stage: str | None = None                 # knockout/qualifying round name, e.g. "Final"
+    matchday: int | None = None              # numeric round; null for knockout/qualifying
     round: str | None = None                 # full provider round, e.g. "Apertura - 5"
     status: str | None = None                # e.g. "FT"
-    venue: str | None = None
+    venue_id: int | None = Field(default=None, foreign_key="venue.id")  # null if provider named no venue
     home_team_id: int = Field(foreign_key="team.id")
     home_team_name: str
     away_team_id: int = Field(foreign_key="team.id")
