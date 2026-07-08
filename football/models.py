@@ -165,6 +165,40 @@ class Event(SQLModel, table=True):
     comments: str | None = None
 
 
+class TeamMatchStat(SQLModel, table=True):
+    """One team's aggregate stat line for one Fixture, from the fixtures/statistics
+    endpoint: possession, shots, passes, corners, cards, saves, xG. Two rows per
+    fixture, keyed (fixture_id, team_id) like the two Teams a Fixture references.
+
+    Every metric is nullable: the provider omits whole stats for older or lower-
+    coverage fixtures, and reports 'Red Cards' as null (not 0) when there are none.
+    Possession and pass-accuracy arrive as strings ('44%', '81%') and xG as '1.20';
+    they're unit-stripped to int/float at parse time via _to_int / _to_float — the
+    same treatment Player.height_cm gives '187 cm'.
+    """
+    fixture_id: int = Field(foreign_key="fixture.id", primary_key=True)
+    team_id: int = Field(foreign_key="team.id", primary_key=True)
+
+    possession: int | None = None            # "Ball Possession"  '44%' -> 44
+    shots_total: int | None = None           # "Total Shots"
+    shots_on: int | None = None              # "Shots on Goal"
+    shots_off: int | None = None             # "Shots off Goal"
+    shots_blocked: int | None = None         # "Blocked Shots"
+    shots_inside: int | None = None          # "Shots insidebox"
+    shots_outside: int | None = None         # "Shots outsidebox"
+    corners: int | None = None               # "Corner Kicks"
+    offsides: int | None = None              # "Offsides"
+    fouls: int | None = None                 # "Fouls"
+    yellow: int | None = None                # "Yellow Cards"
+    red: int | None = None                   # "Red Cards" (null when zero)
+    saves: int | None = None                 # "Goalkeeper Saves"
+    passes_total: int | None = None          # "Total passes"
+    passes_accurate: int | None = None       # "Passes accurate"
+    passes_pct: int | None = None            # "Passes %"  '81%' -> 81
+    expected_goals: float | None = None      # "expected_goals" (xG; newer seasons only)
+    goals_prevented: float | None = None     # "goals_prevented" (newer seasons only)
+
+
 def age_at(birth_date: dt.date | None, on: dt.date) -> int | None:
     """Age in whole years at a given date (used with a fixture's date)."""
     if birth_date is None:

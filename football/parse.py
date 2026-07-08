@@ -10,6 +10,7 @@ Run with:  uv run python -m football.parse
 from __future__ import annotations
 
 import datetime as dt
+import fcntl
 import re
 
 from sqlalchemy import func
@@ -18,7 +19,8 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from . import collect, config
 from .client import CachedClient, QuotaExceeded
 from .models import (
-    Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team, Venue, age_at,
+    Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team,
+    TeamMatchStat, Venue, age_at,
 )
 
 _NUM = re.compile(r"-?\d+")
@@ -255,6 +257,29 @@ def _parse_event(fixture_id: int, index: int, ev: dict) -> Event:
     )
 
 
+# fixtures/statistics reports each metric as a {type, value} pair; map the provider
+# type string to a TeamMatchStat column. _to_int strips '44%'/'81%'; _to_float '1.20'.
+_TEAM_STAT_INT = {
+    "Ball Possession": "possession",      "Total Shots": "shots_total",
+    "Shots on Goal": "shots_on",          "Shots off Goal": "shots_off",
+    "Blocked Shots": "shots_blocked",     "Shots insidebox": "shots_inside",
+    "Shots outsidebox": "shots_outside",  "Corner Kicks": "corners",
+    "Offsides": "offsides",               "Fouls": "fouls",
+    "Yellow Cards": "yellow",             "Red Cards": "red",
+    "Goalkeeper Saves": "saves",          "Total passes": "passes_total",
+    "Passes accurate": "passes_accurate", "Passes %": "passes_pct",
+}
+_TEAM_STAT_FLOAT = {"expected_goals": "expected_goals", "goals_prevented": "goals_prevented"}
+
+
+def _parse_team_stats(fixture_id: int, entry: dict) -> TeamMatchStat:
+    """One fixtures/statistics team entry -> a TeamMatchStat row."""
+    by_type = {s["type"]: s.get("value") for s in entry.get("statistics") or []}
+    kwargs = {col: _to_int(by_type.get(t)) for t, col in _TEAM_STAT_INT.items()}
+    kwargs.update({col: _to_float(by_type.get(t)) for t, col in _TEAM_STAT_FLOAT.items()})
+    return TeamMatchStat(fixture_id=fixture_id, team_id=entry["team"]["id"], **kwargs)
+
+
 def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str | None], int]:
     """Sweep every target's fixtures for venues, insert the Venue rows, and return
     the (name, city) -> surrogate id map the main loop uses to set Fixture.venue_id.
@@ -282,7 +307,23 @@ def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str
 
 
 def build() -> None:
+    """Rebuild the store, serialized against any other concurrent build.
+
+    _rebuild() drops and recreates every table, so two builds racing on the one
+    SQLite file corrupt each other — one's drop_all() deletes tables the other is
+    mid-insert into ("no such table: squadentry"), or the cache shifts under a
+    build and re-keys a row (duplicate-fixture PK collisions). This bites when
+    several `orchestrate <league>` runs (each ends in a full rebuild) overlap. An
+    exclusive advisory lock makes overlapping builds queue and run one at a time;
+    the lock file is released on any exit, including a crash.
+    """
     config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(config.DB_PATH.with_suffix(".build.lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)   # blocks until any other build finishes
+        _rebuild()
+
+
+def _rebuild() -> None:
     engine = create_engine(f"sqlite:///{config.DB_PATH}")
     SQLModel.metadata.drop_all(engine)   # disposable store (ADR 0002)
     SQLModel.metadata.create_all(engine)
@@ -378,6 +419,7 @@ def build() -> None:
         session.expunge_all()
 
         _build_events(session, client, set(player_season))
+        _build_team_stats(session, client, set(teams))
         _summary(session)
 
 
@@ -421,6 +463,41 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
         session.expunge_all()
 
 
+def _build_team_stats(session: Session, client: CachedClient, known_teams: set[int]) -> None:
+    """Second pass over the fixtures (from cache) to insert team match stats.
+
+    Clones _build_events: re-reads fixtures/statistics rather than hoarding rows,
+    dedupes fixture ids so a fixture surfacing under two targets can't re-key
+    (fixture_id, team_id), and commits in batches to bound memory. Only teams in
+    the Team table are kept (the two per fixture always are); a fixture the
+    provider has no stats for yields an empty response and no rows.
+    """
+    batch: list[TeamMatchStat] = []
+    seen: set[int] = set()
+    for league_id, _name, season in config.targets():
+        for fx in collect.fetch_fixtures(client, league_id, season):
+            fid = fx["fixture"]["id"]
+            if fid in seen:
+                continue
+            seen.add(fid)
+            try:
+                entries = collect.fetch_fixture_statistics(client, fid)
+            except QuotaExceeded:
+                continue  # this fixture's team stats aren't backfilled yet
+            for entry in entries:
+                if (entry.get("team") or {}).get("id") in known_teams:
+                    batch.append(_parse_team_stats(fid, entry))
+            if len(batch) >= 10000:
+                session.add_all(batch)
+                session.commit()
+                session.expunge_all()
+                batch = []
+    if batch:
+        session.add_all(batch)
+        session.commit()
+        session.expunge_all()
+
+
 def _summary(session: Session) -> None:
     # Aggregate in SQL — the tables are far too large to pull into memory (ADR 0002).
     def count(model, *where):
@@ -432,7 +509,7 @@ def _summary(session: Session) -> None:
     n = {"competitions": count(Competition), "teams": count(Team),
          "venues": count(Venue), "fixtures": count(Fixture), "players": count(Player),
          "squad entries": count(SquadEntry), "career stints": count(PlayerTeam),
-         "events": count(Event)}
+         "events": count(Event), "team stats": count(TeamMatchStat)}
     total_entries = n["squad entries"]
     appearances = count(SquadEntry, SquadEntry.minutes > 0)
     print("Built {}: {}".format(
@@ -442,6 +519,12 @@ def _summary(session: Session) -> None:
     located = count(Fixture, Fixture.venue_id.is_not(None))
     with_pid = count(Venue, Venue.provider_id.is_not(None))
     print(f"  ({located}/{n['fixtures']} fixtures located; {with_pid}/{n['venues']} venues carry a provider id)")
+    if n["team stats"]:
+        statted = session.exec(
+            select(func.count(func.distinct(TeamMatchStat.fixture_id)))).one()
+        with_xg = count(TeamMatchStat, TeamMatchStat.expected_goals.is_not(None))
+        print(f"  ({statted}/{n['fixtures']} fixtures have team stats; "
+              f"{with_xg}/{n['team stats']} team rows carry xG)")
 
     # Fixture breakdown per (competition, season, tournament) — proves the split.
     print("\nFixtures by competition / season / tournament:")

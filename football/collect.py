@@ -40,6 +40,17 @@ def fetch_fixture_events(client: CachedClient, fixture_id: int) -> list[dict]:
     return payload.get("response") or []
 
 
+def fetch_fixture_statistics(client: CachedClient, fixture_id: int) -> list[dict]:
+    """Both teams' aggregate stat lines for a fixture (possession, shots, xG).
+
+    Sourced from fixtures/statistics: one call per fixture, cache-first. The
+    response is a two-element list (one entry per team), each carrying a list of
+    {type, value} pairs; empty for a fixture the provider has no stats for.
+    """
+    payload = client.get("fixtures/statistics", {"fixture": fixture_id})
+    return payload.get("response") or []
+
+
 def fetch_player(client: CachedClient, player_id: int, season: int) -> dict | None:
     """Biography for one player in a season, or None if the provider has no record
     (some players appear in a fixture but return an empty /players response)."""
