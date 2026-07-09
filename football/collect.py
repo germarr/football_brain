@@ -98,6 +98,23 @@ def fetch_player_teams(client: CachedClient, player_id: int) -> list[dict]:
     return payload.get("response") or []
 
 
+def fetch_team(client: CachedClient, team_id: int) -> dict | None:
+    """The provider's /teams record for one team id: identity (name, code, country,
+    founded, national flag, crest) plus a venue block. Powers the Team Profile
+    dossier (ADR 0017); one cache-first call per team. Returns None when the provider
+    has no such team (empty response), so the caller can emit a minimal name-only row."""
+    resp = client.get("teams", {"id": team_id}).get("response") or []
+    return resp[0] if resp else None
+
+
+def fetch_team_leagues(client: CachedClient, team_id: int) -> list[dict]:
+    """Every league a team has ever competed in (the leagues?team endpoint), each with
+    its country and the seasons the team played. A Team Profile's representative
+    domestic league is picked from this (ADR 0017); one cache-first call per team, made
+    only for teams not already covered by our own Fixtures (their league is in cache)."""
+    return client.get("leagues", {"team": team_id}).get("response") or []
+
+
 def players_in_fixture(fixture_players: dict) -> list[tuple[int, dict]]:
     """(team_id, player_block) for every player of both teams in a fixture."""
     out: list[tuple[int, dict]] = []

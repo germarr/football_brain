@@ -122,6 +122,44 @@ class PlayerTeam(SQLModel, table=True):
     team_name: str
 
 
+class TeamProfile(SQLModel, table=True):
+    """The enriched dossier for a Team — any team a player's Career Stint touches
+    (CONTEXT.md: Team Profile, ADR 0017), including the thousands of out-of-scope
+    clubs and national / youth sides beyond the Competitions we collect. One row per
+    distinct PlayerTeam.team_id, so every Career Stint reference resolves.
+
+    Club identity (country, founded, crest, national flag) comes from the provider
+    teams endpoint. `league_*` is the team's single *representative* domestic league
+    — the `type="league"` competition in its own country with the most recent season
+    — taken from our own Fixtures when the team is tracked, else from the leagues?team
+    endpoint; all null for a national team, an unresolved club, or a team not yet
+    enriched. `continent` is derived from the country (config.COUNTRY_CONTINENT), as
+    on Competition.
+
+    A superset of the `Team` table by id, but a separate directory: PlayerTeam.team_id
+    is intentionally NOT a foreign key to it (enrichment lags collection), and neither
+    is `league_id` (it may name a league we do not otherwise track). A row is emitted
+    for every career team on every build; fields fill progressively as enrichment
+    caches the provider responses, and `name` always falls back to the denormalized
+    PlayerTeam.team_name until then.
+    """
+    id: int = Field(primary_key=True)        # provider team id
+    name: str
+    code: str | None = None                  # short code e.g. "BAR"; provider may omit
+    country: str | None = None               # the club's own country ("Spain")
+    founded: int | None = None               # year founded; provider may omit
+    is_national: bool | None = None          # provider team.national; null until enriched
+    logo: str | None = None                  # crest URL
+
+    # Representative domestic league (ADR 0017) — all null for a national team, an
+    # unresolved club, or a team not yet enriched. league_id is NOT a foreign key:
+    # it may name a league outside our collected Competitions.
+    league_id: int | None = None
+    league_name: str | None = None           # our canonical name if tracked, else provider's
+    league_country: str | None = None        # the league's country
+    continent: str | None = None             # derived from country (config.COUNTRY_CONTINENT)
+
+
 class SquadEntry(SQLModel, table=True):
     fixture_id: int = Field(foreign_key="fixture.id", primary_key=True)
     player_id: int = Field(foreign_key="player.id", primary_key=True)

@@ -22,7 +22,7 @@ from . import collect, config
 from .client import CachedClient, QuotaExceeded
 from .models import (
     Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team,
-    TeamMatchStat, Venue, age_at,
+    TeamMatchStat, TeamProfile, Venue, age_at,
 )
 
 _NUM = re.compile(r"-?\d+")
@@ -496,6 +496,10 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
     competitions: dict[int, str] = {}
     player_season: dict[int, int] = {}
     player_names: dict[int, str] = {}   # fallback name for players lacking a bio
+    # Tracked team -> (most-recent season, league id) among domestic league-type
+    # Competitions: the cache-derived representative league for a Team Profile (ADR
+    # 0017), so a team appearing in our Fixtures skips the leagues?team lookup.
+    team_home_league: dict[int, tuple[int, int]] = {}
 
     # The full store is ~1M squad entries + ~200k career stints + ~400k events.
     # Holding all of that in one session's identity map exhausts memory (OOM at
@@ -522,6 +526,12 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
                 for side in ("home", "away"):
                     t = fx["teams"][side]
                     teams[t["id"]] = t["name"]
+                    # Record the most-recent domestic-league season a team plays in
+                    # our data as its representative league (cups don't count).
+                    if config.COMPETITION_TYPES.get(_lid, "league") == "league":
+                        prev = team_home_league.get(t["id"])
+                        if prev is None or season > prev[0]:
+                            team_home_league[t["id"]] = (season, _lid)
                 try:
                     fp = collect.fetch_fixture_players(client, fid)
                 except QuotaExceeded:
@@ -569,7 +579,10 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
         session.commit()
         session.expunge_all()
 
-        # Career Stints: full cross-competition team history per player.
+        # Career Stints: full cross-competition team history per player. The same
+        # responses name every team a player's career touches — the population of the
+        # Team Profile directory (ADR 0017) — so we gather (team_id -> name) here.
+        career_teams: dict[int, str] = {}
         for i, pid in enumerate(sorted(player_season), 1):
             try:
                 response = collect.fetch_player_teams(client, pid)
@@ -577,15 +590,120 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
                 continue  # career history not cached yet (backfill in progress)
             for row in _parse_player_teams(pid, response):
                 session.add(row)
+            for entry in response:
+                t = entry.get("team") or {}
+                if t.get("id"):
+                    career_teams[t["id"]] = t.get("name") or str(t["id"])
             if i % 2000 == 0:
                 session.commit()
                 session.expunge_all()
         session.commit()
         session.expunge_all()
 
+        _build_team_profiles(session, client, career_teams, team_home_league)
+
         _build_events(session, client, set(player_season), targets)
         _build_team_stats(session, client, set(teams), targets)
         _summary(session, db_path)
+
+
+def _leagues_catalogue(client: CachedClient) -> dict[int, tuple[str, str | None]]:
+    """league id -> (provider name, country) from the cached /leagues catalogue.
+
+    The `leagues/_all.json` catalogue (every league the provider knows) is always in
+    cache, so a tracked team's representative-league metadata costs no request. Returns
+    {} if the catalogue was never cached."""
+    try:
+        payload = client.get("leagues", {})   # cache key `_all`
+    except QuotaExceeded:
+        return {}
+    out: dict[int, tuple[str, str | None]] = {}
+    for entry in payload.get("response") or []:
+        lg = entry.get("league") or {}
+        if lg.get("id") is not None:
+            out[lg["id"]] = (lg.get("name"), (entry.get("country") or {}).get("name"))
+    return out
+
+
+def _representative_league(team_leagues: list[dict], team_country: str | None
+                           ) -> tuple[int, str | None, str | None] | None:
+    """Pick a team's representative domestic league from a leagues?team response
+    (ADR 0017): the `type="league"` competition in the team's own country with the
+    most recent season. Falls back to any league-type competition if none match the
+    country, and returns None if the team has no league-type entry at all (a national
+    team, or a club with only cup appearances). -> (league_id, name, country)."""
+    leagues: list[tuple[int, dict, str | None]] = []
+    for entry in team_leagues:
+        lg = entry.get("league") or {}
+        if (lg.get("type") or "").lower() != "league" or lg.get("id") is None:
+            continue
+        years = [s.get("year") for s in (entry.get("seasons") or [])
+                 if isinstance(s.get("year"), int)]
+        if not years:
+            continue
+        leagues.append((max(years), lg, (entry.get("country") or {}).get("name")))
+    if not leagues:
+        return None
+    own = [x for x in leagues if team_country and x[2] == team_country]
+    season, lg, country = max(own or leagues, key=lambda x: x[0])
+    return lg["id"], lg.get("name"), country
+
+
+def _build_team_profiles(session: Session, client: CachedClient,
+                         career_teams: dict[int, str],
+                         team_home_league: dict[int, tuple[int, int]]) -> None:
+    """Build the Team Profile directory: one row per distinct career team (ADR 0017).
+
+    Club identity is read from a cached /teams record (else a minimal name-only row).
+    The representative league comes from our own Fixtures for a tracked team
+    (team_home_league) and from a cached leagues?team response otherwise; league
+    metadata is filled from the cached /leagues catalogue. Cache-only (a miss raises
+    QuotaExceeded), so a team not yet enriched still gets a row with null fields —
+    the directory is always complete and fills on later passes."""
+    catalogue = _leagues_catalogue(client)
+    batch: list[TeamProfile] = []
+    for tid, fallback_name in career_teams.items():
+        name, code, country, founded, national, logo = fallback_name, None, None, None, None, None
+        try:
+            record = collect.fetch_team(client, tid)
+        except QuotaExceeded:
+            record = None                     # not enriched yet — minimal row
+        if record:
+            tb = record.get("team") or {}
+            name = tb.get("name") or fallback_name
+            code, country = tb.get("code"), tb.get("country")
+            founded, national, logo = tb.get("founded"), tb.get("national"), tb.get("logo")
+
+        league_id = league_name = league_country = None
+        if tid in team_home_league:           # tracked: league from our Fixtures (cache)
+            league_id = team_home_league[tid][1]
+            cat = catalogue.get(league_id)
+            league_name = config.COMPETITION_NAMES.get(league_id) or (cat[0] if cat else None)
+            league_country = cat[1] if cat else None
+        else:                                 # out-of-scope: from leagues?team, if cached
+            try:
+                rep = _representative_league(collect.fetch_team_leagues(client, tid), country)
+            except QuotaExceeded:
+                rep = None
+            if rep:
+                league_id, provider_name, league_country = rep
+                league_name = config.COMPETITION_NAMES.get(league_id, provider_name)
+
+        continent = config.COUNTRY_CONTINENT.get(country or league_country or "")
+        batch.append(TeamProfile(
+            id=tid, name=name, code=code, country=country, founded=founded,
+            is_national=national, logo=logo, league_id=league_id,
+            league_name=league_name, league_country=league_country, continent=continent,
+        ))
+        if len(batch) >= 5000:
+            session.add_all(batch)
+            session.commit()
+            session.expunge_all()
+            batch = []
+    if batch:
+        session.add_all(batch)
+        session.commit()
+        session.expunge_all()
 
 
 def _build_events(session: Session, client: CachedClient, known_players: set[int],
@@ -678,7 +796,8 @@ def _summary(session: Session, db_path: Path) -> None:
         return session.exec(stmt).one()
 
     n = {"competitions": count(Competition), "teams": count(Team),
-         "venues": count(Venue), "fixtures": count(Fixture), "players": count(Player),
+         "team profiles": count(TeamProfile), "venues": count(Venue),
+         "fixtures": count(Fixture), "players": count(Player),
          "squad entries": count(SquadEntry), "career stints": count(PlayerTeam),
          "events": count(Event), "team stats": count(TeamMatchStat)}
     total_entries = n["squad entries"]

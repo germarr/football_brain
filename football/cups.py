@@ -45,6 +45,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--calendar-year", action="store_true",
                     help="label seasons as a single calendar year (e.g. the World Cup)")
     ap.add_argument("--no-careers", action="store_true", help="skip career histories")
+    ap.add_argument("--no-teams", action="store_true",
+                    help="skip Team Profile enrichment (teams the careers surface)")
     ap.add_argument("--no-events", action="store_true", help="skip the match-event timeline")
     ap.add_argument("--no-stats", action="store_true",
                     help="skip team match stats (possession, shots, xG)")
@@ -80,7 +82,7 @@ def main(argv: list[str] | None = None) -> None:
         orchestrate._collect(
             client, args.league_id, seasons,
             do_careers=not args.no_careers, do_events=not args.no_events,
-            do_stats=not args.no_stats,
+            do_stats=not args.no_stats, do_teams=not args.no_teams,
         )
     except QuotaExceeded as e:
         print(f"\n[stopped] {e}")

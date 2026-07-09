@@ -129,8 +129,31 @@ A club **or national team** that contests Fixtures, identified by a stable
 provider team id. In a domestic league the Teams are the ~20 clubs; in the World
 Cup they are national teams (Argentina, France); the Champions League fields
 clubs. All share one `Team` table and one id space. A Fixture is played between a
-home and an away Team.
-_Avoid_: club (use "Team" — a national team is a Team too), side.
+home and an away Team. The `Team` table holds only the Teams that contest a
+**collected** Fixture (both sides of every Fixture we store); the wider universe
+of teams a player's career touches lives in **Team Profile**.
+_Avoid_: club (use "Team" — a national team is a Team too), side; conflating the
+in-scope `Team` table with the all-career-teams **Team Profile** directory.
+
+**Team Profile**:
+The enriched **dossier** for a Team — any team a player's Career Stint touches,
+including the thousands of out-of-scope clubs and national/youth sides beyond the
+Competitions we collect. One row per distinct `PlayerTeam.team_id`: the club's
+identity (name, country, founded year, crest, whether it is a national team) plus
+its single **representative league** — the domestic league it currently plays in
+(`type = "league"`, own country, most recent season), which is null for a national
+team or a club we cannot resolve. It is the persisted answer to "what league does
+this team belong to," backing **League of Origin**. Club identity comes from the
+provider's teams endpoint and the league from its leagues-by-team endpoint, called
+only for teams not already covered by our own Fixtures; national/youth sides and
+provider-unknown ids degrade to a minimal name-only row rather than being dropped,
+so the directory covers **every** career team. It is a superset of the `Team`
+table by id, but a separate directory — `PlayerTeam.team_id` is still not a foreign
+key (enrichment lags collection); Team Profile is the documented **join target**.
+_Avoid_: club dossier, team registry; treating it as the in-scope `Team` table
+(it is a superset directory); expecting a national team or an unresolved club to
+carry a representative league; reading a null-heavy row mid-backfill as broken (it
+fills progressively); making it a foreign-key target for Career Stints.
 
 **Player**:
 An individual footballer, identified by a stable provider player id, carrying
@@ -201,5 +224,30 @@ outside our collected Competitions (e.g. Ronaldo's Manchester United, Juventus,
 Al-Nassr, Portugal) — so its `team_id` is a global provider id that is _not_
 constrained to the `Team` table and carries a denormalized `team_name`. "All the
 teams a player played for" is `SELECT DISTINCT team_id FROM playerteam`.
+A Career Stint carries **no league and no country** — only the team id and a
+denormalized name (the provider's players/teams endpoint exposes nothing more).
+Attaching a league or country to a stint is therefore a *derived* step, not a
+lookup: it needs an external team→league resolution (see **League of Origin**).
 _Avoid_: treating a Career Stint as an Appearance (it carries no per-match stats
-and is not scoped to a Fixture); assuming its seasons align with our fixture data.
+and is not scoped to a Fixture); assuming its seasons align with our fixture data;
+expecting a stint to tell you which league or country the team belongs to.
+
+**League of Origin**:
+For a player in a target Competition, the **domestic league of the club they
+joined that Competition from** — the club held at the latest Career-Stint season
+at or before they joined their current club, with **national teams excluded**
+(clubs only). A stint has no league of its own, so the prior club's
+`team_id` is resolved to a league through its **Team Profile** (the persisted
+representative domestic league of every career team). A club whose Team Profile
+has no representative league — a national team, or a club we cannot resolve —
+is **Unknown**. (Before Team Profile existed this was derived ad-hoc by matching
+the team id against the fixtures of the whole modeled store; Team Profile now
+persists that answer for every team, resolved once via the provider rather than
+re-inferred from our own fixtures.) A player
+whose only club history is their current club has **no** League of Origin — they
+are **homegrown/debut**, a distinct value from having come from another club in
+the same league.
+_Avoid_: reading a League of Origin off a Career Stint directly (it must be
+resolved); letting a cup stand in as a league of origin; conflating homegrown (no
+prior club) with a prior stint at another club in the same league; assuming every
+prior club resolves (a club outside the collected Competitions is Unknown).

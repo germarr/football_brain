@@ -25,7 +25,7 @@ import json
 import sys
 from typing import NamedTuple
 
-from . import collect, config
+from . import collect, config, teams
 from .client import CachedClient, QuotaExceeded
 
 _BAR_WIDTH = 28
@@ -134,25 +134,35 @@ def _register(league_id: int, name: str, seasons: list[int], calendar_year: bool
 # --- collection stages -----------------------------------------------------
 
 def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage],
-             do_careers: bool, do_events: bool, do_stats: bool) -> None:
+             do_careers: bool, do_events: bool, do_stats: bool,
+             do_teams: bool = True) -> None:
     """Drive every collection stage for one Competition — league or cup (ADR 0014).
 
     Fixtures and events cover every season; the per-player stages (squad/goals,
     bios, careers) run only for seasons with player Coverage, and team match stats
-    only for seasons with fixture Coverage. Reuses collect.fetch_* (cache-first) so
-    re-runs are free. Raises QuotaExceeded on hitting the per-run/daily cap; the
+    only for seasons with fixture Coverage. When careers run, a Team Profile stage
+    enriches the teams they surface (ADR 0017). Reuses collect.fetch_* (cache-first)
+    so re-runs are free. Raises QuotaExceeded on hitting the per-run/daily cap; the
     caller decides whether to rebuild.
     """
-    n_stages = 3 + int(do_careers) + int(do_events) + int(do_stats)
+    do_teams = do_teams and do_careers  # career histories are what surface the teams
+    n_stages = 3 + int(do_careers) + int(do_teams) + int(do_events) + int(do_stats)
     all_years = [c.year for c in seasons]
     player_years = [c.year for c in seasons if c.has_player_stats]
 
-    # Stage 1 — fixtures (every season).
+    # Stage 1 — fixtures (every season). Track this run's teams: their league is in
+    # our own fixtures, so the Team Profile stage skips leagues?team for them.
     _banner(1, n_stages, "Fixtures", f"{len(all_years)} seasons")
     fixtures: list[tuple[int, dict, SeasonCoverage]] = []  # (season, fixture, coverage)
+    fixture_team_ids: set[int] = set()
     for i, cov in enumerate(seasons, 1):
         fx = collect.fetch_fixtures(client, league_id, cov.year)
         fixtures.extend((cov.year, f, cov) for f in fx)
+        for f in fx:
+            for side in ("home", "away"):
+                tid = (f["teams"][side] or {}).get("id")
+                if tid:
+                    fixture_team_ids.add(tid)
         _bar(i, len(seasons), client)
     print(f"    {len(fixtures)} fixtures across {len(all_years)} seasons "
           f"({len(player_years)} with player stats)")
@@ -178,15 +188,28 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
         _bar(j, max(len(players), 1), client)
 
     step = 3
-    # Stage 4 — career histories (one players/teams call per unique player).
+    # Stage 4 — career histories (one players/teams call per unique player). Collect
+    # every team the histories name — the population the Team Profile stage enriches.
+    career_team_ids: set[int] = set()
     if do_careers:
         step += 1
         _banner(step, n_stages, "Career histories", f"{len(players)} players")
         for j, (pid, _season) in enumerate(players, 1):
-            collect.fetch_player_teams(client, pid)
+            for entry in collect.fetch_player_teams(client, pid):
+                tid = (entry.get("team") or {}).get("id")
+                if tid:
+                    career_team_ids.add(tid)
             _bar(j, max(len(players), 1), client)
 
-    # Stage 5 — match events (every season).
+    # Stage 5 — Team Profiles: enrich the teams the careers surfaced (ADR 0017).
+    # /teams for all; /leagues?team only for teams not in this run's fixtures.
+    if do_teams:
+        step += 1
+        _banner(step, n_stages, "Team profiles", f"{len(career_team_ids)} teams")
+        teams.enrich(client, career_team_ids, fixture_team_ids,
+                     on_progress=lambda i, total: _bar(i, total, client))
+
+    # Stage 6 — match events (every season).
     if do_events:
         step += 1
         _banner(step, n_stages, "Match events", f"{len(fixtures)} fixtures")
@@ -194,7 +217,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
             collect.fetch_fixture_events(client, f["fixture"]["id"])
             _bar(i, max(len(fixtures), 1), client)
 
-    # Stage 6 — team match stats (only seasons with fixture Coverage).
+    # Stage 7 — team match stats (only seasons with fixture Coverage).
     if do_stats:
         step += 1
         stat_fixtures = [f for _season, f, cov in fixtures if cov.has_fixture_stats]
@@ -219,6 +242,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--calendar-year", action="store_true",
                     help="label seasons as a single calendar year (e.g. Brasileirão)")
     ap.add_argument("--no-careers", action="store_true", help="skip career histories")
+    ap.add_argument("--no-teams", action="store_true",
+                    help="skip Team Profile enrichment (teams the careers surface)")
     ap.add_argument("--no-events", action="store_true", help="skip the match-event timeline")
     ap.add_argument("--no-stats", action="store_true",
                     help="skip team match stats (possession, shots, xG)")
@@ -248,7 +273,7 @@ def main(argv: list[str] | None = None) -> None:
         _collect(
             client, args.league_id, seasons,
             do_careers=not args.no_careers, do_events=not args.no_events,
-            do_stats=not args.no_stats,
+            do_stats=not args.no_stats, do_teams=not args.no_teams,
         )
     except QuotaExceeded as e:
         print(f"\n[stopped] {e}")
