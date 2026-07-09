@@ -6,6 +6,12 @@ competitions — **La Liga, Premier League, Serie A, Bundesliga** and
 Argentina** (2016/17 onward) — sourced from the API-Football provider. (FC
 Barcelona is the default view for exploration, not a data boundary.)
 
+The modeled store is one SQLite file, `data/football.db`, holding every
+Competition (`football.parse`). A single Competition can be extracted into its own
+`data/<slug>.db` from the same raw cache with `python -m football.scope <id>` (and
+removed with `--delete`) — a zero-API re-parse, so it needs the data already
+collected (ADR 0011).
+
 ## Language
 
 **Competition**:
@@ -16,9 +22,13 @@ the provider's — the API labels both Italy's and Brazil's league "Serie A", so
 override (Italy → Serie A, Brazil → Brasileirão); Argentina's top flight is kept
 as "Liga Profesional Argentina" rather than the bare "Primera División", which
 collides with Spain (La Liga is officially Primera División too).
-_Avoid_: using bare "league" as the canonical noun; confusing it with a
-Tournament (a sub-division of one Competition's season); trusting the provider's
-league name as a key.
+A Competition is of one **type**: a **league** (a domestic round-robin table —
+all seven collected so far) or a **cup** (a group+knockout competition such as the
+Champions League or World Cup). The type is the provider's own `league.type` and
+governs how a Season's Fixtures are structured into Tournaments and Phases.
+_Avoid_: using bare "league" as the canonical noun (a Competition may be a cup);
+confusing a Competition with a Tournament (a sub-division of one Competition's
+season); trusting the provider's league name as a key.
 
 **Season**:
 The provider's season for a Competition, identified by a single year (e.g.
@@ -28,12 +38,56 @@ campaign that straddles two calendar years (2024/25). For calendar-year leagues
 not `"2024/25"`. A Season contains one or more **Tournaments**.
 _Avoid_: year (ambiguous); labelling a calendar-year Season as "YYYY/YY".
 
+**Coverage**:
+What the provider exposes for a given Season — which classes of data exist to
+collect at all. Two facts matter: **player coverage** (`statistics_players`)
+governs whether per-player data exists (Squad Entries, and the bios and Career
+Stints keyed off the players they surface); **fixture coverage**
+(`statistics_fixtures`) governs whether per-team match aggregates exist (possession,
+shots, xG). Fixtures and Events are collected **regardless** of Coverage — they
+always exist. A Season (or a whole Competition, e.g. Liga MX Femenil) with neither
+flag is **stats-light**: a valid fixtures+events-only store, not broken or
+half-collected data. Coverage is per-Season, so one Competition may hold
+stats-light early Seasons and fully covered recent ones.
+_Avoid_: reading a missing Squad Entry / team match stat as a collection failure;
+assuming every Season of a Competition shares one Coverage; treating "stats-light"
+as a Competition type (it is a Coverage state — the Competition is still a league
+or a cup).
+
 **Tournament**:
-A self-contained championship within a Season — its own round-robin and champion.
-La Liga: one, `"Regular Season"`. Liga MX: two, `"Apertura"` and `"Clausura"`.
-Standings are computed per (Competition, Season, Tournament), never per Season
-alone.
-_Avoid_: phase, stage, split, torneo.
+A self-contained championship within a Season — one champion crowned. La Liga:
+one, `"Regular Season"`. Liga MX: two, `"Apertura"` and `"Clausura"`. A Tournament
+is played out over one or more **Phases**: a domestic league is a single
+round-robin phase, whereas a Champions League / World Cup Tournament runs a group
+phase then knockout phases. Standings are computed per (Competition, Season,
+Tournament, Phase, Group) — for a phase-less league that collapses to the familiar
+per-Tournament table, and for a cup they apply only to the group Phase.
+_Avoid_: split, torneo; treating a group or a knockout round as its own
+Tournament (they are Phases of one Tournament).
+
+**Phase**:
+A cup-only refinement: which part of a cup Tournament a Fixture belongs to, of one
+of three kinds. **qualifying** — the pre-tournament elimination rounds that decide
+who enters (`Preliminary Round`, `1st/2nd/3rd Qualifying Round`, `Play-offs`);
+tagged so they can be filtered out of the real bracket. **group** — the
+round-robin table portion, whether true parallel Groups (`Group A`…`Group H`), a
+World Cup `Group Stage`, or the new Champions League single-table `League Stage`;
+carries a Matchday. **knockout** — a bracket round that advances toward the
+champion (`Knockout Round Play-offs`, `Round of 16`, `Quarter-finals`,
+`Semi-finals`, `3rd Place Final`, `Final`); no Matchday, and a tie may span two
+legs sharing one round string. A **league**-type Competition has **no** Phase (all
+phase fields null) — it is a single round-robin, unchanged from before.
+_Avoid_: lumping bare `Play-offs` (qualifying) with `Knockout Round Play-offs`
+(knockout); treating a group or knockout round as its own Tournament; conflating
+Phase (which part of the cup) with Matchday (the round number within a group).
+
+**Group**:
+One round-robin pool within a **group** Phase, named by a letter (`Group A`…`Group
+H`) when the provider exposes it. Only old-format Champions League groups carry the
+letter in the Fixture's round string; a World Cup `Group Stage` and the new
+Champions League `League Stage` do not, so their Group is unknown (null) at
+Fixture level — recovering it would need the standings endpoint (out of scope).
+_Avoid_: assuming every group Phase has a recoverable Group letter.
 
 **Matchday**:
 The round number within a Tournament's regular schedule, parsed from the provider
@@ -43,13 +97,21 @@ _Avoid_: gameweek, jornada, week.
 
 **Fixture**:
 A single scheduled match between two teams, identified by a stable provider
-fixture id.
-_Avoid_: game, match.
+fixture id. `home_goals`/`away_goals` are the **on-pitch** result — the score after
+extra time, else full time — and never include a penalty shootout; a shootout is
+kept separately in `penalty_home`/`penalty_away` (both null unless the match was
+decided on penalties, status `PEN`). This is deliberate: the provider's raw `goals`
+field conflates the shootout into the scoreline for `PEN` games (ADR 0012).
+_Avoid_: game, match; reading `home_goals`/`away_goals` as the shootout result;
+deciding a `PEN` tie's winner from goals alone (compare the penalty columns).
 
 **Team**:
-A club competing in the league, identified by a stable provider team id. La Liga
-fields 20 teams per season. A Fixture is played between a home and an away Team.
-_Avoid_: club (use "Team"), side.
+A club **or national team** that contests Fixtures, identified by a stable
+provider team id. In a domestic league the Teams are the ~20 clubs; in the World
+Cup they are national teams (Argentina, France); the Champions League fields
+clubs. All share one `Team` table and one id space. A Fixture is played between a
+home and an away Team.
+_Avoid_: club (use "Team" — a national team is a Team too), side.
 
 **Player**:
 An individual footballer, identified by a stable provider player id, carrying
@@ -71,8 +133,10 @@ _Avoid_: storing a static age column.
 **Squad Entry**:
 A player's slot in a fixture's matchday squad (~22 per team), tagged with a
 status: `started`, `came_on`, or `unused_sub`. Every named player has one,
-including unused substitutes.
-_Avoid_: lineup (the lineup is only the starting XI, not the whole squad).
+including unused substitutes — but only for a Season with player **Coverage**; a
+stats-light Season's Fixtures carry no Squad Entries at all.
+_Avoid_: lineup (the lineup is only the starting XI, not the whole squad); reading
+a Fixture's absent Squad Entries as missing data (see Coverage).
 
 **Appearance**:
 The subset of Squad Entries where the player actually played (`minutes > 0`) —
@@ -87,8 +151,13 @@ happened (plus any Added Time), the Team and Player involved, and a type/detail
 pair (Goal → Normal Goal | Penalty | Own Goal; Card → Yellow | Red; subst; Var).
 An Event is the **timeline**; it is distinct from the aggregate per-match totals
 carried on a Squad Entry (goals, cards, penalties), which say *how many* but not
-*when* or *what kind*.
-_Avoid_: incident, moment; conflating an Event with a Squad Entry's stat totals.
+*when* or *what kind*. An Event is a moment of **play** — regulation or extra time.
+A penalty **shootout** kick is *not* an Event: it belongs to the tie-break, not the
+match, and its outcome is a Fixture-level fact (`penalty_home`/`penalty_away`, ADR
+0012), so shootout kicks are dropped at parse time and never reach the Event table
+(ADR 0013).
+_Avoid_: incident, moment; conflating an Event with a Squad Entry's stat totals;
+counting a shootout kick as a Goal Event.
 
 **Assist**:
 The Player credited with setting up a **Goal** — a field on the Goal Event, not an

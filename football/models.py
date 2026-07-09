@@ -81,8 +81,13 @@ class Fixture(SQLModel, table=True):
     home_team_name: str
     away_team_id: int = Field(foreign_key="team.id")
     away_team_name: str
-    home_goals: int | None = None
+    home_goals: int | None = None           # on-pitch result (excl. shootout; ADR 0012)
     away_goals: int | None = None
+    # Penalty shootout score for a PEN fixture (both null otherwise). Kept separate
+    # so home_goals/away_goals always mean goals scored in the match, never the
+    # shootout — the provider's top-level `goals` conflates the two (ADR 0012).
+    penalty_home: int | None = None
+    penalty_away: int | None = None
 
 
 class PlayerTeam(SQLModel, table=True):

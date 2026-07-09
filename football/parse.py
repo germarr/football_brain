@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import json
 import re
+from pathlib import Path
 
 from sqlalchemy import func
 from sqlmodel import Session, SQLModel, create_engine, select
@@ -114,8 +116,47 @@ def _venue_key(fx: dict) -> tuple[str, str | None] | None:
     return (name, v.get("city")) if name else None
 
 
+def _match_score(fx: dict) -> tuple[int | None, int | None]:
+    """The on-pitch result of a fixture, excluding any penalty shootout (ADR 0012).
+
+    The provider's top-level `goals` is unreliable for penalty-decided games
+    (status PEN): it conflates the shootout into the scoreline (e.g. a 2-1 after
+    extra time stored as 4-2, sometimes home/away-swapped). The authoritative
+    football result lives in `score`.
+
+    `goals` is only unreliable when a penalty shootout is present: for every other
+    fixture (including extra-time-decided AET games, where it correctly includes the
+    ET goals) it is authoritative, so we keep it untouched. When a shootout exists,
+    we rebuild the score from `score`: full time as the base, preferring the
+    after-extra-time score only when it is a consistent *superset* of full time (both
+    sides >= FT). The provider is inconsistent about `extratime` — sometimes the
+    cumulative post-ET score (2-1 over a 2-1 FT), sometimes only the goals scored
+    *within* the ET period (0-0 over a 1-1 FT, which would wrongly erase the
+    regulation goals); the superset test keeps a genuine ET winner while ignoring the
+    incremental form. Falls back to `goals` only if no score breakdown is present.
+    """
+    goals = fx.get("goals") or {}
+    gh, ga = goals.get("home"), goals.get("away")
+    score = fx.get("score") or {}
+    penalty = score.get("penalty") or {}
+    if penalty.get("home") is None and penalty.get("away") is None:
+        return gh, ga  # no shootout — the provider's goals is the on-pitch result
+
+    ft = score.get("fulltime") or {}
+    et = score.get("extratime") or {}
+    fh, fa = ft.get("home"), ft.get("away")
+    eh, ea = et.get("home"), et.get("away")
+    if None not in (fh, fa, eh, ea) and eh >= fh and ea >= fa:
+        return eh, ea
+    if fh is not None or fa is not None:
+        return fh, fa
+    return gh, ga  # shootout but no score breakdown (old/missing data) — last resort
+
+
 def _parse_fixture(fx: dict, venue_ids: dict[tuple[str, str | None], int]) -> Fixture:
-    f, lg, tm, g = fx["fixture"], fx["league"], fx["teams"], fx["goals"]
+    f, lg, tm = fx["fixture"], fx["league"], fx["teams"]
+    home_goals, away_goals = _match_score(fx)
+    penalty = (fx.get("score") or {}).get("penalty") or {}
     lid = lg["id"]
     league_name = config.COMPETITION_NAMES.get(lid, lg["name"])
     round_str = lg.get("round")
@@ -145,9 +186,61 @@ def _parse_fixture(fx: dict, venue_ids: dict[tuple[str, str | None], int]) -> Fi
         home_team_name=tm["home"]["name"],
         away_team_id=tm["away"]["id"],
         away_team_name=tm["away"]["name"],
-        home_goals=g["home"],
-        away_goals=g["away"],
+        home_goals=home_goals,
+        away_goals=away_goals,
+        penalty_home=penalty.get("home"),
+        penalty_away=penalty.get("away"),
     )
+
+
+_BIO_FILE = re.compile(r"id=(\d+)&season=\d+\.json$")
+
+
+def _index_cached_bios() -> dict[int, list[Path]]:
+    """Map player_id -> its cached players bio files (one per collected season).
+
+    Bios are cached keyed by (player_id, season); indexing the directory once makes
+    the per-player fallback in _fetch_bio an O(1) dict lookup rather than a
+    directory scan per cache miss (a scoped build misses on every cross-competition
+    player, so a per-miss glob over ~100k files would dominate the build).
+    """
+    index: dict[int, list[Path]] = {}
+    players_dir = config.RAW_DIR / "players"
+    if players_dir.exists():
+        for f in players_dir.iterdir():
+            m = _BIO_FILE.match(f.name)
+            if m:
+                index.setdefault(int(m.group(1)), []).append(f)
+    return index
+
+
+def _fetch_bio(client: CachedClient, pid: int, season: int,
+               bio_index: dict[int, list[Path]]) -> dict | None:
+    """A player's biography from cache, tolerant of which season it was cached under.
+
+    Bios are cached by (player_id, season), but the season only guarantees a
+    non-empty provider response at collection time — the biography itself
+    (nationality, birth, height) is season-independent. A scoped build
+    (football.scope) computes a player's first-seen season from just its one
+    Competition, so it can differ from the season the full collection cached the bio
+    under, leaving the exact (pid, season) file absent. Prefer the requested season,
+    then fall back to any cached season's bio for that player, so a scoped row is as
+    complete as the full-DB row instead of degrading to a name-only stub.
+    """
+    try:
+        block = collect.fetch_player(client, pid, season)
+        if block is not None:
+            return block
+    except QuotaExceeded:
+        pass  # exact (pid, season) not cached — try any other cached season below
+    for f in bio_index.get(pid, ()):
+        try:
+            resp = json.loads(f.read_text()).get("response") or []
+        except (OSError, json.JSONDecodeError):
+            continue
+        if resp:
+            return resp[0]
+    return None
 
 
 def _parse_player(block: dict) -> Player:
@@ -174,6 +267,11 @@ def _parse_player_teams(player_id: int, response: list[dict]) -> list[PlayerTeam
 
     Each entry is {team: {id, name, ...}, seasons: [year, ...]}; a team with no
     seasons (rare provider gap) yields no rows. Dedupes (team, season) pairs.
+
+    The provider occasionally injects a bogus non-year into a seasons list (e.g.
+    [2022, 2021, ..., ""] — an empty string), which would otherwise land in the
+    integer `season` column as text and break typed readers (DuckDB). Non-integer
+    seasons are skipped; the real years still land.
     """
     seen: set[tuple[int, int]] = set()
     rows: list[PlayerTeam] = []
@@ -183,6 +281,10 @@ def _parse_player_teams(player_id: int, response: list[dict]) -> list[PlayerTeam
         if not tid:
             continue
         for season in entry.get("seasons") or []:
+            try:
+                season = int(season)
+            except (TypeError, ValueError):
+                continue  # bogus provider season ("" or other junk) — skip it
             key = (tid, season)
             if key in seen:
                 continue
@@ -233,6 +335,28 @@ def _parse_squad_entry(fixture_id: int, team_id: int, pblock: dict) -> SquadEntr
     )
 
 
+def _is_shootout_kick(ev: dict) -> bool:
+    """True if a raw event is a penalty-shootout kick, not a moment of play (ADR 0013).
+
+    A shootout is a tie-break, not the match, and its outcome is a Fixture-level fact
+    (`penalty_home`/`penalty_away`, ADR 0012) — so its kicks are dropped from the
+    Event timeline (CONTEXT.md: an Event is a moment of play). Only a Goal event is
+    ever a kick; the provider marks them one of two reliable ways across feed eras:
+    `comments == 'Penalty Shootout'` (modern feeds), or an impossible minute —
+    `elapsed` 0 or negative — in older ones. Scoping to Goal is essential: the
+    provider files ~1,800 legitimate Cards at negative minutes, which must survive.
+    Uncommented kicks at exactly minute 120 in a few old feeds are intentionally NOT
+    caught here (a real extra-time goal can occur at 120'); that small residue is the
+    accepted cost of a zero-risk, per-event predicate (ADR 0013).
+    """
+    if ev.get("type") != "Goal":
+        return False
+    if ev.get("comments") == "Penalty Shootout":
+        return True
+    elapsed = (ev.get("time") or {}).get("elapsed")
+    return elapsed is not None and elapsed <= 0
+
+
 def _parse_event(fixture_id: int, index: int, ev: dict) -> Event:
     """One fixtures/events entry -> an Event row (ADR 0007).
 
@@ -280,7 +404,8 @@ def _parse_team_stats(fixture_id: int, entry: dict) -> TeamMatchStat:
     return TeamMatchStat(fixture_id=fixture_id, team_id=entry["team"]["id"], **kwargs)
 
 
-def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str | None], int]:
+def _build_venues(session: Session, client: CachedClient,
+                  targets: list[tuple[int, str, int]]) -> dict[tuple[str, str | None], int]:
     """Sweep every target's fixtures for venues, insert the Venue rows, and return
     the (name, city) -> surrogate id map the main loop uses to set Fixture.venue_id.
 
@@ -290,7 +415,7 @@ def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str
     from the first fixture that exposes a non-null venue.id for the ground.
     """
     provider_ids: dict[tuple[str, str | None], int | None] = {}
-    for league_id, _name, season in config.targets():
+    for league_id, _name, season in targets:
         for fx in collect.fetch_fixtures(client, league_id, season):
             key = _venue_key(fx)
             if key is None:
@@ -306,8 +431,14 @@ def _build_venues(session: Session, client: CachedClient) -> dict[tuple[str, str
     return venue_ids
 
 
-def build() -> None:
+def build(db_path: Path | None = None,
+          targets: list[tuple[int, str, int]] | None = None) -> None:
     """Rebuild the store, serialized against any other concurrent build.
+
+    Defaults rebuild the full store (config.DB_PATH, every config.targets()). Pass
+    a db_path and a filtered targets list to extract a single Competition into its
+    own SQLite file from the same raw cache (football.scope) — the pipeline is
+    identical, only the output file and the (competition, season) set differ.
 
     _rebuild() drops and recreates every table, so two builds racing on the one
     SQLite file corrupt each other — one's drop_all() deletes tables the other is
@@ -315,16 +446,19 @@ def build() -> None:
     build and re-keys a row (duplicate-fixture PK collisions). This bites when
     several `orchestrate <league>` runs (each ends in a full rebuild) overlap. An
     exclusive advisory lock makes overlapping builds queue and run one at a time;
-    the lock file is released on any exit, including a crash.
+    the lock file is released on any exit, including a crash. The lock is per
+    db_path, so a scoped build never blocks (or is blocked by) the full one.
     """
-    config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(config.DB_PATH.with_suffix(".build.lock"), "w") as lock:
+    db_path = db_path or config.DB_PATH
+    targets = list(config.targets()) if targets is None else list(targets)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(db_path.with_suffix(".build.lock"), "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)   # blocks until any other build finishes
-        _rebuild()
+        _rebuild(db_path, targets)
 
 
-def _rebuild() -> None:
-    engine = create_engine(f"sqlite:///{config.DB_PATH}")
+def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
+    engine = create_engine(f"sqlite:///{db_path}")
     SQLModel.metadata.drop_all(engine)   # disposable store (ADR 0002)
     SQLModel.metadata.create_all(engine)
 
@@ -346,8 +480,8 @@ def _rebuild() -> None:
     # Skip any fixture id already seen this pass so the build stays idempotent.
     seen_fixtures: set[int] = set()
     with Session(engine) as session:
-        venue_ids = _build_venues(session, client)
-        for league_id, _name, season in config.targets():
+        venue_ids = _build_venues(session, client, targets)
+        for league_id, _name, season in targets:
             for fx in collect.fetch_fixtures(client, league_id, season):
                 fid = fx["fixture"]["id"]
                 if fid in seen_fixtures:
@@ -389,11 +523,12 @@ def _rebuild() -> None:
         session.commit()
         session.expunge_all()
 
+        bio_index = _index_cached_bios()
         for i, (pid, season) in enumerate(sorted(player_season.items()), 1):
-            try:
-                block = collect.fetch_player(client, pid, season)
-            except QuotaExceeded:
-                block = None  # bio not cached yet (backfill still in progress)
+            # Prefer the first-seen season's bio, but accept any cached season's —
+            # a scoped build's first-seen season often isn't the one collected
+            # under (see _fetch_bio), and the biography is season-independent.
+            block = _fetch_bio(client, pid, season, bio_index)
             if block is not None:
                 session.add(_parse_player(block))
             else:  # no provider bio (missing or not-yet-cached) — minimal row
@@ -418,22 +553,24 @@ def _rebuild() -> None:
         session.commit()
         session.expunge_all()
 
-        _build_events(session, client, set(player_season))
-        _build_team_stats(session, client, set(teams))
-        _summary(session)
+        _build_events(session, client, set(player_season), targets)
+        _build_team_stats(session, client, set(teams), targets)
+        _summary(session, db_path)
 
 
-def _build_events(session: Session, client: CachedClient, known_players: set[int]) -> None:
+def _build_events(session: Session, client: CachedClient, known_players: set[int],
+                  targets: list[tuple[int, str, int]]) -> None:
     """Second pass over the fixtures (from cache) to insert the event timeline.
 
     Runs after players exist so the FK guard can resolve, and re-reads events from
-    the cache rather than hoarding ~400k rows from the first pass. Nulls any
-    player/assist id without a Player row (coach cards, off-scope actors) and skips
-    the rare event with no team; commits in batches to bound memory (ADR 0007).
+    the cache rather than hoarding ~400k rows from the first pass. Drops penalty-
+    shootout kicks (_is_shootout_kick, ADR 0013), nulls any player/assist id without
+    a Player row (coach cards, off-scope actors), and skips the rare event with no
+    team; commits in batches to bound memory (ADR 0007).
     """
     batch: list[Event] = []
     seen: set[int] = set()  # a fixture under two targets would re-key (fid, event_index)
-    for league_id, _name, season in config.targets():
+    for league_id, _name, season in targets:
         for fx in collect.fetch_fixtures(client, league_id, season):
             fid = fx["fixture"]["id"]
             if fid in seen:
@@ -444,6 +581,9 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
             except QuotaExceeded:
                 continue  # this fixture's events aren't backfilled yet
             for idx, ev in enumerate(raw_events):
+                if _is_shootout_kick(ev):
+                    continue  # tie-break kick, not a match event (ADR 0013); idx
+                              # keeps its raw-array position, so survivors' keys don't shift
                 e = _parse_event(fid, idx, ev)
                 if e.team_id is None:
                     continue
@@ -463,7 +603,8 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
         session.expunge_all()
 
 
-def _build_team_stats(session: Session, client: CachedClient, known_teams: set[int]) -> None:
+def _build_team_stats(session: Session, client: CachedClient, known_teams: set[int],
+                      targets: list[tuple[int, str, int]]) -> None:
     """Second pass over the fixtures (from cache) to insert team match stats.
 
     Clones _build_events: re-reads fixtures/statistics rather than hoarding rows,
@@ -474,7 +615,7 @@ def _build_team_stats(session: Session, client: CachedClient, known_teams: set[i
     """
     batch: list[TeamMatchStat] = []
     seen: set[int] = set()
-    for league_id, _name, season in config.targets():
+    for league_id, _name, season in targets:
         for fx in collect.fetch_fixtures(client, league_id, season):
             fid = fx["fixture"]["id"]
             if fid in seen:
@@ -498,7 +639,7 @@ def _build_team_stats(session: Session, client: CachedClient, known_teams: set[i
         session.expunge_all()
 
 
-def _summary(session: Session) -> None:
+def _summary(session: Session, db_path: Path) -> None:
     # Aggregate in SQL — the tables are far too large to pull into memory (ADR 0002).
     def count(model, *where):
         stmt = select(func.count()).select_from(model)
@@ -513,7 +654,7 @@ def _summary(session: Session) -> None:
     total_entries = n["squad entries"]
     appearances = count(SquadEntry, SquadEntry.minutes > 0)
     print("Built {}: {}".format(
-        config.DB_PATH.name,
+        db_path.name,
         ", ".join(f"{v} {k}" for k, v in n.items())))
     print(f"  ({appearances} appearances, {total_entries - appearances} unused subs)")
     located = count(Fixture, Fixture.venue_id.is_not(None))
