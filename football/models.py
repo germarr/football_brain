@@ -21,6 +21,19 @@ class Competition(SQLModel, table=True):
     id: int = Field(primary_key=True)   # provider league id (140, 262)
     name: str
     type: str = "league"                # "league" | "cup" (provider's league.type)
+    # Provider-verbatim metadata from the single /leagues catalogue record (ADR
+    # 0015) — unlike `name`, these are taken as-is (nothing collides to override).
+    # All nullable: a cup is country "World" with no code/flag, and a competition
+    # collected before this change has no /leagues record cached (parse -> null).
+    country: str | None = None          # "Spain"; "World" for a continental/international cup
+    country_code: str | None = None     # ISO alpha-2 "ES"; null for a "World" cup
+    logo: str | None = None             # league crest URL
+    flag: str | None = None             # country flag URL; null for a "World" cup
+    # Derived from `country`, not a provider field: the API exposes no continent, so
+    # parse maps the country name through config.COUNTRY_CONTINENT (ADR 0016). A
+    # "World" cup is "International / Intercontinental"; null if the country is
+    # unmapped.
+    continent: str | None = None        # "Europe"; "International / Intercontinental" for a cup
 
 
 class Team(SQLModel, table=True):

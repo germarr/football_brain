@@ -1,12 +1,30 @@
-"""Collect all of La Liga for every season in config.SEASONS into the raw cache.
+"""Bulk-collect the fixtures -> players -> bios -> careers layer for every
+competition in config.COMPETITIONS into the raw cache.
 
-Per season:
+config.COMPETITIONS is the MERGED set: the 7 hand-curated built-in leagues plus
+every league/cup registered in data/competitions.json (added by football.orchestrate
+/ football.cups). This is the original full-sweep collector and predates the
+per-league orchestrator (ADR 0009): it does NOT collect match events (ADR 0007) or
+team match stats (ADR 0010), and it is NOT Coverage-gated (ADR 0014) — so it fetches
+per-player data even for cup / stats-light seasons that have none. Events, team
+stats, and coverage-aware collection live in football.orchestrate / football.cups
+and the dedicated collect_events / collect_stats modules; the 17 registered
+competitions were collected through those, not here. This only fills Layer 1 (the
+raw response cache) — run `python -m football.parse` afterwards to model it into
+football.db.
+
+Once per competition:
+  - the /leagues record (1 request) -> country, ISO code, crest and flag (ADR 0015).
+Per (competition, season):
   - the league fixture list (1 request -> ~380 fixtures),
   - per-fixture player data (1 request per fixture) -> every player of both teams,
-    with goals/assists and per-game stats,
-  - per-player biography (1 request per unique player) -> nationality, birth,
-    height, weight. Each player is fetched with a season they actually appeared
-    in, so the response is never empty (handles mid-season transfers).
+    with goals/assists and per-game stats.
+Per unique player:
+  - biography (1 request) -> nationality, birth, height, weight. Each player is
+    fetched with a season they actually appeared in, so the response is never empty
+    (handles mid-season transfers),
+  - career history (1 request, if config.COLLECT_CAREERS) -> every team across their
+    whole cross-competition career.
 
 Cache-first, so re-running is free and resumes where a stop left off.
 Run with:  uv run python -m football.collect
@@ -17,6 +35,19 @@ from collections import defaultdict
 
 from . import config
 from .client import CachedClient, QuotaExceeded
+
+
+def fetch_league(client: CachedClient, league_id: int) -> dict | None:
+    """The provider's /leagues catalogue record for one competition, or None.
+
+    One call per competition (not per season): the record carries the league's
+    country, ISO code, crest and flag — the provider metadata parse writes onto the
+    Competition row (ADR 0015). Cache-first like every other fetch, so it costs one
+    live request the first time and is free thereafter. Returns None when the
+    provider has no such league (an empty response), so a caller can skip it rather
+    than key into an empty list."""
+    resp = client.get("leagues", {"id": league_id}).get("response") or []
+    return resp[0] if resp else None
 
 
 def fetch_fixtures(client: CachedClient, league_id: int, season: int) -> list[dict]:
@@ -82,6 +113,11 @@ def collect() -> None:
     # player_id -> a season we know they appeared in (for a valid bio fetch)
     player_season: dict[int, int] = {}
     try:
+        # One /leagues record per competition — country/code/crest/flag for the
+        # Competition row (ADR 0015). Built-in leagues never went through the
+        # orchestrator's _lookup, so this is the only path that caches them.
+        for comp in config.COMPETITIONS:
+            fetch_league(client, comp["league_id"])
         for league_id, name, season in config.targets():
             fixtures = fetch_fixtures(client, league_id, season)
             print(f"\n{name} {season}: {len(fixtures)} fixtures")

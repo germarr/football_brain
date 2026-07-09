@@ -457,6 +457,35 @@ def build(db_path: Path | None = None,
         _rebuild(db_path, targets)
 
 
+def _competition_metadata(client: CachedClient, league_id: int) -> dict:
+    """Country/code/crest/flag (provider-verbatim, ADR 0015) plus a derived continent
+    (ADR 0016) for a Competition, from the single /leagues catalogue record.
+
+    Cache-only, like every read in the build: a competition collected before this
+    change has no /leagues record cached, so the fetch raises QuotaExceeded and we
+    degrade to all-null — never a live request, never a failed build. A cup's record
+    legitimately carries country "World" with a null code and flag.
+    """
+    try:
+        record = collect.fetch_league(client, league_id)
+    except QuotaExceeded:
+        record = None
+    if not record:
+        return {"country": None, "country_code": None, "logo": None,
+                "flag": None, "continent": None}
+    country = record["country"]["name"]
+    return {
+        "country": country,
+        "country_code": record["country"]["code"],
+        "logo": record["league"]["logo"],
+        "flag": record["country"]["flag"],
+        # Derived, not from the provider: map the country name to a continent
+        # (ADR 0016). A "World" cup -> "International / Intercontinental"; an
+        # unmapped country -> null.
+        "continent": config.COUNTRY_CONTINENT.get(country),
+    }
+
+
 def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
     engine = create_engine(f"sqlite:///{db_path}")
     SQLModel.metadata.drop_all(engine)   # disposable store (ADR 0002)
@@ -517,7 +546,8 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
 
         for cid, cname in competitions.items():
             session.add(Competition(id=cid, name=cname,
-                                    type=config.COMPETITION_TYPES.get(cid, "league")))
+                                    type=config.COMPETITION_TYPES.get(cid, "league"),
+                                    **_competition_metadata(client, cid)))
         for tid, tname in teams.items():
             session.add(Team(id=tid, name=tname))
         session.commit()

@@ -26,9 +26,28 @@ A Competition is of one **type**: a **league** (a domestic round-robin table —
 all seven collected so far) or a **cup** (a group+knockout competition such as the
 Champions League or World Cup). The type is the provider's own `league.type` and
 governs how a Season's Fixtures are structured into Tournaments and Phases.
+A Competition also carries provider-verbatim **metadata**: its **country** (the
+nation it belongs to — `"Spain"`, or `"World"` for a continental/international cup
+such as the Champions League or World Cup), a two-letter ISO **country_code**
+(`"ES"`; null for a `"World"` competition), and **logo** / **flag** image URLs
+(the flag null for `"World"`). Unlike the canonical `name`, these are taken exactly
+as the provider gives them — none of them collide the way the two "Serie A"s do, so
+there is nothing to override — and all four come from the single `/leagues`
+catalogue record, not the per-fixture league block (ADR 0015).
+It also carries a **continent** — but this one is **derived, not a provider fact**:
+the API exposes no continent, so we map the `country` name through a static
+country→continent table (`"Spain"` → `"Europe"`). A `"World"` cup maps to
+`"International / Intercontinental"`, so every continental cup (even the European
+Champions League) lands there rather than under its own confederation's continent
+(ADR 0016).
 _Avoid_: using bare "league" as the canonical noun (a Competition may be a cup);
 confusing a Competition with a Tournament (a sub-division of one Competition's
-season); trusting the provider's league name as a key.
+season); trusting the provider's league name as a key; overriding
+country/code/logo/flag (only `name` is canonical — the metadata is provider-
+verbatim); reading a cup's `"World"` country or null country_code/flag as missing
+data; treating `continent` as a provider field (it is derived from `country`);
+expecting the Champions League's continent to be `"Europe"` (a `"World"` cup is
+`"International / Intercontinental"`).
 
 **Season**:
 The provider's season for a Competition, identified by a single year (e.g.

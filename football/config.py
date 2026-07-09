@@ -112,6 +112,64 @@ def reload_competitions() -> None:
 DEFAULT_TEAM_ID = 529
 DEFAULT_TEAM_NAME = "FC Barcelona"
 
+# --- continent (docs/adr/0016) ---------------------------------------------
+# Country -> continent, extracted from context/leagues-by-continent.md (the
+# API /leagues catalogue grouped by continent). Grouped by continent for
+# readability, inverted into COUNTRY_CONTINENT below. The provider gives no
+# continent field, so this static table derives it from a Competition's
+# country name (ADR 0016). "World" (every continental/international cup) maps
+# to "International / Intercontinental", matching the source doc.
+_CONTINENT_COUNTRIES: dict[str, list[str]] = {
+    'Europe': [
+        'Albania', 'Andorra', 'Armenia', 'Austria', 'Azerbaijan', 'Belarus', 'Belgium',
+        'Bosnia', 'Bulgaria', 'Crimea', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark',
+        'England', 'Estonia', 'Faroe Islands', 'Finland', 'France', 'Georgia', 'Germany',
+        'Gibraltar', 'Greece', 'Hungary', 'Iceland', 'Ireland', 'Italy', 'Kosovo',
+        'Latvia', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Macedonia', 'Malta',
+        'Moldova', 'Montenegro', 'Netherlands', 'Northern Ireland', 'Norway', 'Poland',
+        'Portugal', 'Romania', 'Russia', 'San Marino', 'Scotland', 'Serbia', 'Slovakia',
+        'Slovenia', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'Ukraine', 'Wales',
+    ],
+    'South America': [
+        'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Ecuador', 'Paraguay',
+        'Peru', 'Suriname', 'Uruguay', 'Venezuela',
+    ],
+    'North & Central America': [
+        'Antigua And Barbuda', 'Aruba', 'Barbados', 'Belize', 'Bermuda', 'Canada',
+        'Costa Rica', 'Cuba', 'Curacao', 'Dominican Republic', 'El Salvador', 'Grenada',
+        'Guadeloupe', 'Guatemala', 'Haiti', 'Honduras', 'Jamaica', 'Mexico', 'Nicaragua',
+        'Panama', 'Trinidad And Tobago', 'USA',
+    ],
+    'Africa': [
+        'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon',
+        'Congo', 'Congo DR', 'Egypt', 'Eswatini', 'Ethiopia', 'Gabon', 'Gambia', 'Ghana',
+        'Guinea', 'Ivory Coast', 'Kenya', 'Lesotho', 'Liberia', 'Libya', 'Malawi', 'Mali',
+        'Mauritania', 'Mauritius', 'Morocco', 'Namibia', 'Nigeria', 'Rwanda', 'Senegal',
+        'Somalia', 'South Africa', 'Sudan', 'Tanzania', 'Togo', 'Tunisia', 'Uganda',
+        'Zambia', 'Zimbabwe',
+    ],
+    'Asia': [
+        'Bahrain', 'Bangladesh', 'Bhutan', 'Cambodia', 'China', 'Chinese Taipei',
+        'Hong Kong', 'India', 'Indonesia', 'Iran', 'Iraq', 'Israel', 'Japan', 'Jordan',
+        'Kazakhstan', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Lebanon', 'Macao', 'Malaysia',
+        'Maldives', 'Mongolia', 'Myanmar', 'Nepal', 'Oman', 'Pakistan', 'Palestine',
+        'Philippines', 'Qatar', 'Saudi Arabia', 'Singapore', 'South Korea', 'Syria',
+        'Tajikistan', 'Thailand', 'Turkmenistan', 'United Arab Emirates', 'Uzbekistan',
+        'Vietnam', 'Yemen',
+    ],
+    'Oceania': [
+        'Australia', 'Fiji', 'New Zealand',
+    ],
+    'International / Intercontinental': [
+        'World',
+    ],
+}
+COUNTRY_CONTINENT: dict[str, str] = {
+    country: continent
+    for continent, countries in _CONTINENT_COUNTRIES.items()
+    for country in countries
+}
+
 
 def targets():
     """Yield (league_id, competition_name, season) for every collection target."""
