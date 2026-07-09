@@ -6,11 +6,14 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "altair>=6.2.2",
+    "duckdb>=1.5.4",
     "fastapi>=0.139.0",
     "ipykernel>=7.3.0",
-    "marimo>=0.23.13",
+    "marimo[sql]>=0.23.13",
     "numpy>=2.5.1",
     "pandas>=3.0.3",
+    "plotly>=6.0.0",
+    "polars[pyarrow]>=1.42.1",
     "requests>=2.34.2",
     "sqlmodel>=0.0.39",
 ]

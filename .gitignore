@@ -1,6 +1,9 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+
+# marimo session caches (regenerated on every notebook run)
+__marimo__/
 build/
 dist/
 wheels/
