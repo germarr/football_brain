@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import requests
@@ -53,15 +54,26 @@ class CachedClient:
         self._max_live = config.DAILY_LIMIT if max_live_requests is None else max_live_requests
         self.live_requests = 0     # network calls made this run
         self.cache_hits = 0
+        # live requests this run, broken down by endpoint — powers the Refresh
+        # per-Competition/per-endpoint call accounting (refresh package, ADR 0018).
+        self.live_by_endpoint: dict[str, int] = defaultdict(int)
         self._last_call_ts = 0.0
 
-    def get(self, endpoint: str, params: dict | None = None) -> dict:
-        """Return the parsed JSON for `endpoint`, from cache if present."""
+    def get(self, endpoint: str, params: dict | None = None, force: bool = False) -> dict:
+        """Return the parsed JSON for `endpoint`, from cache if present.
+
+        `force=True` bypasses a cached entry and re-fetches live, overwriting the
+        cache. The nightly Refresh uses it for the two things cache-first would
+        otherwise freeze — a Competition's /leagues record and its current Season's
+        fixture list — and to heal a fixture whose per-match data was cached empty
+        while it was still unplayed (refresh package, ADR 0018). Every other caller
+        stays purely cache-first: an already-collected fixture is fetched once, ever.
+        """
         params = params or {}
         cache_dir = config.RAW_DIR / endpoint.replace("/", "_")
         cache_path = cache_dir / f"{_cache_key(params)}.json"
 
-        if cache_path.exists():
+        if cache_path.exists() and not force:
             self.cache_hits += 1
             return json.loads(cache_path.read_text())
 
@@ -69,6 +81,19 @@ class CachedClient:
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
         return payload
+
+    def peek(self, endpoint: str, params: dict | None = None) -> dict | None:
+        """The cached payload for a key, or None — without fetching or counting.
+
+        Lets a caller inspect what is already cached (e.g. whether a fixture's events
+        came back empty) before deciding whether to force a live re-fetch. Used by the
+        Refresh to distinguish a stale-empty cache (fetched while a match was unplayed)
+        from a legitimately empty one (refresh package, ADR 0018)."""
+        params = params or {}
+        cache_path = config.RAW_DIR / endpoint.replace("/", "_") / f"{_cache_key(params)}.json"
+        if cache_path.exists():
+            return json.loads(cache_path.read_text())
+        return None
 
     def _fetch_live(self, endpoint: str, params: dict, _attempt: int = 1) -> dict:
         if self.live_requests >= self._max_live:
@@ -92,8 +117,10 @@ class CachedClient:
             return self._retry_transient(endpoint, params, _attempt, e.__class__.__name__)
         self._last_call_ts = time.monotonic()
         self.live_requests += 1
+        self.live_by_endpoint[endpoint] += 1
         if resp.status_code >= 500:
             self.live_requests -= 1  # a server error returned no data
+            self.live_by_endpoint[endpoint] -= 1
             return self._retry_transient(endpoint, params, _attempt, f"HTTP {resp.status_code}")
         resp.raise_for_status()
         payload = resp.json()
@@ -106,6 +133,7 @@ class CachedClient:
                 print(f"    rate-limited; waiting 61s then retrying (attempt {_attempt})")
                 time.sleep(61)
                 self.live_requests -= 1  # the rejected call returned no data
+                self.live_by_endpoint[endpoint] -= 1
                 return self._fetch_live(endpoint, params, _attempt + 1)
             if _is_daily_limit(errors):
                 raise QuotaExceeded(

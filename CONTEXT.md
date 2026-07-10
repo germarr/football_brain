@@ -251,3 +251,33 @@ _Avoid_: reading a League of Origin off a Career Stint directly (it must be
 resolved); letting a cup stand in as a league of origin; conflating homegrown (no
 prior club) with a prior stint at another club in the same league; assuming every
 prior club resolves (a club outside the collected Competitions is Unknown).
+
+**Refresh**:
+The nightly re-collection of only the **mutable frontier** of the data: for every
+Competition (leagues *and* cups), the **current Season** — the latest season in the
+Competition's config — and nothing older. Immutable past Seasons are never re-fetched.
+Because the raw client is cache-first (a fixture, once played, is fetched once ever),
+a Refresh must deliberately re-fetch the two things that can still change: the current
+Season's **fixture list** (cached as a single `fixtures?league&season` file, so it
+otherwise never surfaces matches played since it was written) and any **Fixture that
+was not yet final** when last cached (its players/events/stats were cached empty while
+it was still scheduled). A Refresh collects *new* data; it never mutates an
+already-final Fixture.
+_Avoid_: calling a full historical backfill a Refresh; re-fetching past Seasons;
+assuming cache-first alone surfaces new matches (the season fixture list must be
+force-refreshed); treating a Refresh as touching every Season of a Competition (only
+the current one).
+
+**Final**:
+A Fixture's terminal, played-to-completion state — provider `status.short` of `FT`
+(full time), `AET` (after extra time), or `PEN` (decided on penalties). Only a Final
+Fixture has per-fixture data to collect (squad, events, team match stats), so a
+**Refresh** collects a Fixture's per-match data exactly once it is Final and never
+before. Non-terminal states (`NS`, live, `HT`, `TBD`) and terminal-but-dataless ones
+(`PST` postponed, `CANC`, `ABD`, `SUSP`, `AWD`/`WO`) are **not** Final: they carry no
+collectable played result and are simply revisited on later nights until they become
+Final or their Season rolls over. Distinct from a scoreline existing: an `AWD`
+walkover has a result but is not Final (no lineup or events).
+_Avoid_: treating any non-null scoreline as Final; collecting per-fixture data for a
+scheduled or live match (that is the stale-empty trap the Refresh avoids); reading a
+`PST`/`CANC` Fixture as data loss.

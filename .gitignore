@@ -17,3 +17,9 @@ wheels/
 
 # Data cache and derived DB (regenerable via collect.py / parse.py)
 data/
+
+# Refresh runtime state (ADR 0018): run-history DB, ledger, and per-run logs.
+# The refresh/ code and README.md are tracked; only its local state is ignored.
+refresh/refresh.db
+refresh/refresh_ledger.json
+refresh/logs/
