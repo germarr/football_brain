@@ -2,7 +2,7 @@
 competition in config.COMPETITIONS into the raw cache.
 
 config.COMPETITIONS is the MERGED set: the 7 hand-curated built-in leagues plus
-every league/cup registered in data/competitions.json (added by football.orchestrate
+every league/cup registered in football/competitions.json (added by football.orchestrate
 / football.cups). This is the original full-sweep collector and predates the
 per-league orchestrator (ADR 0009): it does NOT collect match events (ADR 0007) or
 team match stats (ADR 0010), and it is NOT Coverage-gated (ADR 0014) — so it fetches

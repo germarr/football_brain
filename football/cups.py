@@ -5,7 +5,7 @@ League (id 2) and the World Cup (id 1). A cup is one Tournament per Season playe
 over qualifying → group → knockout Phases, so this:
   1. looks the id up in /leagues and refuses anything the provider doesn't call a
      Cup (use `football.orchestrate` for leagues),
-  2. registers it as a `type="cup"` Competition in data/competitions.json so
+  2. registers it as a `type="cup"` Competition in football/competitions.json so
      parse.py tags each Fixture's Phase and future runs keep collecting it,
   3. hands off to the shared, Coverage-gated collector (`orchestrate._collect`,
      ADR 0014): EVERY provider season's fixtures and match events, the per-player

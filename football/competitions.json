@@ -1,0 +1,723 @@
+[
+  {
+    "league_id": 140,
+    "name": "La Liga",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 39,
+    "name": "Premier League",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 135,
+    "name": "Serie A",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 78,
+    "name": "Bundesliga",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 71,
+    "name": "Brasileirão",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": true,
+    "type": "league"
+  },
+  {
+    "league_id": 262,
+    "name": "Liga MX",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 128,
+    "name": "Liga Profesional Argentina",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": true,
+    "type": "league"
+  },
+  {
+    "league_id": 61,
+    "name": "Ligue 1",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 1,
+    "name": "World Cup",
+    "seasons": [
+      2010,
+      2014,
+      2018,
+      2022,
+      2026
+    ],
+    "calendar_year": true,
+    "type": "cup"
+  },
+  {
+    "league_id": 2,
+    "name": "UEFA Champions League",
+    "seasons": [
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": true,
+    "type": "cup"
+  },
+  {
+    "league_id": 13,
+    "name": "CONMEBOL Libertadores",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": true,
+    "type": "cup"
+  },
+  {
+    "league_id": 88,
+    "name": "Eredivisie",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 253,
+    "name": "Major League Soccer",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 98,
+    "name": "J1 League",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 94,
+    "name": "Primeira Liga",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 144,
+    "name": "Jupiler Pro League",
+    "seasons": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 203,
+    "name": "Süper Lig",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 9,
+    "name": "Copa America",
+    "seasons": [
+      2015,
+      2016,
+      2019,
+      2021,
+      2024
+    ],
+    "calendar_year": true,
+    "type": "cup"
+  },
+  {
+    "league_id": 239,
+    "name": "Primera A",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 265,
+    "name": "Primera División",
+    "seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 268,
+    "name": "Primera División - Apertura",
+    "seasons": [
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 556,
+    "name": "Super Cup",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": true,
+    "type": "cup"
+  },
+  {
+    "league_id": 40,
+    "name": "Championship",
+    "seasons": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 673,
+    "name": "Liga MX Femenil",
+    "seasons": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 169,
+    "name": "Super League",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 45,
+    "name": "FA Cup",
+    "seasons": [
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 270,
+    "name": "Primera División - Clausura",
+    "seasons": [
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 143,
+    "name": "Copa del Rey",
+    "seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 263,
+    "name": "Liga de Expansión MX",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 119,
+    "name": "Superliga",
+    "seasons": [
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 103,
+    "name": "Eliteserien",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 137,
+    "name": "Coppa Italia",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 11,
+    "name": "CONMEBOL Sudamericana",
+    "seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 281,
+    "name": "Primera Division - Peru",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 257,
+    "name": "US Open Cup",
+    "seasons": [
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 81,
+    "name": "DFB Pokal",
+    "seasons": [
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 292,
+    "name": "K League 1",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 90,
+    "name": "KNVB Beker",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 73,
+    "name": "Copa Do Brasil",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  }
+]

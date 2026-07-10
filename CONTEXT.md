@@ -1,10 +1,10 @@
 # Alt Data — Football
 
-Collecting per-match player performance and biographical data across multiple
-competitions — **La Liga, Premier League, Serie A, Bundesliga** and
-**Brasileirão** (2015/16 onward) plus **Liga MX** and **Liga Profesional
-Argentina** (2016/17 onward) — sourced from the API-Football provider. (FC
-Barcelona is the default view for exploration, not a data boundary.)
+Collecting per-match player performance and biographical data across dozens of
+competitions — domestic **leagues** (La Liga, Premier League, Serie A, … from
+2015/16 onward) and **cups** (Champions League, World Cup, Copa del Rey, …) —
+sourced from the API-Football provider. (FC Barcelona is the default view for
+exploration, not a data boundary.)
 
 The modeled store is one SQLite file, `data/football.db`, holding every
 Competition (`football.parse`). A single Competition can be extracted into its own
@@ -15,16 +15,14 @@ collected (ADR 0011).
 ## Language
 
 **Competition**:
-A league we collect, identified by a stable provider league id: La Liga (140),
-Premier League (39), Serie A (135), Bundesliga (78), Brasileirão (71), Liga MX
-(262), Liga Profesional Argentina (128). Its name is **our** canonical name, not
+A league or cup we collect, identified by a stable provider league id (e.g. La Liga
+is 140, Italy's Serie A 135). Its name is **our** canonical name, not
 the provider's — the API labels both Italy's and Brazil's league "Serie A", so we
 override (Italy → Serie A, Brazil → Brasileirão); Argentina's top flight is kept
 as "Liga Profesional Argentina" rather than the bare "Primera División", which
 collides with Spain (La Liga is officially Primera División too).
-A Competition is of one **type**: a **league** (a domestic round-robin table —
-all seven collected so far) or a **cup** (a group+knockout competition such as the
-Champions League or World Cup). The type is the provider's own `league.type` and
+A Competition is of one **type**: a **league** (a domestic round-robin table) or a
+**cup** (a group+knockout competition such as the Champions League or World Cup). The type is the provider's own `league.type` and
 governs how a Season's Fixtures are structured into Tournaments and Phases.
 A Competition also carries provider-verbatim **metadata**: its **country** (the
 nation it belongs to — `"Spain"`, or `"World"` for a continental/international cup

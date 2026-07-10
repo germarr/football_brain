@@ -2,7 +2,7 @@
 
 Given a provider league id, this:
   1. looks it up in the /leagues catalogue (canonical name, per-season coverage),
-  2. registers it as a first-class Competition in data/competitions.json so
+  2. registers it as a first-class Competition in football/competitions.json so
      parse.py and future runs keep collecting it,
   3. collects EVERYTHING for it into the raw cache, reusing collect's cache-first
      helpers — fixtures, squad/goals, player bios, career histories, match events,
@@ -111,24 +111,21 @@ def _resolve_name(league_id: int, record: dict, override: str | None) -> str:
 
 def _register(league_id: int, name: str, seasons: list[int], calendar_year: bool,
               comp_type: str = "league") -> None:
-    """Upsert the competition into data/competitions.json and refresh config.
+    """Upsert the competition into football/competitions.json and refresh config.
 
-    comp_type is the provider's kind ("league" or "cup", ADR 0010); it governs how
-    parse.py structures the Season's Fixtures.
+    One uniform path for every Competition — league or cup, first-seen or already
+    listed (ADR 0019): drop any existing entry with this id, append the new one, write,
+    reload. comp_type is the provider's kind ("league" or "cup", ADR 0010); it governs
+    how parse.py structures the Season's Fixtures.
     """
-    if league_id in {c["league_id"] for c in config._BUILTIN_COMPETITIONS}:
-        print(f"  league {league_id} is already a built-in Competition; "
-              "collecting without re-registering.")
-        return
-    existing = [r for r in config._load_registered() if r.get("league_id") != league_id]
+    existing = [r for r in config._load_competitions() if r.get("league_id") != league_id]
     existing.append({
         "league_id": league_id, "name": name,
         "seasons": seasons, "calendar_year": calendar_year, "type": comp_type,
     })
-    config.REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-    config.REGISTRY_FILE.write_text(json.dumps(existing, indent=2, ensure_ascii=False))
+    config.COMPETITIONS_FILE.write_text(json.dumps(existing, indent=2, ensure_ascii=False) + "\n")
     config.reload_competitions()
-    print(f"  registered in {config.REGISTRY_FILE.relative_to(config.ROOT)}")
+    print(f"  registered in {config.COMPETITIONS_FILE.relative_to(config.ROOT)}")
 
 
 # --- collection stages -----------------------------------------------------
@@ -292,7 +289,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     # Rebuild the modeled store from cache (drops & rebuilds all leagues; the new
-    # one is now a config target). Import here so the registry write above is seen.
+    # one is now a config target). Import here so the competitions-file write above is seen.
     from . import parse
     print("\n▶ Rebuilding football.db from the raw cache …")
     parse.build()
