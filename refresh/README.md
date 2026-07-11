@@ -37,12 +37,23 @@ From the repo root (`/home/azureuser/alt_data`):
 
 ```bash
 uv run python -m refresh                 # full run: collect → rebuild football.db → re-scope → log
-uv run python -m refresh --no-rebuild    # collect + log only; skip the DB rebuild
+uv run python -m refresh --scope-only    # collect → re-scope only; skip the full football.db rebuild
+uv run python -m refresh --no-rebuild    # collect + log only; skip the DB rebuild entirely
 ```
 
 That's it — no arguments. It always targets **every** Competition's current season.
-`--no-rebuild` is for when you just want to pull new matches and inspect the log/ledger
-without spending the ~1–2 min rebuild.
+
+The full `football.db` rebuild dominates a run: collecting the frontier is seconds (the
+plan is un-throttled), but rebuilding the ~370 MB store is **~13 min**. The two skip flags
+(mutually exclusive) trade that off:
+
+- `--scope-only` — the **interactive fast path**. Collects the frontier and re-scopes every
+  existing `data/<slug>.db` straight from cache (~seconds each), but skips `parse.build()`.
+  Use it when you're at the keyboard and only read a scoped DB (e.g. `world-cup.db`).
+  `football.db` is left **stale** until the next full run, which self-heals it (the new
+  Finals are already ledgered and cached). See ADR 0018.
+- `--no-rebuild` — collect + log only, skip both rebuild and re-scope. For inspecting the
+  log/ledger without touching any DB.
 
 **Exit code:** `0` on a clean night, non-zero if any Competition errored or the API quota
 ran out mid-run (so cron/`MAILTO` notices). A partial run still rebuilds and logs what it

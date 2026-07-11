@@ -91,6 +91,19 @@ the current Season of every Competition — and leaves immutable past Seasons un
   disk (a zero-API re-parse), records `outcome='interrupted'` if it was cut short, and
   exits non-zero so cron surfaces the failure.
 
+  *Amendment (2026-07-11): `--scope-only` for interactive iteration.* The nightly cron
+  keeps this default. But the full `parse.build()` is ~13 min and dominates a run's
+  wall-clock (the frontier collection is seconds now that the plan is un-throttled),
+  while a scoped `data/<slug>.db` re-parse is ~6 s. When you are at the keyboard and only
+  read a scoped DB (e.g. `world-cup.db`), the full rebuild is dead weight. `--scope-only`
+  collects the frontier and runs only `_rescope_existing()`, skipping `parse.build()`, so
+  the scoped DB you read refreshes in seconds. The trade-off: `football.db` is left stale
+  until the next full run — acceptable because that is deliberate and self-healing (the
+  new Finals are already ledgered and cached, so the next full rebuild simply picks them
+  up; nothing re-collects). This is a *skip*, not the "incremental parse" rejected below —
+  no second parser, just one fewer step. `--no-rebuild` (skip both) and `--scope-only`
+  (skip only the full rebuild) are mutually exclusive.
+
 - **Concurrency and scheduling are the operator's, via `flock` + crontab.** We deliver
   the entrypoint and a documented `flock`-wrapped crontab line (recommended 04:00 server
   time, late enough for the day's matches to be Final) rather than touching the crontab.

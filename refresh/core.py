@@ -19,11 +19,18 @@ and teams those new Finals surface — cache-first, so already-seen ones cost no
 Each run writes a human log (refresh/logs/refresh-YYYY-MM-DD.txt) listing which Teams
 were updated vs unchanged per Competition, and records a row (plus a per-endpoint call
 breakdown) in a standalone refresh/refresh.db that the nightly football.db rebuild
-can't wipe. It always ends with a full parse.build() + a re-scope of any existing
+can't wipe. By default it ends with a full parse.build() + a re-scope of any existing
 data/<slug>.db, even after a partial run, and exits non-zero on failure so cron notices.
+
+The full rebuild dominates a run's wall-clock (the frontier collection is seconds; the
+rebuild is minutes). For interactive iteration that only reads a scoped data/<slug>.db,
+--scope-only collects the frontier and re-scopes straight from cache but skips the full
+rebuild, so a Competition's scoped DB refreshes in seconds. football.db is then stale
+until the next full run, which self-heals it (the Finals are already ledgered and cached).
 
 Run with:
     uv run python -m refresh
+    uv run python -m refresh --scope-only     # skip the full football.db rebuild; re-scope only
     uv run python -m refresh --no-rebuild     # collect + log only
 
 See refresh/README.md for the operator's guide (crontab, the new-season warning, etc.).
@@ -185,7 +192,7 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
         status = f["fixture"]["status"]["short"]
         if coverage.has_player_stats:
             fp = _heal_get(client, "fixtures/players", {"fixture": fid})
-            for _tid, pblock in collect.players_in_fixture(fp):
+            for _, pblock in collect.players_in_fixture(fp):
                 pid = pblock["player"]["id"]
                 if pid:
                     player_season.setdefault(pid, current)
@@ -373,8 +380,13 @@ def main(argv: list[str] | None = None) -> None:
         prog="python -m refresh",
         description="Nightly Refresh of every Competition's current Season (ADR 0018).",
     )
-    ap.add_argument("--no-rebuild", action="store_true",
+    rebuild = ap.add_mutually_exclusive_group()
+    rebuild.add_argument("--no-rebuild", action="store_true",
                     help="collect + log only; do not rebuild football.db or scoped DBs")
+    rebuild.add_argument("--scope-only", action="store_true",
+                    help="skip the full football.db rebuild but still re-scope existing "
+                         "data/<slug>.db files (the interactive fast path — leaves "
+                         "football.db stale until the next full Refresh)")
     args = ap.parse_args(argv)
 
     started = datetime.now()
@@ -409,11 +421,18 @@ def main(argv: list[str] | None = None) -> None:
     finally:
         ledger.save()  # persist partial progress no matter how we exit the loop
 
-    # Always rebuild — the cache is internally consistent even after a partial run, so
-    # there is no half-collected state to protect against (unlike orchestrate).
+    # Rebuild — the cache is internally consistent even after a partial run, so there is
+    # no half-collected state to protect against (unlike orchestrate). Default does the
+    # full football.db rebuild then re-scopes; --scope-only skips only the ~13-min full
+    # rebuild and re-scopes straight from cache (football.db goes stale until the next
+    # full run, which self-heals it); --no-rebuild skips both.
     if not args.no_rebuild:
-        print("\n▶ Rebuilding football.db from the raw cache …")
-        parse.build()
+        if args.scope_only:
+            print("\n▶ --scope-only: skipping the full football.db rebuild "
+                  "(stale until the next full Refresh); re-scoping from cache …")
+        else:
+            print("\n▶ Rebuilding football.db from the raw cache …")
+            parse.build()
         rescoped = _rescope_existing()
         if rescoped:
             print(f"  re-scoped: {', '.join(rescoped)}")
