@@ -168,17 +168,18 @@ with no human in the loop), so Refresh warns instead of acting.
 correctly refreshing the *old* current season (2025 here). You just aren't collecting the
 new one yet. Act when you're ready for the new season to start flowing in.
 
-### What you do — a built-in league
+### What you do
 
-Built-in leagues live in [`football/config.py`](../football/config.py), in
-`_BUILTIN_COMPETITIONS`. Extend that Competition's `seasons` range by **one** — the range's
-upper bound is *exclusive*, so to add season 2026:
+Every Competition — league *and* cup — lives in the single competitions file
+[`football/competitions.json`](../football/competitions.json) (ADR 0019); there is no longer
+a built-in/registered split. Find the Competition by `league_id` and append the new year to
+its `"seasons"` list (it's an explicit list of integers, so just add the value):
 
-```python
-# before — max is 2025
-{"league_id": 140, "name": "La Liga", "seasons": list(range(2015, 2026))},
-# after — now includes 2026
-{"league_id": 140, "name": "La Liga", "seasons": list(range(2015, 2027))},
+```json
+// before — max is 2025
+{ "league_id": 140, "name": "La Liga", "seasons": [2015, ..., 2025], ... }
+// after — now includes 2026
+{ "league_id": 140, "name": "La Liga", "seasons": [2015, ..., 2025, 2026], ... }
 ```
 
 Then collect it. Either is fine:
@@ -186,19 +187,12 @@ Then collect it. Either is fine:
 ```bash
 uv run python -m refresh                        # next run picks 2026 as current, backfills its Finals so far, rebuilds
 uv run python -m football.orchestrate 140       # heavier one-shot backfill of the whole new season, then rebuild
+uv run python -m football.cups <id>             # for a cup, use the cups collector instead
 ```
 
-Use `orchestrate` if you want the new season's already-played matches pulled in one go
-right now; otherwise the next nightly Refresh does it incrementally. Either way the warning
-stops once `max(seasons)` matches the provider.
-
-### What you do — a registered league or cup
-
-Leagues/cups added via the registry (ADR 0009 / 0010) live in
-[`data/competitions.json`](../data/competitions.json), not `config.py`. Add the year to that
-Competition's `"seasons"` list there, then re-collect with the same collector you originally
-used (`football.orchestrate <id>` for a league, `football.cups <id>` for a cup), or just let
-the next Refresh pick it up.
+Use `orchestrate` (or `cups`) if you want the new season's already-played matches pulled in
+one go right now; otherwise the next nightly Refresh does it incrementally. Either way the
+warning stops once `max(seasons)` matches the provider.
 
 > **Heads-up on season numbering.** The season integer is the *provider's* own. Straddling
 > leagues (La Liga, Premier League, …) label `2025` as "2025/26"; calendar-year leagues
