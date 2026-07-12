@@ -6,18 +6,37 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
+    # 🔴 LIVE TOGGLE — flip to True to read the provisional Live Mirror
+    # (live/live.db) for an in-progress match you're polling with
+    # `python -m live.poll <fixture_id>`; False reads the authoritative
+    # world-cup.db. Set `fixture_id` below to the match you're watching.
+    # (Live mode shows headline + timeline; squad/stats sections are empty —
+    #  the Mirror is events+header only. See ADR 0020.)
+    live = False
+    return (live,)
+
+
+@app.cell
+def _(live):
     import marimo as mo
     import duckdb
     import pandas as pd
     import altair as alt
     from pathlib import Path
 
-    db_path = Path("/home/azureuser/alt_data/data/world-cup.db")
+    db_path = Path(
+        "/home/azureuser/alt_data/live/live.db"
+        if live
+        else "/home/azureuser/alt_data/data/world-cup.db"
+    )
     if not db_path.exists():
-        raise FileNotFoundError(f"Could not locate database at {db_path}")
+        raise FileNotFoundError(
+            f"Could not locate database at {db_path}"
+            + ("  (live=True but no live.db yet — start `python -m live.poll`)" if live else "")
+        )
 
     conn = duckdb.connect(str(db_path), read_only=True)
-    return alt, conn, mo, pd
+    return alt, conn, db_path, mo, pd
 
 
 @app.cell
@@ -49,14 +68,23 @@ def _(pd):
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
+def _(db_path, live, mo):
+    _mode = (
+        "🔴 **LIVE** — reading the provisional Live Mirror (`live.db`), overwritten each poll"
+        if live
+        else f"🗄️ authoritative `{db_path.name}`"
+    )
+    mo.md(
+        f"""
     # The story of a match
+
+    {_mode}
 
     Edit `fixture_id` below to any World Cup fixture — every section
     re-runs reactively, general → specific: result, line-ups, goals,
     penalties, subs, cards, and a full timeline.
-    """)
+    """
+    )
     return
 
 
@@ -864,44 +892,56 @@ def _(conn, mo, row, win_id, win_name):
         [row.date, win_id, win_id],
     ).df()["id"].tolist()
     n_games = len(_run_ids)
-    _in_list = ", ".join(str(i) for i in _run_ids)  # ints from our own DB
 
-    squad = conn.execute(
-        f"""
-        SELECT p.name AS player,
-               count(*) FILTER (WHERE s.status IN ('started', 'came_on')) AS apps,
-               count(*) FILTER (WHERE s.status = 'started') AS starts,
-               COALESCE(sum(s.minutes), 0) AS mins,
-               sum(s.goals)   AS goals,
-               sum(s.assists) AS assists,
-               sum(s.yellow)  AS yellow,
-               sum(s.red)     AS red
-        FROM squadentry s
-        LEFT JOIN player p ON p.id = s.player_id
-        WHERE s.team_id = {win_id} AND s.fixture_id IN ({_in_list})
-        GROUP BY p.name
-        HAVING count(*) FILTER (WHERE s.status IN ('started', 'came_on')) >= 1
-        ORDER BY goals DESC, assists DESC, mins DESC
-        """
-    ).df()
+    if not _run_ids:
+        # No played fixtures for this team in this DB (e.g. a live-only Mirror).
+        run_view = mo.md(f"_No played fixtures for {win_name} in this database yet._")
+    else:
+        _in_list = ", ".join(str(i) for i in _run_ids)  # ints from our own DB
+        squad = conn.execute(
+            f"""
+            SELECT p.name AS player,
+                   count(*) FILTER (WHERE s.status IN ('started', 'came_on')) AS apps,
+                   count(*) FILTER (WHERE s.status = 'started') AS starts,
+                   COALESCE(sum(s.minutes), 0) AS mins,
+                   sum(s.goals)   AS goals,
+                   sum(s.assists) AS assists,
+                   sum(s.yellow)  AS yellow,
+                   sum(s.red)     AS red
+            FROM squadentry s
+            LEFT JOIN player p ON p.id = s.player_id
+            WHERE s.team_id = {win_id} AND s.fixture_id IN ({_in_list})
+            GROUP BY p.name
+            HAVING count(*) FILTER (WHERE s.status IN ('started', 'came_on')) >= 1
+            ORDER BY goals DESC, assists DESC, mins DESC
+            """
+        ).df()
 
-    for _c in ["apps", "starts", "mins", "goals", "assists", "yellow", "red"]:
-        squad[_c] = squad[_c].fillna(0).astype(int)
-    # ★ = ever-present: started every game in the run
-    squad["XI"] = squad["starts"].map(lambda s: "★" if s == n_games else "")
+        if squad.empty:
+            # Fixtures exist but no per-player entries — a squad-less DB (Live
+            # Mirror is events+header only; see ADR 0020).
+            run_view = mo.md(
+                f"_No per-player squad data for {win_name}'s run in this database._"
+            )
+        else:
+            for _c in ["apps", "starts", "mins", "goals", "assists", "yellow", "red"]:
+                squad[_c] = squad[_c].fillna(0).astype(int)
+            # ★ = ever-present: started every game in the run
+            squad["XI"] = squad["starts"].map(lambda s: "★" if s == n_games else "")
 
-    _scorer = squad.sort_values("goals", ascending=False).iloc[0]
-    _assist = squad.sort_values("assists", ascending=False).iloc[0]
-    _callout = (
-        f"**{win_name} — {n_games} game(s) so far** · "
-        f"Top scorer: {_scorer.player} ({_scorer.goals}) · "
-        f"Top assists: {_assist.player} ({_assist.assists})  \n"
-        f"_★ = ever-present in the starting XI_"
-    )
-    _view = squad.rename(columns={"yellow": "🟨", "red": "🟥"})[
-        ["player", "apps", "starts", "mins", "goals", "assists", "🟨", "🟥", "XI"]
-    ]
-    mo.vstack([mo.md(_callout), _view])
+            _scorer = squad.sort_values("goals", ascending=False).iloc[0]
+            _assist = squad.sort_values("assists", ascending=False).iloc[0]
+            _callout = (
+                f"**{win_name} — {n_games} game(s) so far** · "
+                f"Top scorer: {_scorer.player} ({_scorer.goals}) · "
+                f"Top assists: {_assist.player} ({_assist.assists})  \n"
+                f"_★ = ever-present in the starting XI_"
+            )
+            _view = squad.rename(columns={"yellow": "🟨", "red": "🟥"})[
+                ["player", "apps", "starts", "mins", "goals", "assists", "🟨", "🟥", "XI"]
+            ]
+            run_view = mo.vstack([mo.md(_callout), _view])
+    run_view
     return
 
 

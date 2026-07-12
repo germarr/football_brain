@@ -336,3 +336,28 @@ walkover has a result but is not Final (no lineup or events).
 _Avoid_: treating any non-null scoreline as Final; collecting per-fixture data for a
 scheduled or live match (that is the stale-empty trap the Refresh avoids); reading a
 `PST`/`CANC` Fixture as data loss.
+
+**Live Poll**:
+The repeated fetch, on a fixed interval, of an **in-play** Fixture's events and
+header (score, `status.short`, elapsed) while it is being played, writing them to
+the **Live Mirror**. A Live Poll is the deliberate opposite of the cache-first
+collector: it hits the provider live every cycle and *overwrites* the fixture's rows
+each time. It watches a Fixture until that Fixture reaches **Final** (or another
+terminal status), then stops — the authoritative per-match record is still the
+**Refresh** into the main store, never the poll. A Live Poll collects only what is
+in the events + fixtures payloads (ADR 0020); it does not fetch lineups or stats.
+_Avoid_: treating a Live Poll's output as authoritative or final; polling a Fixture
+past Final; confusing it with a Refresh (which collects once, after Final).
+
+**Live Mirror**:
+The standalone `live/live.db` a **Live Poll** writes — the *current best-known*,
+overwrite-on-poll state of the fixtures currently being watched. Its `event` and
+`fixture` columns **mirror** the main store's (same models), so a reader built for
+the main store points at it unchanged; it adds a `polled_at`/`status` freshness
+marker. Its data is **provisional**: revisable until Final (a Yellow Card can become
+a Red, a Goal can be VAR-cancelled between polls), superseded by the authoritative
+`world-cup.db` once the Refresh has collected the Final Fixture. Like `refresh.db`,
+it is a side store the main rebuild never touches. Squad, lineups and team stats are
+absent (out of a Live Poll's scope), so a reader must degrade gracefully on them.
+_Avoid_: reading the Live Mirror as authoritative or complete; expecting squad/stats
+in it; keeping a poll's row once the Refresh has written the Final record.

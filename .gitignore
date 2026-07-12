@@ -23,3 +23,7 @@ data/
 refresh/refresh.db
 refresh/refresh_ledger.json
 refresh/logs/
+
+# Live Mirror runtime state (ADR 0020): the provisional in-play DB is regenerable
+# by re-polling. The live/ code is tracked; only its local DB is ignored.
+live/live.db
