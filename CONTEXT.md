@@ -184,6 +184,48 @@ i.e. `started` or `came_on`. Per-90 and per-appearance stats are computed over
 Appearances, never over all Squad Entries.
 _Avoid_: cap (informal), calling an `unused_sub` an appearance.
 
+**Team Match Stat**:
+The per-Team, per-Fixture aggregate line — possession, shots (and their break­down),
+corners, offsides, fouls, saves, passes and pass accuracy, plus **Expected Goals** —
+two rows per Fixture (one per Team). It is the Team-level counterpart to a Squad
+Entry (per player) and an Event (per moment): it says how a **Team** performed over
+the whole match, not who did what or when. Present only for a Season with player
+**Coverage**; absent for stats-light Seasons.
+_Avoid_: conflating with Squad Entry (that is per player) or Event (that is per
+moment); reading a Team Match Stat's `yellow`/`red` as a timeline (it is a count).
+
+**Match Rating**:
+The provider's 0–10 performance score for a player in a Fixture, carried on the
+Squad Entry (`rating`). Defined only for players who featured and only where the
+provider supplies it — Coverage-dependent and often absent, so any consumer must
+degrade gracefully when a Fixture has no ratings. "Man of the Match" is a **derived**
+label — the highest Match Rating in a Fixture — not a stored fact.
+_Avoid_: treating a Match Rating as objective or always present; inventing a Man of
+the Match when ratings are missing.
+
+**Expected Goals**:
+A model estimate of how many goals a Team's chances were worth in a Fixture (xG),
+supplied by the provider as a single per-Team, per-Fixture number on the Team Match
+Stat (`expected_goals`) — **not** stored per shot or per player, so it cannot be
+attributed to an individual from our data. Comparing xG to the actual scoreline is
+the canonical "did the result flatter them?" read.
+_Avoid_: attributing xG to a player or a shot; treating xG as a count of real goals.
+
+**Tournament Run**:
+One Team's sequence of played Fixtures within a single Competition edition
+(fixed Competition + Season + Tournament) — its group games plus every knockout
+tie it has reached, ordered by date. A Run is scoped **as of** a given Fixture:
+only games on or before that Fixture's date, so a Run reflects the story *up to*
+a match and never leaks a later result. "Ever-present" describes a player who
+**started** (Squad Entry `started`) every Fixture in the Run — a property of the
+Run, not of the player. A Run has no bracket topology: which knockout tie feeds a
+Team's next round is **not** stored, so a Team's next opponent is only knowable
+once a later Fixture already names both teams; until then the next round is known
+but the rival is not.
+_Avoid_: campaign, journey; extending a Run across editions (a Run is one Season);
+including Fixtures after the analysed match in an as-of Run; inferring a next-round
+opponent from bracket position (there is none — see the later Fixture or nothing).
+
 **Event**:
 A single time-stamped occurrence within a Fixture — a goal, card, substitution,
 or VAR decision — sourced from the fixtures/events endpoint. Carries the minute it
@@ -196,8 +238,16 @@ A penalty **shootout** kick is *not* an Event: it belongs to the tie-break, not 
 match, and its outcome is a Fixture-level fact (`penalty_home`/`penalty_away`, ADR
 0012), so shootout kicks are dropped at parse time and never reach the Event table
 (ADR 0013).
+Two `player_id`/`assist_id` conventions read **backwards** unless you know them:
+for a **subst** Event, `player_id` is the player going **OFF** and `assist_id` is
+the player coming **ON** (verified against Squad-Entry `status`: the `player_id`
+side is overwhelmingly `started`, the `assist_id` side `came_on`) — the opposite of
+the "player + assist" framing. For a **Goal → Own Goal** Event, `player_id` is the
+scorer but the goal counts for the **opposing** Team, so a per-Team tally that
+groups goals by the Event's `team_id` credits the wrong side.
 _Avoid_: incident, moment; conflating an Event with a Squad Entry's stat totals;
-counting a shootout kick as a Goal Event.
+counting a shootout kick as a Goal Event; reading a subst's `player_id` as the
+player who came on; crediting an Own Goal to the scorer's Team.
 
 **Assist**:
 The Player credited with setting up a **Goal** — a field on the Goal Event, not an
@@ -226,9 +276,16 @@ A Career Stint carries **no league and no country** — only the team id and a
 denormalized name (the provider's players/teams endpoint exposes nothing more).
 Attaching a league or country to a stint is therefore a *derived* step, not a
 lookup: it needs an external team→league resolution (see **League of Origin**).
+For a national-team Competition the stint at the tournament's own Season holds the
+**national** team, not a club — a World Cup player's Season-2026 stint is "Spain,"
+and the **club** they arrived with sits at the latest *earlier* Season (the
+2025/26 club season, labelled 2025). So "current club" resolves to the most recent
+non-national, non-youth stint at or before the tournament Season, never the
+tournament Season itself.
 _Avoid_: treating a Career Stint as an Appearance (it carries no per-match stats
 and is not scoped to a Fixture); assuming its seasons align with our fixture data;
-expecting a stint to tell you which league or country the team belongs to.
+expecting a stint to tell you which league or country the team belongs to; reading
+the tournament-Season stint as the player's club (it is the national team).
 
 **League of Origin**:
 For a player in a target Competition, the **domestic league of the club they
