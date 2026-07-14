@@ -1,0 +1,393 @@
+{% macro field(p, comp_options, fixture_options) -%}
+  {% if p.kind == 'bool' %}
+    <div class="field checkfield">
+      <div class="check">
+        <input type="checkbox" id="f-{{ p.name }}" data-param="{{ p.name }}" {% if p.default %}checked{% endif %}>
+        <label for="f-{{ p.name }}">{{ p.label }}</label>
+      </div>
+      {% if p.help %}<span class="hint">{{ p.help }}</span>{% endif %}
+    </div>
+  {% elif p.kind == 'competition' %}
+    <div class="field">
+      <label>{{ p.label }}{% if p.required %} *{% endif %}</label>
+      <select data-param="{{ p.name }}">
+        <option value="">— choose a competition —</option>
+        {% for o in comp_options %}<option value="{{ o.id }}">{{ o.name }} · {{ o.type }}</option>{% endfor %}
+      </select>
+      {% if p.help %}<span class="hint">{{ p.help }}</span>{% endif %}
+    </div>
+  {% elif p.kind == 'fixture' %}
+    <div class="field">
+      <label>{{ p.label }}{% if p.required %} *{% endif %}</label>
+      <select data-param="{{ p.name }}" multiple>
+        {% for o in fixture_options %}<option value="{{ o.id }}">{{ o.label }}</option>{% endfor %}
+      </select>
+      <span class="hint">{{ p.help }}{% if not fixture_options %} — no fixtures in the next 7 days.{% endif %}</span>
+    </div>
+  {% else %}
+    <div class="field">
+      <label>{{ p.label }}{% if p.required %} *{% endif %}</label>
+      <input type="{{ 'number' if p.kind=='int' else 'text' }}" data-param="{{ p.name }}"
+        placeholder="{{ p.placeholder }}"{% if p.default is not none %} value="{{ p.default }}"{% endif %}>
+      {% if p.help %}<span class="hint">{{ p.help }}</span>{% endif %}
+    </div>
+  {% endif %}
+{%- endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Football 2.0 — Operator Dashboard</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
+    --accent:#2f6feb; --accent-ink:#fff; --chip:#eef1f5;
+    --code-bg:#eef1f5; --code-ink:#334155;
+    --ex-bg:#eef4ff; --ex-line:#2f6feb; --ex-label:#2f6feb;
+    --net:#b45309; --db:#6d28d9; --ok:#15803d; --fail:#b91c1c; --run:#2563eb;
+    --live:#dc2626; --final:#6b7280;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#9aa4b2; --line:#283040;
+      --accent:#4c8bf5; --chip:#1e2531;
+      --code-bg:#0d1117; --code-ink:#9fb2cc;
+      --ex-bg:#141d2e; --ex-line:#4c8bf5; --ex-label:#7aa7f7;
+      --net:#f59e0b; --db:#a78bfa; --ok:#4ade80; --fail:#f87171; --run:#60a5fa;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.45;font-size:15px}
+  a{color:var(--accent)}
+  header{padding:22px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);
+    color:var(--muted);font-weight:600}
+  .badge.local{color:var(--ok)}
+  main{max-width:1180px;margin:0 auto;padding:24px 28px 120px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    margin:34px 0 12px;font-weight:700}
+  section:first-of-type h2{margin-top:6px}
+
+  /* trigger groups */
+  .group{margin-bottom:8px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px}
+  .card h3{margin:0;font-size:15.5px;font-weight:660;letter-spacing:-.01em}
+
+  /* which script this card runs — a copyable command chip */
+  .cmdchip{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;max-width:100%;
+    background:var(--code-bg);border:1px solid var(--line);border-radius:7px;
+    padding:4px 8px;cursor:pointer;transition:border-color .12s,background .12s}
+  .cmdchip:hover{border-color:var(--accent)}
+  .cmdchip .pfx{color:var(--muted);font-family:var(--mono);font-size:11.5px;opacity:.7}
+  .cmdchip code{font-family:var(--mono);font-size:11.5px;color:var(--code-ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cmdchip .copyhint{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .12s;padding-left:4px}
+  .cmdchip:hover .copyhint{opacity:.75}
+  .cmdchip.copied .copyhint{opacity:1;color:var(--ok)}
+
+  .card .desc{color:var(--ink);font-size:13.5px;margin:0;line-height:1.5}
+
+  /* the concrete "Example run" callout — the card's signature element */
+  .example{background:var(--ex-bg);border:1px solid var(--line);border-left:3px solid var(--ex-line);
+    border-radius:8px;padding:9px 11px 10px}
+  .example .ex-label{display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ex-label);margin-bottom:4px}
+  .example p{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink)}
+
+  .tags{display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--chip);
+    color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .tag.net{color:var(--net)} .tag.db{color:var(--db)} .tag.long{color:var(--muted)}
+  .tag.danger{color:var(--fail)}
+  /* scope cue — sentence-case + outline, distinct from the uppercase warning tags */
+  .tag.scope{text-transform:none;letter-spacing:0;background:transparent;color:var(--ex-label);
+    border:1px solid var(--ex-line);font-weight:650}
+  form{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-size:12px;color:var(--muted);font-weight:600}
+  .field .hint{font-size:11px;color:var(--muted);line-height:1.45}
+  input[type=text],input[type=number],select{padding:7px 9px;border:1px solid var(--line);
+    border-radius:8px;background:var(--bg);color:var(--ink);font-size:13.5px;font-family:var(--sans)}
+  select[multiple]{min-height:112px}
+  .checkfield{gap:3px}
+  .check{display:flex;flex-direction:row;align-items:center;gap:7px}
+  .check label{font-size:13px;color:var(--ink)}
+  .checkfield .hint{padding-left:24px}
+
+  /* Advanced options — a real, obviously-clickable disclosure button */
+  details.adv{border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+  details.adv>summary{cursor:pointer;font-size:12.5px;color:var(--ink);font-weight:640;
+    list-style:none;padding:8px 11px;display:flex;align-items:center;gap:8px;user-select:none;
+    border-radius:8px;transition:background .12s}
+  details.adv>summary::-webkit-details-marker{display:none}
+  details.adv>summary:hover{background:var(--chip)}
+  details.adv>summary .chev{display:inline-block;color:var(--muted);font-size:11px;
+    transition:transform .15s}
+  details.adv[open]>summary .chev{transform:rotate(90deg)}
+  details.adv>summary .advcount{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted);
+    background:var(--chip);border-radius:999px;min-width:18px;text-align:center;padding:0 6px}
+  details.adv[open]>summary{border-bottom:1px solid var(--line);border-radius:8px 8px 0 0}
+  .adv-body{display:flex;flex-direction:column;gap:11px;padding:11px}
+  .row{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:2px}
+  button{font-family:var(--sans);font-weight:640;cursor:pointer;border:none;border-radius:8px}
+  .run{background:var(--accent);color:var(--accent-ink);padding:8px 18px;font-size:13.5px}
+  .run:hover{filter:brightness(1.06)}
+
+  /* leagues panel */
+  .continent{margin-bottom:14px}
+  .continent h4{margin:0 0 8px;font-size:12.5px;color:var(--muted);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 5px;font-size:12.5px}
+  .chip img{width:19px;height:14px;object-fit:cover;border-radius:2px;background:var(--chip)}
+  .chip .ty{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .chip .ty.cup{color:var(--db)}
+  .chip .sn{font-size:11px;color:var(--muted)}
+
+  /* fixtures */
+  .day{margin-bottom:16px}
+  .day h4{margin:0 0 6px;font-size:13px;font-weight:700;display:flex;gap:8px;align-items:baseline}
+  .day h4 .d{color:var(--muted);font-weight:500;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td.t{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;width:78px}
+  td.c{white-space:nowrap}
+  td.c img{width:17px;height:12px;object-fit:cover;border-radius:2px;vertical-align:-1px;margin-right:6px}
+  td.c .ct{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-left:6px}
+  td.m{width:100%}
+  td.s{white-space:nowrap;text-align:right}
+  .pill{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--chip);color:var(--muted)}
+  .pill.live{color:#fff;background:var(--live)}
+  .pill.final{color:var(--final)}
+  .sc{font-variant-numeric:tabular-nums;font-weight:640}
+  .muted{color:var(--muted)} .empty{color:var(--muted);font-size:13.5px;padding:8px 0}
+
+  /* jobs drawer */
+  #jobs{position:fixed;right:0;bottom:0;width:min(520px,100vw);max-height:70vh;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px 0 0 0;
+    box-shadow:0 -8px 30px rgba(0,0,0,.16);transform:translateY(calc(100% - 40px));
+    transition:transform .2s ease;z-index:20;display:flex;flex-direction:column}
+  #jobs.open{transform:translateY(0)}
+  #jobs .bar{padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;
+    border-bottom:1px solid var(--line);font-weight:640;font-size:13px}
+  #jobs .bar .count{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+  .jobs-list{overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+  .job{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .job-head{display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--bg)}
+  .job-title{font-size:12.5px;font-weight:640}
+  .job-status{font-size:10.5px;font-weight:700;text-transform:uppercase;padding:1px 7px;
+    border-radius:6px;background:var(--chip)}
+  .job-status.running{color:var(--run)} .job-status.done{color:var(--ok)}
+  .job-status.failed{color:var(--fail)} .job-status.stopped{color:var(--muted)}
+  .job-head .stop{margin-left:auto;background:var(--chip);color:var(--fail);font-size:11px;padding:3px 9px}
+  .job-head .stop:disabled{opacity:.4;cursor:default}
+  .job-log{margin:0;padding:9px 11px;font-family:var(--mono);font-size:11.5px;line-height:1.5;
+    white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto;background:var(--panel)}
+  #toast{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:var(--fail);
+    color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:40;
+    opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.show{opacity:1}
+  .note{font-size:12px;color:var(--muted);margin:2px 0 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Football 2.0</h1>
+  <span class="badge">Operator Dashboard</span>
+  <span class="badge local">● 127.0.0.1 — local only</span>
+  <span class="badge">{{ n_leagues }} leagues · {{ n_cups }} cups</span>
+</header>
+
+<main>
+  <!-- ================= TRIGGERS ================= -->
+  <section>
+    <h2>Triggers</h2>
+    {% for group, cmds in groups.items() %}
+      {% if cmds %}
+      <div class="group">
+        <h2 style="margin-top:18px">{{ group }}</h2>
+        <div class="cards">
+        {% for c in cmds %}
+          <div class="card" id="card-{{ c.key }}">
+            <div class="tags">
+              {% if c.scope %}<span class="tag scope" title="What this command touches">◎ {{ c.scope }}</span>{% endif %}
+              {% if c.network %}<span class="tag net">network · quota</span>{% endif %}
+              {% if c.builds_db %}<span class="tag db">rebuilds db</span>{% endif %}
+              {% if c.long_running %}<span class="tag long">long-running</span>{% endif %}
+              {% if c.danger %}<span class="tag danger">destructive</span>{% endif %}
+            </div>
+            <h3>{{ c.title }}</h3>
+            <button class="cmdchip" type="button" title="Copy this command"
+              onclick="copyCmd(this, 'python -m {{ c.module }}')">
+              <span class="pfx">$</span><code>python -m {{ c.module }}</code><span class="copyhint">copy</span>
+            </button>
+            <p class="desc">{{ c.summary }} {{ c.detail }}</p>
+            {% if c.example %}
+            <div class="example">
+              <span class="ex-label">Example run</span>
+              <p>{{ c.example }}</p>
+            </div>
+            {% endif %}
+            <form onsubmit="return false" data-cmd="{{ c.key }}">
+              {% set basic = c.params|selectattr('advanced','equalto',false)|list %}
+              {% set adv = c.params|selectattr('advanced','equalto',true)|list %}
+              {% for p in basic %}{{ field(p, comp_options, fixture_options) }}{% endfor %}
+              {% if adv %}
+              <details class="adv">
+                <summary><span class="chev">▸</span> Advanced options <span class="advcount">{{ adv|length }}</span></summary>
+                <div class="adv-body">
+                  {% for p in adv %}{{ field(p, comp_options, fixture_options) }}{% endfor %}
+                </div>
+              </details>
+              {% endif %}
+              <div class="row">
+                <button class="run" type="button" onclick="runCmd('{{ c.key }}', this.closest('form'))">Run ▸</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </section>
+
+  <!-- ================= LEAGUES / CUPS ================= -->
+  <section>
+    <h2>Tracked competitions</h2>
+    {% for continent in continents %}
+      <div class="continent">
+        <h4>{{ continent }}</h4>
+        <div class="chips">
+        {% for c in comps if c.continent == continent %}
+          <span class="chip" title="{{ c.name }} — seasons {{ c.season_from }}–{{ c.season_to }}">
+            {% if c.flag %}<img src="{{ c.flag }}" alt="" loading="lazy">{% else %}<span class="ty">{{ c.country or '—' }}</span>{% endif %}
+            {{ c.name }}
+            <span class="ty {{ 'cup' if c.type=='cup' else '' }}">{{ c.type }}</span>
+            <span class="sn">{{ c.season_from }}–{{ c.season_to }}</span>
+          </span>
+        {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+
+  <!-- ================= THIS WEEK ================= -->
+  <section>
+    <h2>This week — {{ week.start }} → {{ week.end }} · {{ week.count }} games · NYC time</h2>
+    <p class="note">Reflects your last <strong>Refresh</strong>, not live scores.
+      {% if week.db_missing %}football.db not found — run a Build first.{% endif %}</p>
+    {% if not fixtures %}
+      <p class="empty">No fixtures in the next {{ week.days }} days{{ '' if week.db_missing else ' (or DB not yet built)' }}.</p>
+    {% endif %}
+    {% for day in fixtures %}
+      <div class="day">
+        <h4>{{ day.label }} <span class="d">{{ day.date }}</span></h4>
+        <table>
+          {% for f in day.fixtures %}
+          <tr>
+            <td class="t">{{ f.time }}</td>
+            <td class="c">
+              {% if f.flag %}<img src="{{ f.flag }}" alt="" loading="lazy">{% endif %}{{ f.comp }}
+              {% if f.ctype %}<span class="ct">{{ f.ctype }}</span>{% endif %}
+            </td>
+            <td class="m">{{ f.home }} <span class="muted">v</span> {{ f.away }}</td>
+            <td class="s">
+              {% if f.state == 'final' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill final">{{ f.status }}</span>
+              {% elif f.state == 'live' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill live">{{ f.status }}</span>
+              {% else %}<span class="pill">{{ f.status or 'NS' }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% endfor %}
+  </section>
+</main>
+
+<!-- ================= JOBS DRAWER ================= -->
+<div id="jobs">
+  <div class="bar" onclick="document.getElementById('jobs').classList.toggle('open')">
+    ▤ Jobs <span class="count" id="jobs-count"></span>
+  </div>
+  <div class="jobs-list"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+function copyCmd(btn, cmd){
+  const done = ()=>{ btn.classList.add('copied');
+    const h = btn.querySelector('.copyhint'); const prev = h.textContent; h.textContent='copied';
+    setTimeout(()=>{ btn.classList.remove('copied'); h.textContent=prev; }, 1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(cmd).then(done).catch(()=>toast('Copy failed'));
+  } else {
+    const ta=document.createElement('textarea'); ta.value=cmd; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ toast('Copy failed'); }
+    document.body.removeChild(ta);
+  }
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 4000); }
+
+let jobCount = 0;
+function bumpCount(){ document.getElementById('jobs-count').textContent = jobCount ? jobCount+' seen' : ''; }
+
+async function runCmd(key, form){
+  const values = {};
+  form.querySelectorAll('[data-param]').forEach(el=>{
+    const name = el.dataset.param;
+    if(el.type === 'checkbox') values[name] = el.checked;
+    else if(el.multiple) values[name] = Array.from(el.selectedOptions).map(o=>o.value);
+    else values[name] = el.value;
+  });
+  let res, data;
+  try{
+    res = await fetch('/run', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, values})});
+    data = await res.json();
+  }catch(e){ toast('Request failed: '+e); return; }
+  if(!res.ok){ toast(data.error || 'Failed to start'); return; }
+  jobCount++; bumpCount();
+  openJob(data.job_id, data.title);
+}
+
+function openJob(jobId, title){
+  const drawer = document.getElementById('jobs');
+  drawer.classList.add('open');
+  const list = drawer.querySelector('.jobs-list');
+  const card = document.createElement('div');
+  card.className = 'job';
+  card.innerHTML =
+    '<div class="job-head"><span class="job-title"></span>'+
+    '<span class="job-status running">running</span>'+
+    '<button class="stop">Stop</button></div><pre class="job-log"></pre>';
+  card.querySelector('.job-title').textContent = title;
+  const statusEl = card.querySelector('.job-status');
+  const log = card.querySelector('.job-log');
+  const stopBtn = card.querySelector('.stop');
+  stopBtn.onclick = ()=> fetch('/jobs/'+jobId+'/stop', {method:'POST'});
+  list.prepend(card);
+
+  let done = false;
+  const es = new EventSource('/jobs/'+jobId+'/stream');
+  es.onmessage = (e)=>{ const d = JSON.parse(e.data);
+    log.textContent += d.line + '\n'; log.scrollTop = log.scrollHeight; };
+  es.addEventListener('end', (e)=>{ const d = JSON.parse(e.data);
+    statusEl.textContent = d.status; statusEl.className = 'job-status '+d.status;
+    stopBtn.disabled = true; done = true; es.close(); });
+  es.onerror = ()=>{ if(done){ es.close(); return; }
+    statusEl.textContent='disconnected'; statusEl.className='job-status stopped'; };
+}
+</script>
+</body>
+</html>
