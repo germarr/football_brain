@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Football 2.0 — Viewer</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
+    --accent:#2f6feb; --chip:#eef1f5; --db:#6d28d9;
+    --live:#dc2626; --final:#6b7280;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#9aa4b2; --line:#283040;
+      --accent:#4c8bf5; --chip:#1e2531; --db:#a78bfa;
+      --live:#f87171; --final:#9aa4b2;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.45;font-size:15px}
+  a{color:var(--accent)}
+  header{padding:22px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);
+    color:var(--muted);font-weight:600}
+  .badge.local{color:#15803d}
+  main{max-width:1180px;margin:0 auto;padding:24px 28px 80px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    margin:30px 0 12px;font-weight:700}
+  section:first-of-type h2{margin-top:6px}
+  .note{font-size:12px;color:var(--muted);margin:2px 0 0}
+
+  /* leagues panel */
+  .continent{margin-bottom:14px}
+  .continent h4{margin:0 0 8px;font-size:12.5px;color:var(--muted);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 5px;font-size:12.5px}
+  .chip img{width:19px;height:14px;object-fit:cover;border-radius:2px;background:var(--chip)}
+  .chip .ty{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .chip .ty.cup{color:var(--db)}
+
+  /* fixtures */
+  .day{margin-bottom:16px}
+  .day h4{margin:0 0 6px;font-size:13px;font-weight:700;display:flex;gap:8px;align-items:baseline}
+  .day h4 .d{color:var(--muted);font-weight:500;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td.t{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;width:78px}
+  td.c{white-space:nowrap}
+  td.c img{width:17px;height:12px;object-fit:cover;border-radius:2px;vertical-align:-1px;margin-right:6px}
+  td.c .ct{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-left:6px}
+  td.m{width:100%}
+  td.s{white-space:nowrap;text-align:right}
+  tr.fx{cursor:pointer}
+  tr.fx:hover td{background:var(--chip)}
+  .pill{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--chip);color:var(--muted)}
+  .pill.live{color:#fff;background:var(--live)}
+  .pill.final{color:var(--final)}
+  .sc{font-variant-numeric:tabular-nums;font-weight:640}
+  .muted{color:var(--muted)} .empty{color:var(--muted);font-size:13.5px;padding:8px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Football 2.0</h1>
+  <span class="badge">Viewer</span>
+  <span class="badge local">● 127.0.0.1 — local only</span>
+  <span class="badge">{{ n_leagues }} leagues · {{ n_cups }} cups</span>
+</header>
+
+<main>
+  <!-- ================= THIS WEEK ================= -->
+  <section>
+    <h2>This week — {{ week.start }} → {{ week.end }} · {{ week.count }} games · NYC time</h2>
+    <p class="note">From the daily serving snapshot (<code>serve.db</code>). Click a game to open its Match Tracker.
+      {% if week.db_missing %}serve.db not found — publish it first (Console → Publish).{% endif %}</p>
+    {% if not fixtures %}
+      <p class="empty">No fixtures in the next {{ week.days }} days{{ '' if week.db_missing else ' (or serve.db not yet published)' }}.</p>
+    {% endif %}
+    {% for day in fixtures %}
+      <div class="day">
+        <h4>{{ day.label }} <span class="d">{{ day.date }}</span></h4>
+        <table>
+          {% for f in day.fixtures %}
+          <tr class="fx" onclick="location.href='/fixture/{{ f.id }}'" title="Open match tracker">
+            <td class="t">{{ f.time }}</td>
+            <td class="c">
+              {% if f.flag %}<img src="{{ f.flag }}" alt="" loading="lazy">{% endif %}{{ f.comp }}
+              {% if f.ctype %}<span class="ct">{{ f.ctype }}</span>{% endif %}
+            </td>
+            <td class="m">{{ f.home }} <span class="muted">v</span> {{ f.away }}</td>
+            <td class="s">
+              {% if f.state == 'final' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill final">{{ f.status }}</span>
+              {% elif f.state == 'live' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill live">{{ f.status }}</span>
+              {% else %}<span class="pill">{{ f.status or 'NS' }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% endfor %}
+  </section>
+
+  <!-- ================= LEAGUES / CUPS ================= -->
+  <section>
+    <h2>Tracked competitions</h2>
+    {% if not comps %}<p class="empty">No competitions — publish serve.db first.</p>{% endif %}
+    {% for continent in continents %}
+      <div class="continent">
+        <h4>{{ continent }}</h4>
+        <div class="chips">
+        {% for c in comps if c.continent == continent %}
+          <span class="chip" title="{{ c.name }} — {{ c.country or '—' }}">
+            {% if c.flag %}<img src="{{ c.flag }}" alt="" loading="lazy">{% else %}<span class="ty">{{ c.country or '—' }}</span>{% endif %}
+            {{ c.name }}
+            <span class="ty {{ 'cup' if c.type=='cup' else '' }}">{{ c.type }}</span>
+          </span>
+        {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+</main>
+</body>
+</html>

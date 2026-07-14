@@ -1,15 +1,18 @@
-"""FastAPI application for the operator dashboard (ADR 0021).
+"""FastAPI application for the Operator Console (ADR 0021, ADR 0023).
 
-Three responsibilities:
-  1. Render the trigger sections (from `football.commands`), the tracked
-     leagues/cups panel, and this week's fixtures in NYC time.
+The Console's *only* job is to run the scripts that build/refresh data/football.db
+(Collect / Build / Refresh / Publish, from `football.commands`). Since ADR 0023 split
+the reader surface out into the Viewer (`web.app`), this app no longer reads
+football.db or renders any leagues/week/match panels — the Viewer owns those, over its
+own serve.db. The Live group is gone too: launching `live.poll` now lives on the
+Viewer's Match Tracker page.
+
+Two responsibilities remain:
+  1. Render the trigger sections (from `football.commands`); form options come from
+     competitions.json (config), not football.db.
   2. Run a trigger as a background subprocess of the exact `python -m ...` command,
-     stream its log over SSE, and let the operator stop it.
-  3. Guard: refuse to start a second football.db builder while one is running
-     (reusing parse.py's exclusive flock on data/football.build.lock).
-
-Read-only DB access degrades gracefully: if football.db is mid-rebuild or missing,
-the panels render empty with a note rather than erroring.
+     stream its log over SSE, let the operator stop it, and refuse to start a second
+     football.db builder while one holds data/football.build.lock.
 """
 from __future__ import annotations
 
@@ -17,7 +20,6 @@ import datetime as dt
 import fcntl
 import json
 import os
-import sqlite3
 import subprocess
 import threading
 import time
@@ -33,20 +35,12 @@ from fastapi.templating import Jinja2Templates
 from .. import commands, config
 
 NY = zoneinfo.ZoneInfo("America/New_York")
-UTC = dt.timezone.utc
-WEEK_DAYS = 7
-
-FINAL_STATUS = {"FT", "AET", "PEN"}
-LIVE_STATUS = {"1H", "2H", "HT", "ET", "BT", "P", "LIVE", "INT", "SUSP"}
 
 _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-# The Live Mirror (ADR 0020), read for the per-fixture Match Tracker (ADR 0022).
-LIVE_DB_PATH = config.ROOT / "live" / "live.db"
-
-app = FastAPI(title="Football 2.0 — Operator Dashboard")
+app = FastAPI(title="Football 2.0 — Operator Console")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
 
 
@@ -137,313 +131,18 @@ def _db_build_busy() -> str | None:
 
 
 # --------------------------------------------------------------------------- #
-# Read-only data for the panels
+# Form options (from config — never football.db)
 # --------------------------------------------------------------------------- #
-def _connect() -> sqlite3.Connection | None:
-    if not config.DB_PATH.exists():
-        return None
-    try:
-        con = sqlite3.connect(f"file:{config.DB_PATH}?mode=ro", uri=True, timeout=2)
-        con.row_factory = sqlite3.Row
-        return con
-    except sqlite3.Error:
-        return None
-
-
-def _competition_meta() -> dict[int, sqlite3.Row]:
-    con = _connect()
-    if con is None:
-        return {}
-    try:
-        rows = con.execute(
-            "select id, name, type, country, continent, flag, logo from competition"
-        ).fetchall()
-        return {r["id"]: r for r in rows}
-    except sqlite3.Error:
-        return {}
-    finally:
-        con.close()
-
-
-def tracked_competitions() -> list[dict]:
-    """Every Competition from competitions.json, enriched with DB metadata (flag…)."""
+def competition_options() -> list[dict]:
+    """The competition picker for parameterised forms (scope/orchestrate/…), read
+    straight from competitions.json (ADR 0019) — the Console reads no football.db."""
     config.reload_competitions()
-    meta = _competition_meta()
-    out = []
-    for c in config.COMPETITIONS:
-        m = meta.get(c["league_id"])
-        seasons = c.get("seasons") or []
-        out.append({
-            "id": c["league_id"],
-            "name": c["name"],
-            "type": c["type"],
-            "seasons": seasons,
-            "season_from": min(seasons) if seasons else None,
-            "season_to": max(seasons) if seasons else None,
-            "country": (m["country"] if m else None),
-            "continent": (m["continent"] if m and m["continent"] else "Not yet built"),
-            "flag": (m["flag"] if m else None),
-            "logo": (m["logo"] if m else None),
-        })
-    out.sort(key=lambda x: (x["continent"], x["type"], x["name"]))
-    return out
-
-
-def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
-    """This week's fixtures grouped by NYC calendar day, plus window metadata."""
-    now_ny = dt.datetime.now(NY)
-    start_ny = now_ny.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_ny = start_ny + dt.timedelta(days=days)
-    start_utc = start_ny.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S")
-    end_utc = end_ny.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S")
-
-    meta = {
-        "start": start_ny.strftime("%a %b %-d"),
-        "end": (end_ny - dt.timedelta(days=1)).strftime("%a %b %-d"),
-        "days": days,
-        "count": 0,
-        "db_missing": not config.DB_PATH.exists(),
-    }
-
-    con = _connect()
-    if con is None:
-        return [], meta
-    try:
-        rows = con.execute(
-            """
-            select f.id, f.date, f.status,
-                   f.home_team_name, f.away_team_name, f.home_goals, f.away_goals,
-                   coalesce(c.name, f.league_name) as comp, c.type as ctype, c.flag
-            from fixture f
-            left join competition c on c.id = f.league_id
-            where f.date >= ? and f.date < ?
-            order by f.date
-            """,
-            (start_utc, end_utc),
-        ).fetchall()
-    except sqlite3.Error:
-        return [], meta
-    finally:
-        con.close()
-
-    today = now_ny.date()
-    by_day: dict[dt.date, dict] = {}
-    for r in rows:
-        try:
-            naive = dt.datetime.fromisoformat(r["date"])
-        except (ValueError, TypeError):
-            continue
-        ko = naive.replace(tzinfo=UTC).astimezone(NY)
-        status = (r["status"] or "").upper()
-        if status in FINAL_STATUS:
-            state, score = "final", _score(r)
-        elif status in LIVE_STATUS:
-            state, score = "live", _score(r)
-        else:
-            state, score = "scheduled", None
-        day = ko.date()
-        bucket = by_day.setdefault(day, {"date": day, "fixtures": []})
-        bucket["fixtures"].append({
-            "id": r["id"],
-            "time": ko.strftime("%-I:%M %p"),
-            "comp": r["comp"],
-            "ctype": r["ctype"] or "",
-            "flag": r["flag"],
-            "home": r["home_team_name"],
-            "away": r["away_team_name"],
-            "state": state,
-            "status": status,
-            "score": score,
-        })
-
-    groups = []
-    for day in sorted(by_day):
-        delta = (day - today).days
-        if delta == 0:
-            label = "Today"
-        elif delta == 1:
-            label = "Tomorrow"
-        else:
-            label = day.strftime("%A")
-        groups.append({
-            "label": label,
-            "date": day.strftime("%b %-d"),
-            "fixtures": by_day[day]["fixtures"],
-        })
-    meta["count"] = sum(len(g["fixtures"]) for g in groups)
-    return groups, meta
-
-
-def _score(r: sqlite3.Row) -> str | None:
-    if r["home_goals"] is None or r["away_goals"] is None:
-        return None
-    return f"{r['home_goals']}–{r['away_goals']}"
-
-
-# --------------------------------------------------------------------------- #
-# Per-fixture Match Tracker (ADR 0022)
-# --------------------------------------------------------------------------- #
-def _live_connect() -> sqlite3.Connection | None:
-    """Read-only connection to the Live Mirror, or None if it doesn't exist."""
-    if not LIVE_DB_PATH.exists():
-        return None
-    try:
-        con = sqlite3.connect(f"file:{LIVE_DB_PATH}?mode=ro", uri=True, timeout=2)
-        con.row_factory = sqlite3.Row
-        return con
-    except sqlite3.Error:
-        return None
-
-
-def _fmt_clock(minute, extra) -> str:
-    if minute is None:
-        return ""
-    m = int(minute)
-    return f"{m}+{int(extra)}'" if extra else f"{m}'"
-
-
-def _event_icon(t: str, detail: str | None) -> str:
-    if t == "Goal":
-        return "❌" if detail == "Missed Penalty" else "⚽"
-    if t == "Card":
-        return "🟥" if detail == "Red Card" else "🟨"
-    if t == "subst":
-        return "🔁"
-    if t == "Var":
-        return "📺"
-    return "•"
-
-
-def _event_text(r: sqlite3.Row, team_name: dict, home_id: int, away_id: int) -> str:
-    """Human description of one Event — mirrors match_story.py's _describe,
-    including the subst gotcha (player_id = OFF, assist_id = ON; CONTEXT.md)."""
-    t, detail = r["type"], r["detail"]
-    team = team_name.get(r["team_id"], "?")
-    player = r["player"] or "?"
-    assist, reason = r["assist"], r["comments"]
-    if t == "Goal":
-        if detail == "Own Goal":
-            opp = team_name.get(away_id if r["team_id"] == home_id else home_id, "?")
-            return f"Own goal — {player} ({team}), counts for {opp}"
-        if detail == "Missed Penalty":
-            return f"Missed penalty — {player} ({team})"
-        kind = " (pen)" if detail == "Penalty" else ""
-        asst = f", assist {assist}" if assist else ""
-        return f"Goal{kind} — {player} ({team}){asst}"
-    if t == "Card":
-        label = "Red" if detail == "Red Card" else "Yellow"
-        because = f", {reason}" if reason else ""
-        return f"{label} — {player} ({team}){because}"
-    if t == "subst":
-        return f"Sub — {player} off, {assist or '?'} on ({team})"
-    if t == "Var":
-        return f"VAR — {detail} ({team})"
-    return f"{t} — {detail} ({team})"
-
-
-def _read_fixture(con: sqlite3.Connection, fixture_id: int):
-    """(fixture row, [event rows]) for one fixture from the given DB, or None.
-    Works against football.db or the schema-identical Live Mirror (ADR 0020)."""
-    try:
-        fx = con.execute("select * from fixture where id = ?", (fixture_id,)).fetchone()
-        if fx is None:
-            return None
-        events = con.execute(
-            """
-            select e.event_index, e.minute, e.extra, e.team_id, e.type, e.detail,
-                   e.comments, p.name as player, a.name as assist
-            from event e
-            left join player p on p.id = e.player_id
-            left join player a on a.id = e.assist_id
-            where e.fixture_id = ?
-            order by e.minute, coalesce(e.extra, 0), e.event_index
-            """,
-            (fixture_id,),
-        ).fetchall()
-        return fx, events
-    except sqlite3.Error:
-        return None
-
-
-def _fixture_state(fixture_id: int) -> dict | None:
-    """Headline + timeline for one fixture under the ADR 0022 precedence rule:
-    the Live Mirror wins while a livepoll row exists, else football.db."""
-    source: str | None = None
-    polled_at = None
-    data = None
-
-    live = _live_connect()
-    if live is not None:
-        try:
-            lp = live.execute(
-                "select polled_at from livepoll where fixture_id = ?", (fixture_id,)
-            ).fetchone()
-            if lp is not None:
-                data = _read_fixture(live, fixture_id)
-                if data is not None:
-                    source, polled_at = "live", lp["polled_at"]
-        except sqlite3.Error:
-            pass
-        finally:
-            live.close()
-
-    if data is None:
-        con = _connect()
-        if con is not None:
-            try:
-                data = _read_fixture(con, fixture_id)
-                if data is not None:
-                    source = "authoritative"
-            finally:
-                con.close()
-
-    if data is None:
-        return None
-
-    fx, events = data
-    home_id, away_id = fx["home_team_id"], fx["away_team_id"]
-    team_name = {home_id: fx["home_team_name"], away_id: fx["away_team_name"]}
-    status = (fx["status"] or "").upper()
-    if status in FINAL_STATUS:
-        state = "final"
-    elif status in LIVE_STATUS:
-        state = "live"
-    else:
-        state = "scheduled"
-
-    return {
-        "id": fixture_id,
-        "source": source,
-        "provisional": source == "live",
-        "polled_at": polled_at,
-        "home": fx["home_team_name"],
-        "away": fx["away_team_name"],
-        "home_goals": fx["home_goals"],
-        "away_goals": fx["away_goals"],
-        "score": _score(fx),
-        "status": status,
-        "state": state,
-        "league": fx["league_name"],
-        "round": fx["round"],
-        "date": fx["date"],
-        "events": [
-            {
-                "time": _fmt_clock(e["minute"], e["extra"]),
-                "icon": _event_icon(e["type"], e["detail"]),
-                "text": _event_text(e, team_name, home_id, away_id),
-            }
-            for e in events
-        ],
-    }
-
-
-def _running_poll_job(fixture_id: int) -> str | None:
-    """The id of a running live_poll job watching this fixture, if any."""
-    fid = str(fixture_id)
-    for j in JOBS.values():
-        if j.status == "running" and j.key == "live_poll" and fid in j.argv:
-            return j.id
-    return None
+    opts = [
+        {"id": c["league_id"], "name": c["name"], "type": c["type"]}
+        for c in config.COMPETITIONS
+    ]
+    opts.sort(key=lambda x: x["name"])
+    return opts
 
 
 # --------------------------------------------------------------------------- #
@@ -451,40 +150,13 @@ def _running_poll_job(fixture_id: int) -> str | None:
 # --------------------------------------------------------------------------- #
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    comps = tracked_competitions()
-    fixtures, week_meta = week_fixtures()
-    # Options for parameterised forms.
-    comp_options = sorted(
-        ({"id": c["id"], "name": c["name"], "type": c["type"]} for c in comps),
-        key=lambda x: x["name"],
-    )
-    fixture_options = [
-        {
-            "id": fx["id"],
-            "label": f"{fx['comp']} · {fx['home']} v {fx['away']} · {g['label']} {fx['time']}",
-        }
-        for g in fixtures
-        for fx in g["fixtures"]
-    ]
-    # continents for the leagues panel (preserve sorted order)
-    continents: list[str] = []
-    for c in comps:
-        if c["continent"] not in continents:
-            continents.append(c["continent"])
-
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "groups": commands.by_group(),
-            "comps": comps,
-            "continents": continents,
-            "comp_options": comp_options,
-            "fixture_options": fixture_options,
-            "fixtures": fixtures,
-            "week": week_meta,
-            "n_leagues": sum(1 for c in comps if c["type"] == "league"),
-            "n_cups": sum(1 for c in comps if c["type"] == "cup"),
+            "comp_options": competition_options(),
+            "fixture_options": [],   # no fixture-typed params remain on the Console
         },
     )
 
@@ -565,68 +237,5 @@ def stream(job_id: str):
                        f"data: {json.dumps({'status': job.status, 'code': job.returncode})}\n\n")
                 return
             time.sleep(0.4)
-
-    return StreamingResponse(gen(), media_type="text/event-stream")
-
-
-# --------------------------------------------------------------------------- #
-# Match Tracker routes (ADR 0022)
-# --------------------------------------------------------------------------- #
-@app.get("/fixture/{fixture_id}", response_class=HTMLResponse)
-def fixture_page(request: Request, fixture_id: int):
-    st = _fixture_state(fixture_id)
-    if st is None:
-        return HTMLResponse(
-            "<p style='font-family:system-ui;padding:40px'>"
-            f"Unknown fixture <b>{fixture_id}</b> — not in football.db or the Live "
-            "Mirror. <a href='/'>← back to the dashboard</a></p>",
-            status_code=404,
-        )
-    return templates.TemplateResponse(
-        request, "fixture.html",
-        {"st": st, "running_job": _running_poll_job(fixture_id)},
-    )
-
-
-@app.get("/fixture/{fixture_id}/state")
-def fixture_state(fixture_id: int):
-    st = _fixture_state(fixture_id)
-    if st is None:
-        return JSONResponse({"error": "unknown fixture"}, status_code=404)
-    return st
-
-
-@app.post("/fixture/{fixture_id}/clear")
-def fixture_clear(fixture_id: int):
-    """Delete this fixture's rows from the Live Mirror, reverting the page to
-    authoritative (ADR 0022)."""
-    if not LIVE_DB_PATH.exists():
-        return {"cleared": False}
-    try:
-        con = sqlite3.connect(LIVE_DB_PATH, timeout=5)
-        con.execute("delete from event where fixture_id = ?", (fixture_id,))
-        con.execute("delete from fixture where id = ?", (fixture_id,))
-        con.execute("delete from livepoll where fixture_id = ?", (fixture_id,))
-        con.commit()
-        con.close()
-    except sqlite3.Error as e:
-        return JSONResponse({"cleared": False, "error": str(e)}, status_code=500)
-    return {"cleared": True}
-
-
-@app.get("/fixture/{fixture_id}/live")
-def fixture_live(fixture_id: int):
-    """SSE display-refresh: push headline+timeline on connect and whenever
-    livepoll.polled_at changes for this fixture (ADR 0022). Distinct from the
-    API-side Live Poll — this is the browser re-reading our own store."""
-    def gen():
-        last = "\x00"  # sentinel distinct from any polled_at string or None
-        while True:
-            st = _fixture_state(fixture_id)
-            marker = (st or {}).get("polled_at")
-            if marker != last:
-                last = marker
-                yield f"event: state\ndata: {json.dumps(st)}\n\n"
-            time.sleep(2)
 
     return StreamingResponse(gen(), media_type="text/event-stream")

@@ -38,7 +38,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Football 2.0 — Operator Dashboard</title>
+<title>Football 2.0 — Operator Console</title>
 <style>
   :root{
     --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
@@ -204,9 +204,9 @@
 <body>
 <header>
   <h1>⚽ Football 2.0</h1>
-  <span class="badge">Operator Dashboard</span>
+  <span class="badge">Operator Console</span>
   <span class="badge local">● 127.0.0.1 — local only</span>
-  <span class="badge">{{ n_leagues }} leagues · {{ n_cups }} cups</span>
+  <span class="badge">builds football.db · Viewer runs separately on :8001</span>
 </header>
 
 <main>
@@ -263,57 +263,12 @@
     {% endfor %}
   </section>
 
-  <!-- ================= LEAGUES / CUPS ================= -->
-  <section>
-    <h2>Tracked competitions</h2>
-    {% for continent in continents %}
-      <div class="continent">
-        <h4>{{ continent }}</h4>
-        <div class="chips">
-        {% for c in comps if c.continent == continent %}
-          <span class="chip" title="{{ c.name }} — seasons {{ c.season_from }}–{{ c.season_to }}">
-            {% if c.flag %}<img src="{{ c.flag }}" alt="" loading="lazy">{% else %}<span class="ty">{{ c.country or '—' }}</span>{% endif %}
-            {{ c.name }}
-            <span class="ty {{ 'cup' if c.type=='cup' else '' }}">{{ c.type }}</span>
-            <span class="sn">{{ c.season_from }}–{{ c.season_to }}</span>
-          </span>
-        {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
-  </section>
-
-  <!-- ================= THIS WEEK ================= -->
-  <section>
-    <h2>This week — {{ week.start }} → {{ week.end }} · {{ week.count }} games · NYC time</h2>
-    <p class="note">Reflects your last <strong>Refresh</strong>, not live scores.
-      {% if week.db_missing %}football.db not found — run a Build first.{% endif %}</p>
-    {% if not fixtures %}
-      <p class="empty">No fixtures in the next {{ week.days }} days{{ '' if week.db_missing else ' (or DB not yet built)' }}.</p>
-    {% endif %}
-    {% for day in fixtures %}
-      <div class="day">
-        <h4>{{ day.label }} <span class="d">{{ day.date }}</span></h4>
-        <table>
-          {% for f in day.fixtures %}
-          <tr class="fx" onclick="location.href='/fixture/{{ f.id }}'" title="Open match tracker">
-            <td class="t">{{ f.time }}</td>
-            <td class="c">
-              {% if f.flag %}<img src="{{ f.flag }}" alt="" loading="lazy">{% endif %}{{ f.comp }}
-              {% if f.ctype %}<span class="ct">{{ f.ctype }}</span>{% endif %}
-            </td>
-            <td class="m">{{ f.home }} <span class="muted">v</span> {{ f.away }}</td>
-            <td class="s">
-              {% if f.state == 'final' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill final">{{ f.status }}</span>
-              {% elif f.state == 'live' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill live">{{ f.status }}</span>
-              {% else %}<span class="pill">{{ f.status or 'NS' }}</span>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </table>
-      </div>
-    {% endfor %}
-  </section>
+  <p class="note" style="margin-top:26px">
+    Tracked competitions, this week's games, and per-match live tracking now live in the
+    <strong>Viewer</strong> (a separate app on <code>:8001</code>, reading its own
+    <code>serve.db</code>). This Console only builds <code>football.db</code>; run
+    <strong>Publish</strong> above to push a fresh slice to the Viewer.
+  </p>
 </main>
 
 <!-- ================= JOBS DRAWER ================= -->

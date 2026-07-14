@@ -15,8 +15,10 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 
-# The four operator-facing groups (ADR 0021). Order is display order.
-GROUPS = ["Collect", "Build", "Refresh", "Live"]
+# The operator-facing groups (ADR 0021; ADR 0023 dropped Live, added Publish).
+# Order is display order. Every command here touches football.db (or its serving
+# copy); the Live Poll launcher moved to the Viewer's Match Tracker page (ADR 0023).
+GROUPS = ["Collect", "Build", "Refresh", "Publish"]
 
 
 @dataclass
@@ -259,30 +261,28 @@ COMMANDS: list[Command] = [
         ],
     ),
 
-    # --- Live --------------------------------------------------------------
+    # --- Publish (football.db → the Viewer's serving store) ----------------
     Command(
-        key="live_poll", group="Live", title="Live-poll a match",
-        module="live.poll",
-        summary="Watch in-play fixtures, mirroring events + score into live/live.db.",
-        detail="Overwrites each fixture's rows every interval until it goes Final "
-               "(ADR 0020). Runs as an unbounded loop; writes the separate live.db, "
-               "so it never blocks a DB rebuild. Use Stop to end it early.",
-        example="Pick this week's Arsenal v Chelsea → every 60s it overwrites that fixture's "
-                "rows in the separate live/live.db with the current score and Events until the "
-                "match goes Final (ADR 0020). It never blocks a football.db rebuild. Use Stop "
-                "to end early; the One-cycle option runs a single poll for testing.",
-        scope="only the fixtures you pick",
-        network=True, long_running=True,
+        key="publish", group="Publish", title="Publish serve.db (for the Viewer)",
+        module="web.publish",
+        summary="Clone a small, current slice of football.db into web/serve.db.",
+        detail="Zero-API DB→DB copy (ADR 0023): all competitions + all players/careers "
+               "+ a rolling window of fixtures/events, written to serve.db.tmp then "
+               "atomically swapped in. This is what the Viewer app reads; football.db "
+               "is never read by a web UI. The nightly Refresh runs this as its last step.",
+        example="After a Refresh (or Rebuild) updates football.db, run this to refresh the "
+                "Viewer: it copies every tracked Competition, every player Bio + Career Stint, "
+                "and the −3..+10 day fixture/Event window into web/serve.db — seconds, no API "
+                "calls. The Viewer at http://127.0.0.1:8001 then serves the new data.",
+        scope="football.db → serve.db · offline",
         params=[
-            Param("fixture_ids", "Fixtures to watch", "fixture", None, required=True,
-                  help="Pick one or more of this week's fixtures (Ctrl/Cmd-click for several)."),
-            Param("interval", "Poll interval (seconds)", "int", "--interval", default=60,
-                  placeholder="60", advanced=True,
-                  help="Seconds between polls. Lower = a fresher score but more API calls; "
-                       "60s is a good default."),
-            Param("once", "One cycle then stop (testing)", "bool", "--once", advanced=True,
-                  help="Runs a single poll cycle and exits — for testing the pipeline without "
-                       "an open-ended loop."),
+            Param("before", "Days of past fixtures", "int", "--before", default=3,
+                  placeholder="3", advanced=True,
+                  help="How many days of already-played fixtures to include (recent results). "
+                       "Default 3."),
+            Param("after", "Days of upcoming fixtures", "int", "--after", default=10,
+                  placeholder="10", advanced=True,
+                  help="How many days of upcoming fixtures to include (the slate). Default 10."),
         ],
     ),
 ]

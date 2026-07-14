@@ -1,9 +1,10 @@
-"""Launch the operator dashboard on 127.0.0.1 (ADR 0021).
+"""Launch the Operator Console on 127.0.0.1 (ADR 0021, ADR 0023).
 
     uv run python -m football.ui [--port 8000]
 
 Bound to localhost only: this app spawns subprocesses and spends paid API quota,
-so it must never be network-exposed.
+so it must never be network-exposed. It builds football.db; the reader-facing
+Viewer is a separate app — `python -m web` on :8001 (ADR 0023).
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--host", default="127.0.0.1",
                     help="bind host (default 127.0.0.1 — do not expose)")
     args = ap.parse_args(argv)
-    print(f"Operator dashboard → http://{args.host}:{args.port}")
+    print(f"Operator Console → http://{args.host}:{args.port}")
     uvicorn.run("football.ui.app:app", host=args.host, port=args.port, log_level="info")
 
 
