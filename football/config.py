@@ -138,7 +138,9 @@ _CONTINENT_COUNTRIES: dict[str, list[str]] = {
         'Hong Kong', 'India', 'Indonesia', 'Iran', 'Iraq', 'Israel', 'Japan', 'Jordan',
         'Kazakhstan', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Lebanon', 'Macao', 'Malaysia',
         'Maldives', 'Mongolia', 'Myanmar', 'Nepal', 'Oman', 'Pakistan', 'Palestine',
-        'Philippines', 'Qatar', 'Saudi Arabia', 'Singapore', 'South Korea', 'Syria',
+        'Philippines', 'Qatar', 'Saudi Arabia', 'Singapore', 'South Korea',
+        'South-Korea',  # provider returns the hyphenated form for K League 1 (id 292)
+        'Syria',
         'Tajikistan', 'Thailand', 'Turkmenistan', 'United Arab Emirates', 'Uzbekistan',
         'Vietnam', 'Yemen',
     ],
