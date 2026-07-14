@@ -118,6 +118,24 @@ Clausura) to browse squads, appearances, per-90 stats, and standings. Once the
 event timeline is backfilled, the **Match events** section adds goal-timing
 distributions (by minute and type), most-booked players, and stoppage-time goals.
 
+### 4. Operator dashboard (local UI — optional)
+
+A local FastAPI + Jinja dashboard fires the same pipeline commands from a browser
+and shows the tracked competitions plus this week's fixtures in NYC time
+([ADR-0021](docs/adr/0021-operator-dashboard-command-registry.md)):
+
+```bash
+uv run python -m football.ui        # then open http://127.0.0.1:8000
+```
+
+Bound to `127.0.0.1` only — it spawns subprocesses and spends API quota, so it is
+never network-exposed. Every trigger runs the **exact** `python -m …` command you
+would type, as a background subprocess with a live streaming log and a Stop button;
+the terminal workflow is unchanged. A trigger that rebuilds `football.db` is refused
+while another build is in progress (the same `*.build.lock` `parse` uses). The set of
+triggers is defined in [`football/commands.py`](football/commands.py) — the documented
+registry both the UI and this README read; add a command there to surface it in the UI.
+
 ## Project layout
 
 ```
@@ -128,7 +146,9 @@ football/
   collect_events.py  backfill the match-event timeline — separate run  (network)
   parse.py         rebuild data/football.db from the cache  (offline)
   models.py        SQLModel tables (Fixture, Player, SquadEntry, Event, …) + age_at
-  explore.py       marimo exploration notebook
+  commands.py      registry of triggerable commands (role, description, params)  (ADR 0021)
+  ui/              local FastAPI + Jinja operator dashboard  (ADR 0021)
+  notebooks/       marimo exploration notebooks (explore, ligamx, worldcup, …)
 docs/adr/       architecture decision records
 CONTEXT.md      domain glossary (Competition, Season, Tournament, Appearance…)
 data/           raw cache + SQLite DB (git-ignored, regenerable)

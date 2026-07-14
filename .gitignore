@@ -27,3 +27,7 @@ refresh/logs/
 # Live Mirror runtime state (ADR 0020): the provisional in-play DB is regenerable
 # by re-polling. The live/ code is tracked; only its local DB is ignored.
 live/live.db
+
+# Operator dashboard runtime logs (ADR 0021): per-trigger subprocess logs.
+# The football/ui/ code is tracked; only the captured job logs are ignored.
+football/ui/logs/

@@ -19,6 +19,7 @@ dependencies = [
     { name = "duckdb" },
     { name = "fastapi" },
     { name = "ipykernel" },
+    { name = "jinja2" },
     { name = "marimo", extra = ["sql"] },
     { name = "numpy" },
     { name = "pandas" },
@@ -26,6 +27,7 @@ dependencies = [
     { name = "polars", extra = ["pyarrow"] },
     { name = "requests" },
     { name = "sqlmodel" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -34,6 +36,7 @@ requires-dist = [
     { name = "duckdb", specifier = ">=1.5.4" },
     { name = "fastapi", specifier = ">=0.139.0" },
     { name = "ipykernel", specifier = ">=7.3.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "marimo", extras = ["sql"], specifier = ">=0.23.13" },
     { name = "numpy", specifier = ">=2.5.1" },
     { name = "pandas", specifier = ">=3.0.3" },
@@ -41,6 +44,7 @@ requires-dist = [
     { name = "polars", extras = ["pyarrow"], specifier = ">=1.42.1" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "sqlmodel", specifier = ">=0.0.39" },
+    { name = "uvicorn", specifier = ">=0.50.2" },
 ]
 
 [[package]]
@@ -1679,8 +1683,8 @@ name = "uvicorn"
 version = "0.50.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "sys_platform != 'emscripten'" },
-    { name = "h11", marker = "sys_platform != 'emscripten'" },
+    { name = "click" },
+    { name = "h11" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9f/f6/cc9aadc0e481344a42095d222bfa764122fb8cfba708d1922917bd8bfb01/uvicorn-0.50.2.tar.gz", hash = "sha256:b92bf03509b82bcb9d49e7335b4fd364518ad021c2dc18b4e6a2fec8c955a0bb", size = 93716, upload-time = "2026-07-06T10:38:31.984Z" }
 wheels = [

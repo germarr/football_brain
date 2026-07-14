@@ -9,6 +9,7 @@ dependencies = [
     "duckdb>=1.5.4",
     "fastapi>=0.139.0",
     "ipykernel>=7.3.0",
+    "jinja2>=3.1.6",
     "marimo[sql]>=0.23.13",
     "numpy>=2.5.1",
     "pandas>=3.0.3",
@@ -16,4 +17,5 @@ dependencies = [
     "polars[pyarrow]>=1.42.1",
     "requests>=2.34.2",
     "sqlmodel>=0.0.39",
+    "uvicorn>=0.50.2",
 ]
