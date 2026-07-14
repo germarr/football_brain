@@ -120,6 +120,25 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
         lock_f.close()
 
 
+def publish_after_build() -> None:
+    """Auto-publish hook for a collector that just rebuilt football.db (ADR 0023).
+
+    Non-fatal by design: the collection + football.db rebuild have already succeeded,
+    so a publish failure (e.g. a concurrent build holding the lock, a disk error) must
+    NOT sink that work — it only means the Viewer shows the previous snapshot until the
+    next publish. Warn and point at the manual command instead of raising.
+    """
+    print("\n▶ Publishing serve.db for the Viewer …")
+    try:
+        counts, _ = publish()
+    except BaseException as e:  # SystemExit (build lock) included — never crash the collect
+        print(f"⚠ serve.db publish skipped: {e}\n"
+              "  football.db is up to date; run `python -m web.publish` to refresh the Viewer.")
+        return
+    print(f"  serve.db updated — {counts.get('fixture', 0)} fixtures, "
+          f"{counts.get('event', 0)} events in window.")
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
         prog="python -m web.publish",

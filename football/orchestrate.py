@@ -246,6 +246,8 @@ def main(argv: list[str] | None = None) -> None:
                     help="skip team match stats (possession, shots, xG)")
     ap.add_argument("--no-rebuild", action="store_true",
                     help="collect only; do not rebuild football.db")
+    ap.add_argument("--no-publish", action="store_true",
+                    help="do not refresh the Viewer's serve.db after the rebuild (ADR 0023)")
     args = ap.parse_args(argv)
 
     client = CachedClient()
@@ -293,6 +295,12 @@ def main(argv: list[str] | None = None) -> None:
     from . import parse
     print("\n▶ Rebuilding football.db from the raw cache …")
     parse.build()
+
+    # Refresh the Viewer's serving store so the new league shows up without a manual
+    # publish step (ADR 0023). Non-fatal — a publish hiccup never sinks the collection.
+    if not args.no_publish:
+        from web.publish import publish_after_build
+        publish_after_build()
 
 
 if __name__ == "__main__":

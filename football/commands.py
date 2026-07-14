@@ -97,6 +97,11 @@ def _collect_flags() -> list[Param]:
               advanced=True,
               help="Fetches into the raw cache but skips rebuilding football.db — useful when "
                    "you'll run several collections back-to-back and rebuild once at the end."),
+        Param("no_publish", "Don't refresh the Viewer (skip publish)", "bool", "--no-publish",
+              advanced=True,
+              help="After the rebuild, this normally publishes web/serve.db so the new "
+                   "Competition shows in the Viewer immediately. Tick to skip that and "
+                   "publish later with the Publish command."),
     ]
 
 
@@ -107,7 +112,8 @@ COMMANDS: list[Command] = [
         module="football.orchestrate",
         summary="Collect one league end-to-end and register it as a Competition.",
         detail="Fixtures, squads, bios, careers, team profiles, events and team "
-               "stats for the given provider league id, then rebuild football.db. "
+               "stats for the given provider league id, then rebuild football.db and "
+               "publish serve.db so the new league appears in the Viewer right away. "
                "Cache-first and resumable — re-run to continue after a quota stop.",
         example="Enter 61 (Ligue 1) → collects every Ligue 1 season end-to-end — fixtures, "
                 "Squad Entries, player Bios, Career Stints, the Event timeline and Team Match "
@@ -128,7 +134,8 @@ COMMANDS: list[Command] = [
         module="football.cups",
         summary="Collect one cup-type Competition (tags group/knockout phases).",
         detail="Like the league orchestrator but for cups (Champions League id 2, "
-               "World Cup id 1). Refuses a non-cup id. Rebuilds football.db at the end.",
+               "World Cup id 1). Refuses a non-cup id. Rebuilds football.db at the end, "
+               "then publishes serve.db so the new cup appears in the Viewer right away.",
         example="Enter 2 (Champions League) → the same end-to-end collection as a league, but "
                 "each fixture is tagged with its group vs knockout phase. Passing a league id "
                 "(e.g. 61 Ligue 1) is refused — this entrypoint is cups only.",
