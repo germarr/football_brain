@@ -115,9 +115,45 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
             con.close()
 
         os.replace(tmp, serve_db)   # atomic swap — readers never see a partial store
+        counts["live_cleared"] = _clear_settled_live_rows(serve_db)
         return counts, (start, end)
     finally:
         lock_f.close()
+
+
+def _clear_settled_live_rows(serve_db: Path) -> int:
+    """Auto-clear the Live Mirror once the snapshot has caught up (ADR 0024).
+
+    Delete `live/live.db` rows for any fixture the freshly-published serve.db now records
+    as **Final** — its provisional overlay is redundant, and leaving it would keep a stale
+    'provisional' marker on a finished game in the Viewer table. Best-effort: a failure
+    here never fails the publish (serve.db is already swapped in).
+    """
+    live_path = config.ROOT / "live" / "live.db"
+    if not live_path.exists():
+        return 0
+    try:
+        con = sqlite3.connect(live_path, timeout=5)
+        try:
+            con.execute("ATTACH DATABASE ? AS serve", (str(serve_db),))
+            settled = [
+                r[0] for r in con.execute(
+                    "select lp.fixture_id from livepoll lp "
+                    "join serve.fixture sf on sf.id = lp.fixture_id "
+                    "where upper(sf.status) in ('FT','AET','PEN')"
+                )
+            ]
+            for fid in settled:
+                con.execute("delete from event where fixture_id = ?", (fid,))
+                con.execute("delete from fixture where id = ?", (fid,))
+                con.execute("delete from livepoll where fixture_id = ?", (fid,))
+            con.commit()
+            con.execute("DETACH DATABASE serve")
+            return len(settled)
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return 0
 
 
 def publish_after_build() -> None:

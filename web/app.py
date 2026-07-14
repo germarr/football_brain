@@ -40,6 +40,10 @@ WEEK_DAYS = 7
 
 FINAL_STATUS = {"FT", "AET", "PEN"}
 LIVE_STATUS = {"1H", "2H", "HT", "ET", "BT", "P", "LIVE", "INT", "SUSP"}
+# A fixture is "settled" (no live refresh will change it) once terminal: Final plus the
+# non-Final ends (postponed/cancelled/abandoned/…). The Refresh button targets the
+# complement — kicked-off but NOT terminal (ADR 0024).
+TERMINAL_STATUS = FINAL_STATUS | {"PST", "CANC", "ABD", "AWD", "WO"}
 
 _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"
@@ -157,9 +161,46 @@ def tracked_competitions() -> list[dict]:
     return out
 
 
+def _live_overlay() -> dict[int, dict]:
+    """fixture_id -> {status, home_goals, away_goals, polled_at} for every fixture the
+    Live Mirror is tracking (has a `livepoll` marker). The table and the active-set both
+    overlay this over the serve.db snapshot — the ADR 0022 precedence rule, batched."""
+    con = _live_connect()
+    if con is None:
+        return {}
+    try:
+        rows = con.execute(
+            "select lp.fixture_id, lp.polled_at, f.status, f.home_goals, f.away_goals "
+            "from livepoll lp join fixture f on f.id = lp.fixture_id"
+        ).fetchall()
+    except sqlite3.Error:
+        return {}
+    finally:
+        con.close()
+    return {
+        r["fixture_id"]: {
+            "status": r["status"], "home_goals": r["home_goals"],
+            "away_goals": r["away_goals"], "polled_at": r["polled_at"],
+        }
+        for r in rows
+    }
+
+
+def _state_and_score(status: str, hg, ag) -> tuple[str, str | None]:
+    if status in FINAL_STATUS:
+        state = "final"
+    elif status in LIVE_STATUS:
+        state = "live"
+    else:
+        state = "scheduled"
+    score = None if state == "scheduled" else (f"{hg}–{ag}" if hg is not None and ag is not None else None)
+    return state, score
+
+
 def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
     """This week's fixtures grouped by NYC calendar day, plus window metadata.
-    Reads the serve.db −3..+10 superset and filters to today..+`days` in NYC time."""
+    Reads the serve.db −3..+10 superset, filters to today..+`days` in NYC time, and
+    overlays the provisional Live Mirror where it has fresher rows (ADR 0024)."""
     now_ny = dt.datetime.now(NY)
     start_ny = now_ny.replace(hour=0, minute=0, second=0, microsecond=0)
     end_ny = start_ny + dt.timedelta(days=days)
@@ -195,6 +236,7 @@ def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
     finally:
         con.close()
 
+    overlay = _live_overlay()
     today = now_ny.date()
     by_day: dict[dt.date, dict] = {}
     for r in rows:
@@ -203,13 +245,11 @@ def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
         except (ValueError, TypeError):
             continue
         ko = naive.replace(tzinfo=UTC).astimezone(NY)
-        status = (r["status"] or "").upper()
-        if status in FINAL_STATUS:
-            state, score = "final", _score(r)
-        elif status in LIVE_STATUS:
-            state, score = "live", _score(r)
-        else:
-            state, score = "scheduled", None
+        ov = overlay.get(r["id"])
+        status = ((ov["status"] if ov else r["status"]) or "").upper()
+        hg = ov["home_goals"] if ov else r["home_goals"]
+        ag = ov["away_goals"] if ov else r["away_goals"]
+        state, score = _state_and_score(status, hg, ag)
         day = ko.date()
         bucket = by_day.setdefault(day, {"date": day, "fixtures": []})
         bucket["fixtures"].append({
@@ -223,6 +263,8 @@ def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
             "state": state,
             "status": status,
             "score": score,
+            "provisional": ov is not None,
+            "polled_at": ov["polled_at"] if ov else None,
         })
 
     groups = []
@@ -236,6 +278,38 @@ def week_fixtures(days: int = WEEK_DAYS) -> tuple[list[dict], dict]:
         })
     meta["count"] = sum(len(g["fixtures"]) for g in groups)
     return groups, meta
+
+
+def _active_fixture_ids(days: int = WEEK_DAYS) -> list[int]:
+    """Week fixtures that have kicked off but aren't settled — the set the Refresh
+    button polls (ADR 0024). Effective status overlays the Live Mirror, so a game
+    already polled to Final is excluded and never re-polled."""
+    now_ny = dt.datetime.now(NY)
+    start_ny = now_ny.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_utc = start_ny.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S")
+    now_utc = now_ny.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+    con = _connect()
+    if con is None:
+        return []
+    try:
+        rows = con.execute(
+            "select id, status from fixture where date >= ? and date <= ?",
+            (start_utc, now_utc),
+        ).fetchall()
+    except sqlite3.Error:
+        return []
+    finally:
+        con.close()
+
+    overlay = _live_overlay()
+    ids = []
+    for r in rows:
+        ov = overlay.get(r["id"])
+        status = ((ov["status"] if ov else r["status"]) or "").upper()
+        if status not in TERMINAL_STATUS:
+            ids.append(r["id"])
+    return ids
 
 
 def _score(r) -> str | None:
@@ -419,10 +493,43 @@ def index(request: Request):
             "continents": continents,
             "fixtures": fixtures,
             "week": week_meta,
+            "active_count": len(_active_fixture_ids()),
             "n_leagues": sum(1 for c in comps if c["type"] == "league"),
             "n_cups": sum(1 for c in comps if c["type"] == "cup"),
         },
     )
+
+
+@app.get("/week", response_class=HTMLResponse)
+def week(request: Request):
+    """The `this week` block as an HTML fragment (button + day tables), overlaid with the
+    Live Mirror — re-rendered in place after a Refresh (ADR 0024). Same partial the index
+    includes, so there is one source of truth for the markup."""
+    fixtures, week_meta = week_fixtures()
+    return templates.TemplateResponse(
+        request, "_week.html",
+        {"fixtures": fixtures, "week": week_meta, "active_count": len(_active_fixture_ids())},
+    )
+
+
+@app.post("/refresh-live")
+def refresh_live():
+    """Poll the active slate once into the Live Mirror (ADR 0024): the week's fixtures
+    that kicked off but aren't settled. Reuses the Viewer's live.poll subprocess; the
+    table then overlays the fresh live.db rows. Returns the job id + how many were polled."""
+    ids = _active_fixture_ids()
+    if not ids:
+        return {"job_id": None, "count": 0, "ids": []}
+    job = _spawn_poll(ids, once=True)
+    return {"job_id": job.id, "count": len(ids), "ids": ids}
+
+
+@app.get("/jobs/{job_id}")
+def job_status(job_id: str):
+    job = JOBS.get(job_id)
+    if job is None:
+        return JSONResponse({"error": "no such job"}, status_code=404)
+    return {"status": job.status, "returncode": job.returncode}
 
 
 @app.get("/api/health")

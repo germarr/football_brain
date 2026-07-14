@@ -1,0 +1,36 @@
+<div class="week-head">
+  <h2>This week — {{ week.start }} → {{ week.end }} · {{ week.count }} games · NYC time</h2>
+  <button id="refresh-live" class="refresh-btn" onclick="refreshLive()"
+          {% if not active_count %}disabled{% endif %}
+          title="Poll the games that have kicked off but aren't recorded final, and overlay their live scores">
+    {% if active_count %}↻ Refresh {{ active_count }} live game{{ 's' if active_count != 1 else '' }}{% else %}↻ No live games{% endif %}
+  </button>
+</div>
+<p class="note">Daily snapshot with live / just-finished scores overlaid; ↻ refreshes the active games. Click a game to open its Match Tracker.
+  {% if week.db_missing %}serve.db not found — publish it first (Console → Publish).{% endif %}</p>
+{% if not fixtures %}
+  <p class="empty">No fixtures in the next {{ week.days }} days{{ '' if week.db_missing else ' (or serve.db not yet published)' }}.</p>
+{% endif %}
+{% for day in fixtures %}
+  <div class="day">
+    <h4>{{ day.label }} <span class="d">{{ day.date }}</span></h4>
+    <table>
+      {% for f in day.fixtures %}
+      <tr class="fx" onclick="location.href='/fixture/{{ f.id }}'" title="Open match tracker">
+        <td class="t">{{ f.time }}</td>
+        <td class="c">
+          {% if f.flag %}<img src="{{ f.flag }}" alt="" loading="lazy">{% endif %}{{ f.comp }}
+          {% if f.ctype %}<span class="ct">{{ f.ctype }}</span>{% endif %}
+        </td>
+        <td class="m">{{ f.home }} <span class="muted">v</span> {{ f.away }}</td>
+        <td class="s">
+          {% if f.provisional %}<span class="prov" title="Live score — provisional, from the Live Mirror (as of last poll)">●</span>{% endif %}
+          {% if f.state == 'final' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill final">{{ f.status }}</span>
+          {% elif f.state == 'live' %}<span class="sc">{{ f.score or '' }}</span> <span class="pill live">{{ f.status }}</span>
+          {% else %}<span class="pill">{{ f.status or 'NS' }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endfor %}
