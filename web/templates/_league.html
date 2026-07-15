@@ -1,0 +1,80 @@
+<div class="ld">
+  <div class="ld-head">
+    <div class="ld-title">
+      {% if d.flag %}<img src="{{ d.flag }}" alt="" loading="lazy">{% endif %}
+      <h3>{{ d.name }}</h3>
+      {% if d.season_label %}<span class="ld-season">{{ d.season_label }}</span>{% endif %}
+    </div>
+    <button class="ld-close" onclick="closeLeague()" title="Close">✕</button>
+  </div>
+
+  {% if d.is_cup %}
+    <p class="ld-empty">Cups aren't supported here yet — their group + knockout structure needs a
+      different treatment than a single league table.</p>
+
+  {% elif d.no_data %}
+    <p class="ld-empty">No completed games yet for {{ d.name }} — the standings appear once the
+      season has played fixtures.</p>
+
+  {% else %}
+    <p class="ld-sub">{{ d.team_count }} teams · {{ d.played }} games played ·
+      most goals <strong>{{ d.top_team_name }}</strong> ({{ d.top_team_goals }})</p>
+
+    <div class="ld-grid">
+      <!-- standings -->
+      <div class="ld-standings">
+        <table class="ld-table">
+          <thead>
+            <tr><th class="p">#</th><th class="tm">Team</th><th>P</th><th>W</th><th>D</th>
+              <th>L</th><th>GF</th><th>GA</th><th>GD</th><th class="pts">Pts</th></tr>
+          </thead>
+          <tbody>
+          {% for r in d.standings %}
+            <tr>
+              <td class="p">{{ r.pos }}</td>
+              <td class="tm">{{ r.team_name }}</td>
+              <td>{{ r.P }}</td><td>{{ r.W }}</td><td>{{ r.D }}</td><td>{{ r.L }}</td>
+              <td>{{ r.GF }}</td><td>{{ r.GA }}</td>
+              <td>{{ '%+d' % r.GD }}</td><td class="pts">{{ r.Pts }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="ld-foot">Ordered by points, then goal difference, then goals for —
+          an unofficial tiebreak that can differ from the competition's official rules.</p>
+      </div>
+
+      <!-- leaders -->
+      <div class="ld-leaders">
+        {% if d.stats_light %}
+          <div class="ld-card">
+            <h4>Players</h4>
+            <p class="ld-note">Player stats aren't collected for this competition (fixtures &amp;
+              results only), so there's no scorer or assist data.</p>
+          </div>
+        {% else %}
+          <div class="ld-card">
+            <h4>Top scorers</h4>
+            {% for s in d.scorers %}
+              <div class="ld-row{% if loop.first %} lead{% endif %}">
+                <span class="ld-rank">{{ s.rank }}</span>
+                <span class="ld-name">{{ s.player_name }}<span class="ld-team">{{ s.team_name }}</span></span>
+                <span class="ld-val">{{ s.value }}</span>
+              </div>
+            {% else %}<p class="ld-note">No goals recorded yet.</p>{% endfor %}
+          </div>
+          <div class="ld-card">
+            <h4>Top assists</h4>
+            {% for s in d.assists %}
+              <div class="ld-row{% if loop.first %} lead{% endif %}">
+                <span class="ld-rank">{{ s.rank }}</span>
+                <span class="ld-name">{{ s.player_name }}<span class="ld-team">{{ s.team_name }}</span></span>
+                <span class="ld-val">{{ s.value }}</span>
+              </div>
+            {% else %}<p class="ld-note">No assists recorded yet.</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>

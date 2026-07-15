@@ -318,6 +318,59 @@ def _score(r) -> str | None:
     return f"{r['home_goals']}–{r['away_goals']}"
 
 
+def league_detail(league_id: int) -> dict | None:
+    """The precomputed league section (ADR 0025): standings + top-5 scorers/assists +
+    team-most-goals for the current season, read straight from serve.db. Returns a shape
+    the `_league.html` fragment renders — including the cup / no-data / stats-light cases."""
+    con = _connect()
+    if con is None:
+        return None
+    try:
+        comp = con.execute(
+            "select name, type, flag, country, continent from competition where id=?",
+            (league_id,),
+        ).fetchone()
+        if comp is None:
+            return None
+        base = {"league_id": league_id, "name": comp["name"], "flag": comp["flag"],
+                "country": comp["country"]}
+        if (comp["type"] or "").lower() != "league":
+            return {**base, "is_cup": True}
+        meta = con.execute(
+            "select * from league_meta where league_id=?", (league_id,)
+        ).fetchone()
+        if meta is None:
+            return {**base, "no_data": True}   # a league with no completed games yet
+        standings = con.execute(
+            "select pos, team_name, P, W, D, L, GF, GA, GD, Pts from league_standing "
+            "where league_id=? order by pos", (league_id,),
+        ).fetchall()
+        scorers = con.execute(
+            "select rank, player_name, team_name, value from league_scorer "
+            "where league_id=? and kind='goals' order by rank", (league_id,),
+        ).fetchall()
+        assists = con.execute(
+            "select rank, player_name, team_name, value from league_scorer "
+            "where league_id=? and kind='assists' order by rank", (league_id,),
+        ).fetchall()
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    return {
+        **base,
+        "season_label": meta["season_label"],
+        "team_count": meta["team_count"],
+        "played": meta["played"],
+        "stats_light": bool(meta["stats_light"]),
+        "top_team_name": meta["top_team_name"],
+        "top_team_goals": meta["top_team_goals"],
+        "standings": [dict(r) for r in standings],
+        "scorers": [dict(r) for r in scorers],
+        "assists": [dict(r) for r in assists],
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Per-fixture Match Tracker (ADR 0022) — precedence: live.db, else serve.db
 # --------------------------------------------------------------------------- #
@@ -510,6 +563,19 @@ def week(request: Request):
         request, "_week.html",
         {"fixtures": fixtures, "week": week_meta, "active_count": len(_active_fixture_ids())},
     )
+
+
+@app.get("/league/{league_id}", response_class=HTMLResponse)
+def league_section(request: Request, league_id: int):
+    """The inline league section as an HTML fragment (ADR 0025) — standings + leaders,
+    injected in place when a league chip is clicked."""
+    d = league_detail(league_id)
+    if d is None:
+        return HTMLResponse(
+            "<div class='ld'><p class='ld-empty'>League not found in the serving store.</p></div>",
+            status_code=404,
+        )
+    return templates.TemplateResponse(request, "_league.html", {"d": d})
 
 
 @app.post("/refresh-live")

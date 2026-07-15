@@ -109,6 +109,9 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
                 "WHERE fixture_id IN (SELECT id FROM fixture)"
             )
             counts["event"] = cur.rowcount
+            # Precomputed league standings + leaders (ADR 0025), derived from the FULL
+            # data in src (football.db) — serve.db itself only carries the window above.
+            counts.update(_build_league_tables(con))
             con.commit()
             con.execute("DETACH DATABASE src")
         finally:
@@ -119,6 +122,166 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
         return counts, (start, end)
     finally:
         lock_f.close()
+
+
+# --------------------------------------------------------------------------- #
+# League standings + leaders (ADR 0025)
+# --------------------------------------------------------------------------- #
+FINAL = ("FT", "AET", "PEN")   # a Final fixture counts toward the table (CONTEXT.md)
+LEADER_TOP_N = 5
+
+
+def _season_label(league_id: int, season: int) -> str:
+    """"2025/26" for a straddling league, "2025" for a calendar-year one (ADR 0001/CONTEXT)."""
+    if league_id in config.CALENDAR_YEAR_LEAGUES:
+        return str(season)
+    return f"{season}/{str(season + 1)[-2:]}"
+
+
+def _standings(con: sqlite3.Connection, league_id: int, season: int) -> list[dict]:
+    """League table from the season's Final, regular-season (matchday-tagged) fixtures.
+    Reuses explore.py's rules: 3/1/0, sort Pts → GD → GF. Returns rows + carries the raw
+    fixtures via a side effect is avoided — the caller re-reads ids for leaders."""
+    finals = con.execute(
+        "select home_team_id, home_team_name, away_team_id, away_team_name, home_goals, away_goals "
+        "from src.fixture where league_id=? and season=? and matchday is not null "
+        f"and status in {FINAL} and home_goals is not null and away_goals is not null",
+        (league_id, season),
+    ).fetchall()
+
+    teams: dict[int, dict] = {}
+
+    def ensure(tid: int, name: str) -> dict:
+        return teams.setdefault(tid, {
+            "team_id": tid, "name": name,
+            "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "Pts": 0,
+        })
+
+    for h, hn, a, an, hg, ag in finals:
+        th, ta = ensure(h, hn), ensure(a, an)
+        th["P"] += 1; ta["P"] += 1
+        th["GF"] += hg; th["GA"] += ag; ta["GF"] += ag; ta["GA"] += hg
+        if hg > ag:
+            th["W"] += 1; th["Pts"] += 3; ta["L"] += 1
+        elif ag > hg:
+            ta["W"] += 1; ta["Pts"] += 3; th["L"] += 1
+        else:
+            th["D"] += 1; ta["D"] += 1; th["Pts"] += 1; ta["Pts"] += 1
+
+    rows = list(teams.values())
+    for t in rows:
+        t["GD"] = t["GF"] - t["GA"]
+    rows.sort(key=lambda t: (-t["Pts"], -t["GD"], -t["GF"], t["name"]))
+    return rows
+
+
+def _leaders(con: sqlite3.Connection, league_id: int, season: int) -> tuple[list, list, bool]:
+    """Top-5 scorers + assisters by season total (grouped per player, primary team shown).
+    Returns (scorers, assists, stats_light) — stats_light True when the league-season has
+    no SquadEntry (fixtures+events-only Coverage; CONTEXT.md)."""
+    fids = [
+        r[0] for r in con.execute(
+            "select id from src.fixture where league_id=? and season=? and matchday is not null "
+            f"and status in {FINAL}", (league_id, season),
+        )
+    ]
+    if not fids:
+        return [], [], True
+    con.execute("drop table if exists _fx")
+    con.execute("create temp table _fx (id integer primary key)")
+    con.executemany("insert into _fx (id) values (?)", [(i,) for i in fids])
+    rows = con.execute(
+        "select se.player_id, p.name, t.name, sum(se.goals), sum(se.assists), count(*) "
+        "from src.squadentry se "
+        "join _fx on _fx.id = se.fixture_id "
+        "join src.player p on p.id = se.player_id "
+        "join src.team t on t.id = se.team_id "
+        "group by se.player_id, se.team_id"
+    ).fetchall()
+    con.execute("drop table if exists _fx")
+    if not rows:
+        return [], [], True   # Final fixtures exist but no squad data → stats-light
+
+    players: dict[int, dict] = {}
+    for pid, pname, tname, goals, assists, n in rows:
+        p = players.setdefault(pid, {"player_id": pid, "name": pname,
+                                     "goals": 0, "assists": 0, "teams": {}})
+        p["goals"] += goals or 0
+        p["assists"] += assists or 0
+        p["teams"][tname] = p["teams"].get(tname, 0) + n
+
+    def rank(metric: str) -> list[dict]:
+        out = [
+            {"player_id": p["player_id"], "name": p["name"],
+             "team": max(p["teams"].items(), key=lambda kv: kv[1])[0], "value": p[metric]}
+            for p in players.values() if p[metric] > 0
+        ]
+        out.sort(key=lambda x: (-x["value"], x["name"]))
+        return out[:LEADER_TOP_N]
+
+    return rank("goals"), rank("assists"), False
+
+
+def _build_league_tables(con: sqlite3.Connection) -> dict:
+    """Compute per-league current-season standings + leaders and write them into the
+    serving store (ADR 0025). Reads the FULL data from the attached `src` (football.db) —
+    serve.db itself carries only the windowed slice. Leagues only; cups are skipped."""
+    con.execute(
+        "create table league_meta (league_id integer primary key, season integer, "
+        "season_label text, team_count integer, played integer, stats_light integer, "
+        "top_team_name text, top_team_goals integer)"
+    )
+    con.execute(
+        "create table league_standing (league_id integer, pos integer, team_id integer, "
+        "team_name text, P integer, W integer, D integer, L integer, GF integer, "
+        "GA integer, GD integer, Pts integer)"
+    )
+    con.execute(
+        "create table league_scorer (league_id integer, kind text, rank integer, "
+        "player_id integer, player_name text, team_name text, value integer)"
+    )
+
+    leagues = con.execute(
+        "select id from src.competition where lower(type) = 'league'"
+    ).fetchall()
+    counts = {"leagues": 0, "standings": 0, "leaders": 0}
+    for (lid,) in leagues:
+        season = con.execute(
+            f"select max(season) from src.fixture where league_id=? and status in {FINAL}",
+            (lid,),
+        ).fetchone()[0]
+        if season is None:
+            continue
+        standings = _standings(con, lid, season)
+        if not standings:
+            continue
+        scorers, assists, stats_light = _leaders(con, lid, season)
+        top_team = max(standings, key=lambda t: t["GF"])
+
+        con.execute(
+            "insert into league_meta (league_id, season, season_label, team_count, played, "
+            "stats_light, top_team_name, top_team_goals) values (?,?,?,?,?,?,?,?)",
+            (lid, season, _season_label(lid, season), len(standings),
+             sum(t["P"] for t in standings) // 2, 1 if stats_light else 0,
+             top_team["name"], top_team["GF"]),
+        )
+        con.executemany(
+            "insert into league_standing (league_id,pos,team_id,team_name,P,W,D,L,GF,GA,GD,Pts) "
+            "values (?,?,?,?,?,?,?,?,?,?,?,?)",
+            [(lid, pos, t["team_id"], t["name"], t["P"], t["W"], t["D"], t["L"],
+              t["GF"], t["GA"], t["GD"], t["Pts"]) for pos, t in enumerate(standings, 1)],
+        )
+        for kind, leaders in (("goals", scorers), ("assists", assists)):
+            con.executemany(
+                "insert into league_scorer (league_id,kind,rank,player_id,player_name,team_name,value) "
+                "values (?,?,?,?,?,?,?)",
+                [(lid, kind, i, l["player_id"], l["name"], l["team"], l["value"])
+                 for i, l in enumerate(leaders, 1)],
+            )
+        counts["leagues"] += 1
+        counts["standings"] += len(standings)
+        counts["leaders"] += len(scorers) + len(assists)
+    return counts
 
 
 def _clear_settled_live_rows(serve_db: Path) -> int:
