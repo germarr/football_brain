@@ -139,10 +139,11 @@ def _season_label(league_id: int, season: int) -> str:
     return f"{season}/{str(season + 1)[-2:]}"
 
 
-def _standings_rows(finals: list) -> list[dict]:
-    """League table from a season's Final, regular-season fixtures — pure function over
-    (home_id, home_name, away_id, away_name, home_goals, away_goals) tuples. Reuses
-    explore.py's rules: 3/1/0, sort Pts → GD → GF."""
+def _standings_rows(fixtures: list) -> list[dict]:
+    """League table over (home_id, home_name, away_id, away_name, home_goals, away_goals,
+    status) tuples. Every fixture seeds its two teams (so a not-yet-started season still
+    lists all teams at 0), but only **Final** fixtures score points — explore.py's rules:
+    3/1/0, sort Pts → GD → GF."""
     teams: dict[int, dict] = {}
 
     def ensure(tid: int, name: str) -> dict:
@@ -151,8 +152,10 @@ def _standings_rows(finals: list) -> list[dict]:
             "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "Pts": 0,
         })
 
-    for h, hn, a, an, hg, ag in finals:
-        th, ta = ensure(h, hn), ensure(a, an)
+    for h, hn, a, an, hg, ag, status in fixtures:
+        th, ta = ensure(h, hn), ensure(a, an)   # seed teams even for scheduled games
+        if status not in FINAL or hg is None or ag is None:
+            continue
         th["P"] += 1; ta["P"] += 1
         th["GF"] += hg; th["GA"] += ag; ta["GF"] += ag; ta["GA"] += hg
         if hg > ag:
@@ -185,26 +188,30 @@ def _name_map(con: sqlite3.Connection, table: str, ids: set[int]) -> dict[int, s
 
 
 def _build_league_tables(con: sqlite3.Connection) -> dict:
-    """Compute standings + leaders for EVERY (league, season) a tracked league has played
-    (ADR 0025 + season picker) and write them into the serving store, keyed by
-    (league_id, season). Leagues only; cups skipped.
+    """Compute standings + leaders for every (league, season, TOURNAMENT) a tracked league
+    has — including not-yet-started seasons (rendered as 0's) — and write them into the
+    serving store, keyed by (league_id, season, tournament) (ADR 0025 + season/tournament
+    picker). Leagues only; cups skipped. A season's tournaments (La Liga: one "Regular
+    Season"; Liga MX: "Apertura"/"Clausura") get a `tour_order` by first fixture date.
 
-    Cost is bounded to ONE fixture scan and ONE squadentry aggregation for the whole store:
-    the aggregation groups by (league, season, player, team) with NO name joins — names are
-    resolved in bulk afterwards for only the ~top-5 rows per (league, season) that surface."""
+    Cost stays bounded to ONE fixture scan and ONE squadentry aggregation for the whole
+    store: the aggregation groups by (league, season, tournament, player, team) with NO
+    name joins — names are resolved in bulk afterwards for only the surfaced top-5."""
     con.execute(
-        "create table league_meta (league_id integer, season integer, season_label text, "
-        "team_count integer, played integer, stats_light integer, top_team_name text, "
-        "top_team_goals integer, primary key (league_id, season))"
+        "create table league_meta (league_id integer, season integer, tournament text, "
+        "tour_order integer, season_label text, team_count integer, played integer, "
+        "stats_light integer, top_team_name text, top_team_goals integer, "
+        "primary key (league_id, season, tournament))"
     )
     con.execute(
-        "create table league_standing (league_id integer, season integer, pos integer, "
-        "team_id integer, team_name text, P integer, W integer, D integer, L integer, "
-        "GF integer, GA integer, GD integer, Pts integer)"
+        "create table league_standing (league_id integer, season integer, tournament text, "
+        "pos integer, team_id integer, team_name text, P integer, W integer, D integer, "
+        "L integer, GF integer, GA integer, GD integer, Pts integer)"
     )
     con.execute(
-        "create table league_scorer (league_id integer, season integer, kind text, "
-        "rank integer, player_id integer, player_name text, team_name text, value integer)"
+        "create table league_scorer (league_id integer, season integer, tournament text, "
+        "kind text, rank integer, player_id integer, player_name text, team_name text, "
+        "value integer)"
     )
 
     league_ids = {r[0] for r in con.execute(
@@ -213,40 +220,56 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
     if not league_ids:
         return counts
 
-    # 1) One scan of every Final, regular-season fixture; bucket by (league, season).
-    by_ls: dict[tuple, list] = defaultdict(list)
-    for lid, season, fid, h, hn, a, an, hg, ag in con.execute(
-        "select league_id, season, id, home_team_id, home_team_name, away_team_id, "
-        "away_team_name, home_goals, away_goals from src.fixture where matchday is not null "
-        f"and status in {FINAL} and home_goals is not null and away_goals is not null"
+    # 1) One scan of every regular-season fixture (ANY status, so scheduled ones seed the
+    #    0's tables); bucket by (league, season, tournament) and track each's first date.
+    by_kst: dict[tuple, list] = defaultdict(list)
+    first_date: dict[tuple, str] = {}
+    for lid, season, tour, fid, h, hn, a, an, hg, ag, status, date in con.execute(
+        "select league_id, season, tournament, id, home_team_id, home_team_name, "
+        "away_team_id, away_team_name, home_goals, away_goals, status, date "
+        "from src.fixture where matchday is not null"
     ):
-        if lid in league_ids:
-            by_ls[(lid, season)].append((fid, h, hn, a, an, hg, ag))
-    if not by_ls:
+        if lid not in league_ids:
+            continue
+        key = (lid, season, tour)
+        by_kst[key].append((h, hn, a, an, hg, ag, status, fid))
+        if date and (key not in first_date or date < first_date[key]):
+            first_date[key] = date
+    if not by_kst:
         return counts
+
+    # tour_order: rank a season's tournaments by first fixture date (Apertura before Clausura).
+    tour_order: dict[tuple, int] = {}
+    by_ls: dict[tuple, list] = defaultdict(list)
+    for (lid, season, tour) in by_kst:
+        by_ls[(lid, season)].append(tour)
+    for (lid, season), tours in by_ls.items():
+        for i, tour in enumerate(sorted(tours, key=lambda t: first_date.get((lid, season, t), ""))):
+            tour_order[(lid, season, tour)] = i
 
     # 2) One squadentry aggregation over all those fixtures — grouped by id, no name joins.
     con.execute("drop table if exists _fx")
-    con.execute("create temp table _fx (id integer primary key, league_id integer, season integer)")
+    con.execute("create temp table _fx (id integer primary key, league_id integer, "
+                "season integer, tournament text)")
     con.executemany(
-        "insert into _fx (id, league_id, season) values (?,?,?)",
-        [(row[0], lid, season) for (lid, season), rows in by_ls.items() for row in rows],
+        "insert into _fx (id, league_id, season, tournament) values (?,?,?,?)",
+        [(row[7], lid, season, tour) for (lid, season, tour), rows in by_kst.items() for row in rows],
     )
     stats: dict[tuple, dict] = defaultdict(dict)
-    for lid, season, pid, tid, goals, assists, n in con.execute(
-        "select fx.league_id, fx.season, se.player_id, se.team_id, "
+    for lid, season, tour, pid, tid, goals, assists, n in con.execute(
+        "select fx.league_id, fx.season, fx.tournament, se.player_id, se.team_id, "
         "sum(se.goals), sum(se.assists), count(*) "
         "from _fx fx join src.squadentry se on se.fixture_id = fx.id "
-        "group by fx.league_id, fx.season, se.player_id, se.team_id"
+        "group by fx.league_id, fx.season, fx.tournament, se.player_id, se.team_id"
     ):
-        players = stats[(lid, season)]
+        players = stats[(lid, season, tour)]
         p = players.setdefault(pid, {"goals": 0, "assists": 0, "teams": {}})
         p["goals"] += goals or 0
         p["assists"] += assists or 0
         p["teams"][tid] = p["teams"].get(tid, 0) + n
     con.execute("drop table if exists _fx")
 
-    # 3) Rank top-N per (league, season) by id; collect the ids that need names.
+    # 3) Rank top-N per (league, season, tournament) by id; collect ids that need names.
     def top(players: dict, metric: str) -> list[tuple]:
         ranked = sorted(
             ((pid, p[metric], max(p["teams"].items(), key=lambda kv: kv[1])[0])
@@ -258,51 +281,54 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
     leaders: dict[tuple, tuple] = {}
     need_p: set[int] = set()
     need_t: set[int] = set()
-    for key in by_ls:
+    for key in by_kst:
         players = stats.get(key)
         if not players:
-            leaders[key] = ([], [], True)   # Final fixtures but no squad data → stats-light
+            leaders[key] = ([], [])
             continue
         scorers, assists = top(players, "goals"), top(players, "assists")
-        leaders[key] = (scorers, assists, False)
+        leaders[key] = (scorers, assists)
         for pid, _, tid in scorers + assists:
             need_p.add(pid)
             need_t.add(tid)
     pnames = _name_map(con, "player", need_p)
     tnames = _name_map(con, "team", need_t)
 
-    # 4) Write per (league, season).
-    for (lid, season), fx in by_ls.items():
-        standings = _standings_rows([row[1:] for row in fx])  # drop the fixture id
+    # 4) Write per (league, season, tournament).
+    for (lid, season, tour), fx in by_kst.items():
+        standings = _standings_rows([row[:7] for row in fx])  # (h,hn,a,an,hg,ag,status)
         if not standings:
             continue
-        scorers, assists, stats_light = leaders[(lid, season)]
-        top_team = max(standings, key=lambda t: t["GF"])
+        played = sum(t["P"] for t in standings) // 2
+        stats_light = 1 if (played > 0 and (lid, season, tour) not in stats) else 0
+        top_team = max(standings, key=lambda t: t["GF"]) if played > 0 else None
+        scorers, assists = leaders[(lid, season, tour)]
 
         con.execute(
-            "insert into league_meta (league_id, season, season_label, team_count, played, "
-            "stats_light, top_team_name, top_team_goals) values (?,?,?,?,?,?,?,?)",
-            (lid, season, _season_label(lid, season), len(standings),
-             sum(t["P"] for t in standings) // 2, 1 if stats_light else 0,
-             top_team["name"], top_team["GF"]),
+            "insert into league_meta (league_id, season, tournament, tour_order, season_label, "
+            "team_count, played, stats_light, top_team_name, top_team_goals) "
+            "values (?,?,?,?,?,?,?,?,?,?)",
+            (lid, season, tour, tour_order[(lid, season, tour)], _season_label(lid, season),
+             len(standings), played, stats_light,
+             top_team["name"] if top_team else None, top_team["GF"] if top_team else 0),
         )
         con.executemany(
-            "insert into league_standing (league_id,season,pos,team_id,team_name,P,W,D,L,GF,GA,GD,Pts) "
-            "values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            [(lid, season, pos, t["team_id"], t["name"], t["P"], t["W"], t["D"], t["L"],
+            "insert into league_standing (league_id,season,tournament,pos,team_id,team_name,P,W,D,L,GF,GA,GD,Pts) "
+            "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [(lid, season, tour, pos, t["team_id"], t["name"], t["P"], t["W"], t["D"], t["L"],
               t["GF"], t["GA"], t["GD"], t["Pts"]) for pos, t in enumerate(standings, 1)],
         )
         for kind, raw in (("goals", scorers), ("assists", assists)):
             con.executemany(
-                "insert into league_scorer (league_id,season,kind,rank,player_id,player_name,team_name,value) "
-                "values (?,?,?,?,?,?,?,?)",
-                [(lid, season, kind, i, pid, pnames.get(pid, "?"), tnames.get(tid, "?"), val)
+                "insert into league_scorer (league_id,season,tournament,kind,rank,player_id,player_name,team_name,value) "
+                "values (?,?,?,?,?,?,?,?,?)",
+                [(lid, season, tour, kind, i, pid, pnames.get(pid, "?"), tnames.get(tid, "?"), val)
                  for i, (pid, val, tid) in enumerate(raw, 1)],
             )
         counts["league_seasons"] += 1
         counts["standings"] += len(standings)
         counts["leaders"] += len(scorers) + len(assists)
-    counts["leagues"] = len({lid for (lid, _) in by_ls})
+    counts["leagues"] = len({lid for (lid, _, _) in by_kst})
     return counts
 
 

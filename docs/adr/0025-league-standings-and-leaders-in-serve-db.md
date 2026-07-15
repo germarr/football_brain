@@ -86,6 +86,20 @@ the fragment renders a `<select>` of available seasons when there is more than o
 scan per league (grouped by season in Python) bounds the cost, but the full-history squad
 aggregation takes publish from ~10s to ~70s — still fine for a daily job.
 
+**Amendment (2026-07-15): per-tournament tables + not-started seasons.** The deferred
+multi-tournament handling is now built. Standings + leaders are computed per **(league,
+season, tournament)** — La Liga has one "Regular Season", Liga MX has "Apertura"/"Clausura"
+(ordered by first fixture date into a `tour_order`), so the two are no longer wrongly merged.
+The three tables gain a `tournament` column (`league_meta`'s primary key is now
+`(league_id, season, tournament)`), and the fragment renders a second `<select>` when a
+season has >1 tournament. Standings now seed **every** team from the season's regular-season
+fixtures regardless of status, so a **not-yet-started** season (e.g. Liga MX Apertura 2026,
+0 played) renders as an all-0's table with a "not started yet" note instead of being absent.
+Per an explicit product choice, the section **defaults to the newest season** (max with any
+fixtures) even when it is all 0's — during the off-season every league opens on its upcoming
+season, and the picker steps back to the last completed one. `_standings_rows` counts points
+only for Final fixtures but seeds teams from all; the publish cost stays ~4.5s.
+
 **Consequences:**
 
 - `web.publish` gains a computation stage after the copy: it reads the freshly-built

@@ -318,11 +318,13 @@ def _score(r) -> str | None:
     return f"{r['home_goals']}–{r['away_goals']}"
 
 
-def league_detail(league_id: int, season: int | None = None) -> dict | None:
+def league_detail(league_id: int, season: int | None = None,
+                   tournament: str | None = None) -> dict | None:
     """The precomputed league section (ADR 0025): standings + top-5 scorers/assists +
-    team-most-goals for one season, read straight from serve.db. `season` picks a prior
-    season; None (or an unknown one) defaults to the latest with data. Returns the shape
-    the `_league.html` fragment renders — cup / no-data / stats-light cases included."""
+    team-most-goals for one (season, tournament), read straight from serve.db. `season`
+    defaults to the newest with data (even a not-yet-started, all-0's season); `tournament`
+    defaults to the latest in that season (Clausura over Apertura). Returns the shape the
+    `_league.html` fragment renders — cup / no-data cases included."""
     con = _connect()
     if con is None:
         return None
@@ -337,30 +339,41 @@ def league_detail(league_id: int, season: int | None = None) -> dict | None:
                 "country": comp["country"]}
         if (comp["type"] or "").lower() != "league":
             return {**base, "is_cup": True}
-        seasons = con.execute(
-            "select season, season_label from league_meta where league_id=? order by season desc",
-            (league_id,),
+        metas = con.execute(
+            "select season, tournament, tour_order, season_label, team_count, played, "
+            "stats_light, top_team_name, top_team_goals from league_meta where league_id=? "
+            "order by season desc, tour_order", (league_id,),
         ).fetchall()
-        if not seasons:
-            return {**base, "no_data": True}   # a league with no completed games yet
-        season_list = [{"season": r["season"], "label": r["season_label"]} for r in seasons]
-        valid = {r["season"] for r in seasons}
-        target = season if season in valid else season_list[0]["season"]  # default: latest
+        if not metas:
+            return {**base, "no_data": True}
 
-        meta = con.execute(
-            "select * from league_meta where league_id=? and season=?", (league_id, target),
-        ).fetchone()
+        season_list, seen = [], set()
+        for r in metas:
+            if r["season"] not in seen:
+                seen.add(r["season"])
+                season_list.append({"season": r["season"], "label": r["season_label"]})
+        target_season = season if season in seen else season_list[0]["season"]  # newest
+
+        tours = [r for r in metas if r["season"] == target_season]  # ordered by tour_order
+        tour_names = {r["tournament"] for r in tours}
+        default_tour = max(tours, key=lambda r: r["tour_order"])["tournament"]  # latest
+        target_tour = tournament if tournament in tour_names else default_tour
+        meta = next(r for r in tours if r["tournament"] == target_tour)
+
         standings = con.execute(
             "select pos, team_name, P, W, D, L, GF, GA, GD, Pts from league_standing "
-            "where league_id=? and season=? order by pos", (league_id, target),
+            "where league_id=? and season=? and tournament=? order by pos",
+            (league_id, target_season, target_tour),
         ).fetchall()
         scorers = con.execute(
-            "select rank, player_name, team_name, value from league_scorer "
-            "where league_id=? and season=? and kind='goals' order by rank", (league_id, target),
+            "select rank, player_name, team_name, value from league_scorer where league_id=? "
+            "and season=? and tournament=? and kind='goals' order by rank",
+            (league_id, target_season, target_tour),
         ).fetchall()
         assists = con.execute(
-            "select rank, player_name, team_name, value from league_scorer "
-            "where league_id=? and season=? and kind='assists' order by rank", (league_id, target),
+            "select rank, player_name, team_name, value from league_scorer where league_id=? "
+            "and season=? and tournament=? and kind='assists' order by rank",
+            (league_id, target_season, target_tour),
         ).fetchall()
     except sqlite3.Error:
         return None
@@ -369,7 +382,10 @@ def league_detail(league_id: int, season: int | None = None) -> dict | None:
     return {
         **base,
         "seasons": season_list,
-        "selected_season": target,
+        "selected_season": target_season,
+        "tournaments": [r["tournament"] for r in tours],
+        "selected_tournament": target_tour,
+        "multi_tour": len(tours) > 1,
         "season_label": meta["season_label"],
         "team_count": meta["team_count"],
         "played": meta["played"],
@@ -577,10 +593,12 @@ def week(request: Request):
 
 
 @app.get("/league/{league_id}", response_class=HTMLResponse)
-def league_section(request: Request, league_id: int, season: int | None = None):
+def league_section(request: Request, league_id: int, season: int | None = None,
+                   tournament: str | None = None):
     """The inline league section as an HTML fragment (ADR 0025) — standings + leaders for
-    the chosen (or latest) season, injected in place when a league chip / season is picked."""
-    d = league_detail(league_id, season)
+    the chosen (or default) season + tournament, injected in place when a league chip /
+    season / tournament is picked."""
+    d = league_detail(league_id, season, tournament)
     if d is None:
         return HTMLResponse(
             "<div class='ld'><p class='ld-empty'>League not found in the serving store.</p></div>",

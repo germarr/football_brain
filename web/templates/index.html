@@ -156,18 +156,22 @@
 </main>
 
 <script>
-// Open a league's standings + leaders section in place (ADR 0025); `season` picks a
-// prior season (undefined = latest, and the only case we scroll into view).
-async function openLeague(id, season){
+// Open a league's standings + leaders section in place (ADR 0025). `season` picks a prior
+// season; `tournament` picks Apertura/Clausura within it. A bare click (no season) is the
+// only case we scroll into view; changing a picker re-renders without jumping.
+async function openLeague(id, season, tournament){
   const box = document.getElementById('league-detail');
   box.style.display = 'block';
   if(!season){
     box.innerHTML = '<div class="ld"><p class="ld-loading">Loading…</p></div>';
     box.scrollIntoView({behavior:'smooth', block:'start'});
   }
+  const params = new URLSearchParams();
+  if(season) params.set('season', season);
+  if(tournament) params.set('tournament', tournament);
+  const qs = params.toString();
   try{
-    const url = '/league/' + id + (season ? '?season=' + encodeURIComponent(season) : '');
-    box.innerHTML = await (await fetch(url)).text();
+    box.innerHTML = await (await fetch('/league/' + id + (qs ? '?' + qs : ''))).text();
   }catch(e){
     box.innerHTML = '<div class="ld"><p class="ld-empty">Failed to load — try again.</p></div>';
   }

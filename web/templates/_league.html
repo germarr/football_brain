@@ -11,6 +11,14 @@
           {% endfor %}
         </select>
       {% elif d.season_label %}<span class="ld-season">{{ d.season_label }}</span>{% endif %}
+      {% if d.multi_tour %}
+        <select class="ld-season-pick" title="Pick a tournament"
+                onchange="openLeague({{ d.league_id }}, {{ d.selected_season }}, this.value)">
+          {% for t in d.tournaments %}
+            <option value="{{ t }}" {% if t == d.selected_tournament %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
     </div>
     <button class="ld-close" onclick="closeLeague()" title="Close">✕</button>
   </div>
@@ -24,8 +32,13 @@
       season has played fixtures.</p>
 
   {% else %}
-    <p class="ld-sub">{{ d.team_count }} teams · {{ d.played }} games played ·
-      most goals <strong>{{ d.top_team_name }}</strong> ({{ d.top_team_goals }})</p>
+    {% if d.played == 0 %}
+      <p class="ld-sub">{{ d.team_count }} teams · <strong>not started yet</strong> — fixtures
+        scheduled, no results played.</p>
+    {% else %}
+      <p class="ld-sub">{{ d.team_count }} teams · {{ d.played }} games played ·
+        most goals <strong>{{ d.top_team_name }}</strong> ({{ d.top_team_goals }})</p>
+    {% endif %}
 
     <div class="ld-grid">
       <!-- standings -->
@@ -53,7 +66,13 @@
 
       <!-- leaders -->
       <div class="ld-leaders">
-        {% if d.stats_light %}
+        {% if d.played == 0 %}
+          <div class="ld-card">
+            <h4>Players</h4>
+            <p class="ld-note">No games played yet — top scorers and assists appear once the
+              {{ d.selected_tournament }} gets under way.</p>
+          </div>
+        {% elif d.stats_light %}
           <div class="ld-card">
             <h4>Players</h4>
             <p class="ld-note">Player stats aren't collected for this competition (fixtures &amp;
