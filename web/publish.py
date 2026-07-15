@@ -26,6 +26,7 @@ import argparse
 import fcntl
 import os
 import sqlite3
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -168,53 +169,29 @@ def _standings_rows(finals: list) -> list[dict]:
     return rows
 
 
-def _leaders(con: sqlite3.Connection, fids: list[int]) -> tuple[list, list, bool]:
-    """Top-5 scorers + assisters over the given season's fixture ids, by season total
-    (grouped per player, primary team shown). Returns (scorers, assists, stats_light) —
-    stats_light True when those fixtures have no SquadEntry (fixtures+events-only
-    Coverage; CONTEXT.md)."""
-    if not fids:
-        return [], [], True
-    con.execute("drop table if exists _fx")
-    con.execute("create temp table _fx (id integer primary key)")
-    con.executemany("insert into _fx (id) values (?)", [(i,) for i in fids])
-    rows = con.execute(
-        "select se.player_id, p.name, t.name, sum(se.goals), sum(se.assists), count(*) "
-        "from src.squadentry se "
-        "join _fx on _fx.id = se.fixture_id "
-        "join src.player p on p.id = se.player_id "
-        "join src.team t on t.id = se.team_id "
-        "group by se.player_id, se.team_id"
-    ).fetchall()
-    con.execute("drop table if exists _fx")
-    if not rows:
-        return [], [], True   # Final fixtures exist but no squad data → stats-light
-
-    players: dict[int, dict] = {}
-    for pid, pname, tname, goals, assists, n in rows:
-        p = players.setdefault(pid, {"player_id": pid, "name": pname,
-                                     "goals": 0, "assists": 0, "teams": {}})
-        p["goals"] += goals or 0
-        p["assists"] += assists or 0
-        p["teams"][tname] = p["teams"].get(tname, 0) + n
-
-    def rank(metric: str) -> list[dict]:
-        out = [
-            {"player_id": p["player_id"], "name": p["name"],
-             "team": max(p["teams"].items(), key=lambda kv: kv[1])[0], "value": p[metric]}
-            for p in players.values() if p[metric] > 0
-        ]
-        out.sort(key=lambda x: (-x["value"], x["name"]))
-        return out[:LEADER_TOP_N]
-
-    return rank("goals"), rank("assists"), False
+def _name_map(con: sqlite3.Connection, table: str, ids: set[int]) -> dict[int, str]:
+    """Bulk id→name lookup from src.player / src.team, chunked under SQLite's variable
+    limit. Only the handful of ids that actually surface as leaders are resolved."""
+    out: dict[int, str] = {}
+    ids = list(ids)
+    for i in range(0, len(ids), 900):
+        chunk = ids[i:i + 900]
+        placeholders = ",".join("?" * len(chunk))
+        for rid, name in con.execute(
+            f"select id, name from src.{table} where id in ({placeholders})", chunk
+        ):
+            out[rid] = name
+    return out
 
 
 def _build_league_tables(con: sqlite3.Connection) -> dict:
-    """Compute standings + leaders for EVERY season a tracked league has played (ADR 0025 +
-    season picker), keyed by (league_id, season), and write them into the serving store.
-    Reads the FULL data from the attached `src` (football.db). Leagues only; cups skipped.
-    One fixture scan per league (grouped by season in Python) keeps the cost bounded."""
+    """Compute standings + leaders for EVERY (league, season) a tracked league has played
+    (ADR 0025 + season picker) and write them into the serving store, keyed by
+    (league_id, season). Leagues only; cups skipped.
+
+    Cost is bounded to ONE fixture scan and ONE squadentry aggregation for the whole store:
+    the aggregation groups by (league, season, player, team) with NO name joins — names are
+    resolved in bulk afterwards for only the ~top-5 rows per (league, season) that surface."""
     con.execute(
         "create table league_meta (league_id integer, season integer, season_label text, "
         "team_count integer, played integer, stats_light integer, top_team_name text, "
@@ -230,55 +207,102 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
         "rank integer, player_id integer, player_name text, team_name text, value integer)"
     )
 
-    leagues = con.execute(
-        "select id from src.competition where lower(type) = 'league'"
-    ).fetchall()
+    league_ids = {r[0] for r in con.execute(
+        "select id from src.competition where lower(type) = 'league'")}
     counts = {"leagues": 0, "league_seasons": 0, "standings": 0, "leaders": 0}
-    for (lid,) in leagues:
-        # All Final, regular-season fixtures for this league, every season, in one scan.
-        all_fx = con.execute(
-            "select season, id, home_team_id, home_team_name, away_team_id, away_team_name, "
-            "home_goals, away_goals from src.fixture where league_id=? and matchday is not null "
-            f"and status in {FINAL} and home_goals is not null and away_goals is not null",
-            (lid,),
-        ).fetchall()
-        by_season: dict[int, list] = {}
-        for season, fid, h, hn, a, an, hg, ag in all_fx:
-            by_season.setdefault(season, []).append((fid, h, hn, a, an, hg, ag))
-        if not by_season:
+    if not league_ids:
+        return counts
+
+    # 1) One scan of every Final, regular-season fixture; bucket by (league, season).
+    by_ls: dict[tuple, list] = defaultdict(list)
+    for lid, season, fid, h, hn, a, an, hg, ag in con.execute(
+        "select league_id, season, id, home_team_id, home_team_name, away_team_id, "
+        "away_team_name, home_goals, away_goals from src.fixture where matchday is not null "
+        f"and status in {FINAL} and home_goals is not null and away_goals is not null"
+    ):
+        if lid in league_ids:
+            by_ls[(lid, season)].append((fid, h, hn, a, an, hg, ag))
+    if not by_ls:
+        return counts
+
+    # 2) One squadentry aggregation over all those fixtures — grouped by id, no name joins.
+    con.execute("drop table if exists _fx")
+    con.execute("create temp table _fx (id integer primary key, league_id integer, season integer)")
+    con.executemany(
+        "insert into _fx (id, league_id, season) values (?,?,?)",
+        [(row[0], lid, season) for (lid, season), rows in by_ls.items() for row in rows],
+    )
+    stats: dict[tuple, dict] = defaultdict(dict)
+    for lid, season, pid, tid, goals, assists, n in con.execute(
+        "select fx.league_id, fx.season, se.player_id, se.team_id, "
+        "sum(se.goals), sum(se.assists), count(*) "
+        "from _fx fx join src.squadentry se on se.fixture_id = fx.id "
+        "group by fx.league_id, fx.season, se.player_id, se.team_id"
+    ):
+        players = stats[(lid, season)]
+        p = players.setdefault(pid, {"goals": 0, "assists": 0, "teams": {}})
+        p["goals"] += goals or 0
+        p["assists"] += assists or 0
+        p["teams"][tid] = p["teams"].get(tid, 0) + n
+    con.execute("drop table if exists _fx")
+
+    # 3) Rank top-N per (league, season) by id; collect the ids that need names.
+    def top(players: dict, metric: str) -> list[tuple]:
+        ranked = sorted(
+            ((pid, p[metric], max(p["teams"].items(), key=lambda kv: kv[1])[0])
+             for pid, p in players.items() if p[metric] > 0),
+            key=lambda x: (-x[1], x[0]),
+        )
+        return ranked[:LEADER_TOP_N]   # (player_id, value, primary_team_id)
+
+    leaders: dict[tuple, tuple] = {}
+    need_p: set[int] = set()
+    need_t: set[int] = set()
+    for key in by_ls:
+        players = stats.get(key)
+        if not players:
+            leaders[key] = ([], [], True)   # Final fixtures but no squad data → stats-light
             continue
+        scorers, assists = top(players, "goals"), top(players, "assists")
+        leaders[key] = (scorers, assists, False)
+        for pid, _, tid in scorers + assists:
+            need_p.add(pid)
+            need_t.add(tid)
+    pnames = _name_map(con, "player", need_p)
+    tnames = _name_map(con, "team", need_t)
 
-        for season, fx in by_season.items():
-            standings = _standings_rows([row[1:] for row in fx])  # drop the fixture id
-            if not standings:
-                continue
-            scorers, assists, stats_light = _leaders(con, [row[0] for row in fx])
-            top_team = max(standings, key=lambda t: t["GF"])
+    # 4) Write per (league, season).
+    for (lid, season), fx in by_ls.items():
+        standings = _standings_rows([row[1:] for row in fx])  # drop the fixture id
+        if not standings:
+            continue
+        scorers, assists, stats_light = leaders[(lid, season)]
+        top_team = max(standings, key=lambda t: t["GF"])
 
-            con.execute(
-                "insert into league_meta (league_id, season, season_label, team_count, played, "
-                "stats_light, top_team_name, top_team_goals) values (?,?,?,?,?,?,?,?)",
-                (lid, season, _season_label(lid, season), len(standings),
-                 sum(t["P"] for t in standings) // 2, 1 if stats_light else 0,
-                 top_team["name"], top_team["GF"]),
-            )
+        con.execute(
+            "insert into league_meta (league_id, season, season_label, team_count, played, "
+            "stats_light, top_team_name, top_team_goals) values (?,?,?,?,?,?,?,?)",
+            (lid, season, _season_label(lid, season), len(standings),
+             sum(t["P"] for t in standings) // 2, 1 if stats_light else 0,
+             top_team["name"], top_team["GF"]),
+        )
+        con.executemany(
+            "insert into league_standing (league_id,season,pos,team_id,team_name,P,W,D,L,GF,GA,GD,Pts) "
+            "values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            [(lid, season, pos, t["team_id"], t["name"], t["P"], t["W"], t["D"], t["L"],
+              t["GF"], t["GA"], t["GD"], t["Pts"]) for pos, t in enumerate(standings, 1)],
+        )
+        for kind, raw in (("goals", scorers), ("assists", assists)):
             con.executemany(
-                "insert into league_standing (league_id,season,pos,team_id,team_name,P,W,D,L,GF,GA,GD,Pts) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                [(lid, season, pos, t["team_id"], t["name"], t["P"], t["W"], t["D"], t["L"],
-                  t["GF"], t["GA"], t["GD"], t["Pts"]) for pos, t in enumerate(standings, 1)],
+                "insert into league_scorer (league_id,season,kind,rank,player_id,player_name,team_name,value) "
+                "values (?,?,?,?,?,?,?,?)",
+                [(lid, season, kind, i, pid, pnames.get(pid, "?"), tnames.get(tid, "?"), val)
+                 for i, (pid, val, tid) in enumerate(raw, 1)],
             )
-            for kind, leaders in (("goals", scorers), ("assists", assists)):
-                con.executemany(
-                    "insert into league_scorer (league_id,season,kind,rank,player_id,player_name,team_name,value) "
-                    "values (?,?,?,?,?,?,?,?)",
-                    [(lid, season, kind, i, l["player_id"], l["name"], l["team"], l["value"])
-                     for i, l in enumerate(leaders, 1)],
-                )
-            counts["league_seasons"] += 1
-            counts["standings"] += len(standings)
-            counts["leaders"] += len(scorers) + len(assists)
-        counts["leagues"] += 1
+        counts["league_seasons"] += 1
+        counts["standings"] += len(standings)
+        counts["leaders"] += len(scorers) + len(assists)
+    counts["leagues"] = len({lid for (lid, _) in by_ls})
     return counts
 
 
