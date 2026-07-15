@@ -3,7 +3,14 @@
     <div class="ld-title">
       {% if d.flag %}<img src="{{ d.flag }}" alt="" loading="lazy">{% endif %}
       <h3>{{ d.name }}</h3>
-      {% if d.season_label %}<span class="ld-season">{{ d.season_label }}</span>{% endif %}
+      {% if d.seasons and d.seasons|length > 1 %}
+        <select class="ld-season-pick" onchange="openLeague({{ d.league_id }}, this.value)"
+                title="Pick a season">
+          {% for s in d.seasons %}
+            <option value="{{ s.season }}" {% if s.season == d.selected_season %}selected{% endif %}>{{ s.label }}</option>
+          {% endfor %}
+        </select>
+      {% elif d.season_label %}<span class="ld-season">{{ d.season_label }}</span>{% endif %}
     </div>
     <button class="ld-close" onclick="closeLeague()" title="Close">✕</button>
   </div>

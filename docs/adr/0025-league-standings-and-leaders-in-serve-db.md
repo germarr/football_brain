@@ -77,6 +77,15 @@ for it would be empty. Standings are also **computed, never stored** — there i
   "player stats not collected for this competition" note rather than empty boxes — the
   `league_meta.stats_light` flag drives that.
 
+**Amendment (2026-07-15): season picker.** The deferred prior-season browsing is now built.
+`web.publish` computes the tables for **every** season a league has played, not just the
+current one, and the three tables are keyed by **(league_id, season)** (`league_meta`'s primary
+key; a `season` column on `league_standing`/`league_scorer`). `GET /league/{id}?season=YYYY`
+selects a season (defaulting to the latest with data; an unknown season falls back to it), and
+the fragment renders a `<select>` of available seasons when there is more than one. One fixture
+scan per league (grouped by season in Python) bounds the cost, but the full-history squad
+aggregation takes publish from ~10s to ~70s — still fine for a daily job.
+
 **Consequences:**
 
 - `web.publish` gains a computation stage after the copy: it reads the freshly-built

@@ -87,6 +87,8 @@
   .ld-title h3{margin:0;font-size:17px;font-weight:660;letter-spacing:-.01em}
   .ld-season{font-size:11.5px;font-weight:700;color:var(--muted);background:var(--chip);
     padding:2px 8px;border-radius:999px}
+  .ld-season-pick{font-family:var(--sans);font-size:11.5px;font-weight:700;color:var(--ink);
+    background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:2px 8px;cursor:pointer}
   .ld-close{border:none;background:var(--chip);color:var(--muted);cursor:pointer;
     border-radius:7px;width:26px;height:26px;font-size:13px;line-height:1}
   .ld-close:hover{color:var(--ink)}
@@ -154,14 +156,18 @@
 </main>
 
 <script>
-// Open a league's standings + leaders section in place (ADR 0025).
-async function openLeague(id){
+// Open a league's standings + leaders section in place (ADR 0025); `season` picks a
+// prior season (undefined = latest, and the only case we scroll into view).
+async function openLeague(id, season){
   const box = document.getElementById('league-detail');
   box.style.display = 'block';
-  box.innerHTML = '<div class="ld"><p class="ld-loading">Loading…</p></div>';
-  box.scrollIntoView({behavior:'smooth', block:'start'});
+  if(!season){
+    box.innerHTML = '<div class="ld"><p class="ld-loading">Loading…</p></div>';
+    box.scrollIntoView({behavior:'smooth', block:'start'});
+  }
   try{
-    box.innerHTML = await (await fetch('/league/' + id)).text();
+    const url = '/league/' + id + (season ? '?season=' + encodeURIComponent(season) : '');
+    box.innerHTML = await (await fetch(url)).text();
   }catch(e){
     box.innerHTML = '<div class="ld"><p class="ld-empty">Failed to load — try again.</p></div>';
   }
