@@ -101,12 +101,23 @@ re-fetches only the two things cache-first would otherwise freeze, per Competiti
 2. **The current season's fixture list** (force-refetched) — otherwise a match played since
    the list was first cached would never surface.
 
-From that fresh list it collects per-fixture data (squad/goals, events, team stats —
-Coverage-gated) for **Final** fixtures — status `FT` / `AET` / `PEN` — that aren't already
-in the **ledger**. Non-Final fixtures (scheduled, live, `PST`, `CANC`, …) are skipped and
-revisited for free on later nights until they become Final. A fixture the old backfill
-cached **empty** while it was still scheduled gets **healed** (force-refetched) on the first
-night it's Final. It then runs the full enrichment chain (bios → careers → Team Profiles)
+From that fresh list it collects per-fixture data (squad/goals, events, team stats) for
+**Final** fixtures — status `FT` / `AET` / `PEN` — that still owe a stage. The season
+`statistics_*` flags are both coarse and *lag the data*, so collection is **not** gated on
+them: the ledger stamps a per-fixture *coverage fingerprint* of what each Final actually
+carries, and each night Refresh attempts a stat stage the Final still owes if the Season now
+covers it (first collection, or a flag-flip **widen** that re-heals a Final collected earlier
+under narrower Coverage) **or**, for a stats-light Season whose stat is *expected* (the
+Competition's last completed Season carried it) and the Final is recent (≤ `OPTIMISTIC_PROBE_DAYS`,
+14), by probing optimistically. A stage is stamped collected only when the fetch **returns
+data**, or when it comes back empty *and* the Final has aged past the window (genuinely empty —
+stop chasing). An empty fetch on a still-recent Final, **even under covered Coverage**, is left
+owing and retried nightly: the flag lags per-fixture too (data lands unevenly across a matchday),
+so an empty within the window is *lagging*, not *absent*. A genuinely stats-light Competition (no
+prior covered Season, e.g. Liga MX Femenil) is never probed, so it costs no extra calls. Non-Final fixtures (scheduled,
+live, `PST`, `CANC`, …) are skipped and revisited for free on later nights until they become
+Final. A fixture the old backfill cached **empty** while it was still scheduled gets **healed**
+(force-refetched) on the first night it's Final. It then runs the full enrichment chain (bios → careers → Team Profiles)
 for the players and teams those new Finals surfaced — cache-first, so already-seen ones cost
 nothing. Finally it rebuilds `football.db`, re-scopes existing `data/<slug>.db` files, writes
 the log, and records the run.
@@ -116,10 +127,17 @@ the log, and records the run.
 ## The runtime files
 
 ### `refresh_ledger.json` — what's been collected
-A flat `fixture_id → {status, collected}` map spanning every Competition. A fixture is
-written **only after all its per-fixture stages succeed**, so an interrupted run re-does a
-half-collected match rather than skipping it. This is the gate that makes Refresh
-incremental *and* defeats the stale-empty trap.
+A flat `fixture_id → {status, collected, coverage}` map spanning every Competition. A fixture
+is written **only after all its applicable per-fixture stages succeed**, so an interrupted run
+re-does a half-collected match rather than skipping it. `coverage` is the per-fixture
+fingerprint of stat stages actually collected — `{"players": bool, "fixture_stats": bool}` —
+which is what lets Refresh (a) re-heal a Final once the provider widens the Season's Coverage
+and (b) know which recent stats-light Finals still owe a stage worth optimistically probing,
+rather than stranding a Final with only its events. This is the gate that makes Refresh
+incremental *and* defeats the stale-empty trap (and its lagging-/widening-Coverage variants).
+Legacy entries with no `coverage` field are treated as nothing-collected and re-evaluated
+(and re-stamped) on the next run — near-free, since an already-collected Final's caches are
+present, so the re-collect is cache hits.
 
 - **Safe to delete?** Yes, but don't casually. Deleting it makes the next run re-collect
   every current-season Final from scratch (heavy, but harmless — cache-first dedupes).

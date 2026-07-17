@@ -71,6 +71,34 @@ assuming every Season of a Competition shares one Coverage; treating "stats-ligh
 as a Competition type (it is a Coverage state — the Competition is still a league
 or a cup).
 
+**Coverage Fingerprint**:
+The record, on each ledger entry, of which Coverage-gated stat stages a Final actually
+carries — `{"players": bool, "fixture_stats": bool}` (Events is unconditional, so never
+fingerprinted). It is per-*Fixture*, distinct from the per-*Season* **Coverage** flag,
+because the season flag both is coarse and *lags the data*: a brand-new Season opens
+**stats-light** and the provider flips `statistics_players` / `statistics_fixtures` true
+days later — but a Final's `fixtures/players` and `fixtures/statistics` may already return
+populated payloads *before* the flag flips, and unevenly across a matchday. So **Refresh**
+does not gate collection on the season flag; it uses the fingerprint to decide, per Final,
+what stat data it still owes, and it fingerprints a stage `true` on **data actually landing**,
+never on the season flag alone:
+- if the Season covers a stage, attempt it (a first collection, or a flag-flip *widen* that
+  re-heals a Final collected earlier under narrower Coverage);
+- if the Season is stats-light but the stage is **expected** (the Competition's last
+  completed Season carried it — a lag, not a genuinely stats-light Competition like Liga
+  MX Femenil) and the Final is recent (within `OPTIMISTIC_PROBE_DAYS`, 14), probe it
+  optimistically.
+Either way, the stage is stamped `true` only when the fetch **returns data**, or when it comes
+back empty *and* the Final has aged past the window (a genuinely-empty match we stop chasing).
+An empty fetch on a still-recent Final — even one whose Season is covered — is left **owing**
+and retried nightly, because the flag lags per-*Fixture* too: data lands unevenly across a
+matchday, so an empty within the window is *lagging*, not *absent* (amendment 3). A legacy
+entry with no fingerprint counts as *nothing collected* — re-evaluated (near-free, cache hits)
+and re-stamped on the next run. See ADR 0018 (amendments 2026-07-17).
+_Avoid_: reading the fingerprint as the Season's Coverage (it is what a match was actually
+collected under, which for a lagging Season can be *ahead* of the season flag); expecting
+a genuinely stats-light Competition (no prior covered Season) to be probed — it never is.
+
 **Tournament**:
 A self-contained championship within a Season — one champion crowned. La Liga:
 one, `"Regular Season"`. Liga MX: two, `"Apertura"` and `"Clausura"`. A Tournament

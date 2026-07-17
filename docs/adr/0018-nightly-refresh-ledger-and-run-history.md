@@ -49,6 +49,113 @@ the current Season of every Competition — and leaves immutable past Seasons un
   ledger only after *all* its applicable per-fixture stages succeed, so an interrupted
   run re-does a half-collected match rather than skipping it.
 
+  *Amendment (2026-07-17): the ledger records the Coverage it collected under, so a
+  widened Coverage re-heals.* The gate above — "collect a Final's per-fixture stages iff
+  it is **not already in the ledger**" — silently assumes a Fixture's set of *applicable*
+  stages is fixed. It is not. Those stages are Coverage-gated (squad/goals behind
+  `statistics_players`, team match stats behind `statistics_fixtures`), and a Season's
+  Coverage **widens over its life**: the provider opens a brand-new Season (e.g. Liga MX
+  2026 Apertura) with every Coverage flag `false` and flips them `true` days later, once
+  it starts populating player and fixture stats. Events are collected *unconditionally*,
+  so a Final played on opening night is fully processed *for its then-Coverage* — events
+  only — and written to the ledger. When Coverage later flips `true`, the ledger-absence
+  gate no longer fires, so the now-applicable squad/stats stages never run: the Fixture
+  keeps its `event` rows forever but never gains a Squad Entry or Team Match Stat. This is
+  the **stale-empty trap reincarnated one level up** — not a stale-empty *cache file*, but
+  a stale-*complete* ledger entry, recorded true against a Coverage that has since grown.
+  (Observed live: fixtures 1550894/1550895, Apertura matchday 1, have `event` rows but
+  zero Squad Entries; their `fixtures/players` cache is *absent*, not empty — the fetch was
+  Coverage-gated away — and both are already ledgered `FT`, so no future run re-collects
+  them.)
+
+  Decision: **the ledger entry records the Coverage it was collected under, and the gate
+  re-collects a Final whose current Coverage strictly widens the recorded one.**
+  - The ledger value gains a `coverage` fingerprint — the Coverage-gated stages that
+    actually ran that night: `{"players": bool, "fixture_stats": bool}`. Events is
+    unconditional and never part of the fingerprint. `record()` takes the applied Coverage
+    alongside `status`/`collected`.
+  - Step 3's selector changes from *"Final and `fid not in ledger`"* to *"Final **and**
+    (`fid not in ledger` **or** current Coverage widens the recorded fingerprint)"*, where
+    *widens* means some flag now `true` that the fingerprint has `false`. A re-collect runs
+    only the newly-applicable stages (cache-first via `_heal_get`, so the Coverage-false
+    window's absent cache is a clean live fetch), then rewrites the entry with the wider
+    fingerprint and the new date. Once a Fixture is recorded under full Coverage it never
+    re-triggers.
+  - Coverage only ever widens in practice (the provider adds stats, never removes), so
+    *narrowing* is ignored — it would strand no already-collected data anyway.
+  - **Migration:** existing entries have no `coverage` field. Treat a missing fingerprint
+    as *nothing covered* so it is re-evaluated against current Coverage on the next run.
+    This is close to free: a Final collected under true Coverage already has a present,
+    non-empty `fixtures/players` cache, so `_heal_get` returns a counted **cache hit** and
+    the only effect is stamping an accurate fingerprint; live calls happen solely for the
+    genuinely-stranded Finals (players cache absent). Re-evaluation is bounded to each
+    Competition's current Season — past Seasons never enter step 3.
+
+  This keeps the ledger's original virtue (its `status` field disambiguates
+  "not-played-yet" from "Final-but-eventless") and adds the missing second axis: *which
+  Coverage-gated stages a recorded Final actually carries*, so a Season that gains Coverage
+  mid-life heals exactly the Fixtures collected before the flip, and nothing else. See the
+  new rejected options below.
+
+  *Amendment 2 (2026-07-17): the season Coverage flag lags the data, so an expected stat is
+  probed optimistically rather than waited on.* Amendment 1 heals a Final **when the season
+  flag flips**. But a live probe of the two stranded fixtures showed the flag is not just
+  coarse, it **lags**: with Liga MX 2026 still flagged `statistics_players=false`,
+  `fixtures/players` for 1550895 already returned 40 players and `fixtures/statistics` 36
+  stat lines — while 1550894 was still empty. So the per-*Season* flag is a poor gate for
+  *per-Fixture* collection: real data can sit available-but-uncollected for days until the
+  flag catches up, and it lands unevenly across a matchday. Waiting on the flag needlessly
+  delays data we could already have.
+
+  Decision: **decouple collection from the season flag — collect a stat stage whenever the
+  data is actually there — while bounding the probing so a genuinely stats-light Fixture is
+  not re-fetched forever.** Two signals bound it:
+  - **Expected Coverage.** From the same force-refreshed `/leagues` record, a stage is
+    *expected* for the current Season iff the Competition's most recent *completed* Season
+    carried it. Liga MX 2026 is expected (2025 had both flags); Liga MX Femenil — stats-light
+    every Season — is not. Only an *expected* stat on a stats-light current Season is probed
+    optimistically; a genuinely stats-light Competition is never probed on a hunch, so it
+    costs zero extra calls.
+  - **A recency window** (`OPTIMISTIC_PROBE_DAYS`, 14). Optimistic probing is limited to
+    Finals played within the window of the run date. A stat that never arrives (an expected
+    Competition the provider quietly leaves stats-light, or one match with no data) stops
+    being probed once it ages out — the cost is bounded to ~one window of recent Finals per
+    night, not the whole Season.
+
+  Mechanically, the selector/`needs_collection` of amendment 1 becomes `_stages_to_attempt`,
+  which returns, per stage: **collected already?** skip; **season covers it?** collect
+  definitively (first collection *or* a flag-flip widen — amendment 1 subsumed here);
+  **stats-light but expected and recent?** probe optimistically. A stat stage's fingerprint
+  flips `true` when the season covers it **or** an optimistic probe actually returned data;
+  an empty probe leaves the stage owing, to retry next night until it lands or ages out.
+  Events stay a once-only, is-new-gated fetch. A Fixture is reported "Updated" (and counted)
+  only when it is new or a stage we had recorded `false` just landed — a legacy entry being
+  back-stamped, or an empty re-probe, is silent and does not churn its `collected` date.
+
+  Net effect for the motivating case: on the **next** Refresh — with the flag still `false` —
+  1550895's squad and team stats are collected, and 1550894 keeps being probed until its data
+  lands. No manual de-ledgering, and no wait for the provider to flip the flag.
+
+  *Amendment 3 (2026-07-17): the flag lags per-Fixture too, so a covered Season's empty Final
+  is left owing within the window rather than trusted as empty.* Amendment 2 stamped a stage
+  `true` "when the season covers it **or** a probe returned data" — i.e. once the season flag
+  is on, an empty payload was trusted definitively. But the lag amendment 2 documented runs
+  below the Season as well: with Liga MX 2026 **covered**, `fixtures/players` for 1550895
+  returned 40 players while 1550894 — same matchday, same league — returned nothing, because
+  the provider populates unevenly across a matchday. Trusting the empty stamped 1550894
+  `players=true` off a zero-row payload and never retried it: the original stale-empty trap,
+  reincarnated one level lower — the flag is on, but this Fixture's data has not landed yet.
+  Decision: **the fingerprint flips `true` on *data*, not on the season flag.** A stage is
+  stamped `true` iff the fetch returned data, **or** it came back empty *and* the Final has
+  aged past `OPTIMISTIC_PROBE_DAYS` (a genuinely-empty Final we stop chasing). A covered
+  Final that fetches empty while still recent is left owing and retried — exactly the
+  treatment a stats-light expected Final already got — unifying both under one recency rule:
+  an empty within the window is *lagging*, not *absent*. This also folds the season-covers-it
+  branch of `_stages_to_attempt`'s stamping into the same test; the *attempt* logic is
+  unchanged (a covered stage is still attempted whenever its fingerprint is absent). One-off
+  remediation: 35 recent Finals (incl. 1550894) that amendment 2 had stamped `true` off empty
+  payloads were reset to owing in the ledger so the new rule re-evaluates them.
+
 - **Refresh runs the full enrichment chain, not just match data.** A new Final match
   can surface a midseason signing or a new career team; leaving them un-enriched would
   hole the modeled store (a squad member with no bio/career/Team Profile, a broken
@@ -118,6 +225,54 @@ the current Season of every Competition — and leaves immutable past Seasons un
   "not played when fetched" and "Final but genuinely eventless" — with no recorded
   status you either re-fetch everything forever or trust the empties and never heal. The
   ledger's `status` field is exactly the disambiguator.
+
+- **Coverage re-heal: re-collect every current-season Final each night (drop the ledger
+  gate for the gated stages).** Rejected — it is the stateless approach this ADR already
+  rejected, just scoped to the gated stages: it re-pulls the whole current Season's Finals
+  nightly. The per-Fixture Coverage fingerprint re-collects only on an actual Coverage
+  change, not every night.
+
+- **Coverage re-heal: a per-Competition "Coverage flipped" detector instead of a
+  per-Fixture fingerprint.** When a `/leagues` record shows a flag flip since last run,
+  re-collect that Competition's current-Season Finals. Rejected: simpler but coarse — it
+  cannot tell which Finals predate the flip (some current-Season Finals were collected
+  *after* it, already under full Coverage) so it re-collects indiscriminately, and it drops
+  the per-Fixture audit of what each recorded match actually carries. The fingerprint on
+  the ledger entry is the precise, self-describing form.
+
+- **De-ledger the stranded Finals by hand.** The immediate unblock for 1550894/1550895
+  (delete their ids from `refresh_ledger.json`, let the next Refresh re-collect once
+  Coverage flips). Kept as the one-off remedy, rejected as *the* fix: it does not close the
+  trap — the next brand-new Season reopens it on its opening matchday.
+
+- **(Amendment 2) Wait for the season flag, don't probe at all.** The amendment-1-only
+  design: heal purely when `statistics_*` flips. Rejected once the live probe proved the
+  flag lags the data by days — waiting strands data that already exists (1550895's stats
+  were served while the flag was still `false`). Optimistic probing collects it now; the
+  flag-flip path remains as the definitive backstop for whatever the probe didn't catch.
+
+- **(Amendment 2) Bound probing with a persisted per-Fixture probe counter** (probe an
+  empty stats-light Final up to K nights, then give up), instead of *expected Coverage +
+  recency window*. Rejected: it burns K probes on **every** Final of a genuinely stats-light
+  Competition before quitting, whereas "expected" (does the prior Season carry the stat?)
+  skips those Competitions for zero cost, and needs no new ledger field — the recency window
+  reads dates the payload already carries. The counter also has to be persisted and reasoned
+  about on resume; the window is stateless.
+
+- **(Amendment 2) Probe optimistically with no recency bound.** Rejected: an *expected*
+  Competition the provider quietly leaves stats-light (or a single match that never gets
+  stats) would be re-probed every night for the whole Season, growing without limit as the
+  fixture list grows. The window caps live cost to ~one window of recent Finals per night.
+
+- **(Amendment 3) Trust a covered Season's empty payload — stamp it collected immediately.**
+  The amendment-2 behaviour: once the season flag is on, an empty `fixtures/players` /
+  `fixtures/statistics` means genuinely-eventless, so stamp and stop. Rejected: the flag lags
+  per-Fixture as well as per-Season (1550894 was empty while its same-matchday sibling 1550895
+  had 40 players, both under a covered Liga MX 2026), so an immediate stamp strands a Final
+  whose data is merely late — the exact trap this ADR closes. Deferring the stamp until the
+  Final ages out of the recency window costs at most one force-refetch per recent empty Final
+  per night (bounded, self-terminating) and reuses the window already in place for stats-light
+  probing, at no new state.
 
 - **Auto-rollover: detect the provider's newest season and append it automatically.**
   Rejected for now: the seven built-in Competitions are hardcoded in `config.py`, so

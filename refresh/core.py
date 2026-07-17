@@ -42,7 +42,7 @@ import json
 import sqlite3
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import NamedTuple
 
@@ -52,6 +52,20 @@ from football.client import CachedClient, QuotaExceeded
 # A Fixture is Final (CONTEXT.md) — played to completion with per-fixture data to
 # collect — iff its provider status.short is one of these.
 FINAL_STATUSES = {"FT", "AET", "PEN"}
+
+# A Season's per-fixture stat Coverage (statistics_players / statistics_fixtures) can
+# lag the data: a brand-new Season opens flagged stats-light, yet its Finals' player and
+# team-stat endpoints may already return populated payloads days before the flag flips
+# (ADR 0018 amendment 2, 2026-07-17). So when a stat is *expected* — the Competition's
+# last completed Season carried it — Refresh probes a stats-light Season's recent Finals
+# optimistically and collects whatever data has actually landed, rather than waiting for
+# the flag. The lag runs the other way too: a Season's flag can be *on* before an
+# individual match's payload has populated (data lands unevenly across a matchday), so a
+# covered Final whose fetch comes back empty is left owing and retried, not trusted as
+# empty, while it is still within the window. This window bounds both — a genuinely empty
+# Final (covered or stats-light) that has aged past N days is stamped and not re-probed
+# forever (ADR 0018 amendment 3, 2026-07-17).
+OPTIMISTIC_PROBE_DAYS = 14
 
 # All Refresh state lives beside this file, in the refresh/ folder — not under data/.
 # That keeps the run history (refresh.db) and ledger with the code that owns them and
@@ -67,10 +81,21 @@ LOG_DIR = REFRESH_DIR / "logs"
 class Ledger:
     """The record of every Fixture collected while Final (ADR 0018).
 
-    `fixture_id -> {"status": "FT", "collected": "2026-07-10"}`, in a standalone JSON
-    file. A Fixture is written only after all its applicable per-fixture stages
-    succeed, so an interrupted run re-does a half-collected match rather than skipping
-    it. Fixture ids are global provider ids, so one flat map spans every Competition.
+    `fixture_id -> {"status": "FT", "collected": "2026-07-10", "coverage": {...}}`, in a
+    standalone JSON file. A Fixture is written only after all its applicable per-fixture
+    stages succeed, so an interrupted run re-does a half-collected match rather than
+    skipping it. Fixture ids are global provider ids, so one flat map spans every
+    Competition.
+
+    The `coverage` fingerprint records which Coverage-gated stages a Final actually
+    carries — `{"players": bool, "fixture_stats": bool}` (events is unconditional and not
+    tracked). It is the per-Fixture record of collected stat data, and drives re-heal in
+    two ways (`_stages_to_attempt`): a Season whose Coverage the provider *widens* after
+    opening night re-collects any Final whose fingerprint is missing a now-covered stage;
+    and a stats-light Season whose stats merely *lag* the flag has its recent Finals
+    probed optimistically until the missing stages' data lands. Without it, a Final
+    collected in the stats-light window would be ledgered on its events alone and never
+    gain a Squad Entry or Team Match Stat (ADR 0018 amendments 2026-07-17).
     """
 
     def __init__(self, path: Path = LEDGER_FILE) -> None:
@@ -85,8 +110,19 @@ class Ledger:
     def __contains__(self, fixture_id: int) -> bool:
         return str(fixture_id) in self._data
 
-    def record(self, fixture_id: int, status: str, collected: str) -> None:
-        self._data[str(fixture_id)] = {"status": status, "collected": collected}
+    def fingerprint(self, fixture_id: int) -> dict:
+        """The Coverage fingerprint recorded for a Fixture — which gated stages it
+        carries — or `{}` if the Fixture is unseen or is a legacy entry written before
+        fingerprints existed. A legacy `{}` reads as *nothing collected*, so every gated
+        stage is re-evaluated (and re-stamped) on the next run."""
+        entry = self._data.get(str(fixture_id))
+        return (entry or {}).get("coverage") or {}
+
+    def record(self, fixture_id: int, status: str, collected: str,
+               coverage: dict) -> None:
+        self._data[str(fixture_id)] = {
+            "status": status, "collected": collected, "coverage": coverage,
+        }
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -145,13 +181,63 @@ def _score(fixture: dict) -> str:
     return f"{home if home is not None else '?'}-{away if away is not None else '?'}"
 
 
+def _within(fixture_date: str, today: str, days: int) -> bool:
+    """True if `fixture_date` (provider ISO date) falls within `days` before `today`.
+
+    Both are `YYYY-MM-DD…`; only the date part is compared. A future or unparseable date
+    reads as out of window (never optimistically probed)."""
+    try:
+        fd = date.fromisoformat((fixture_date or "")[:10])
+        td = date.fromisoformat((today or "")[:10])
+    except ValueError:
+        return False
+    return 0 <= (td - fd).days <= days
+
+
+def _expected_coverage(rec: dict, current: int) -> dict:
+    """Whether each stat stage is *expected* for the current Season, per the most recent
+    prior Season (ADR 0018 amendment 2). A stats-light current Season of a Competition
+    whose last completed Season carried the stat is a provider *lag* — its Finals are
+    probed optimistically. A Competition stats-light in prior Seasons too (e.g. Liga MX
+    Femenil) is genuinely stats-light: not expected, never probed. A Competition with no
+    prior Season (its very first) defaults to not-expected — conservative, so a brand-new
+    genuinely stats-light Competition is not probed on a hunch."""
+    priors = [c for c in orchestrate._seasons(rec, None, None) if c.year < current]
+    if not priors:
+        return {"players": False, "fixture_stats": False}
+    latest = max(priors, key=lambda c: c.year)
+    return {"players": latest.has_player_stats, "fixture_stats": latest.has_fixture_stats}
+
+
+def _stages_to_attempt(fingerprint: dict, season: dict, expected: dict,
+                       fixture_date: str, today: str) -> dict:
+    """Per stat stage, whether this run should (re)fetch it for a Final.
+
+    A stage already in the `fingerprint` is done. Otherwise: if the current Season covers
+    it, collect definitively (a first collection or a Coverage widen). If the Season is
+    stats-light but the stage is *expected* and the Final is recent, probe optimistically
+    — the flag may simply lag data that has already landed. Everything else is skipped."""
+    out: dict[str, bool] = {}
+    for stage, covered in season.items():
+        if fingerprint.get(stage):
+            out[stage] = False
+        elif covered:
+            out[stage] = True
+        else:
+            out[stage] = (expected.get(stage, False)
+                          and _within(fixture_date, today, OPTIMISTIC_PROBE_DAYS))
+    return out
+
+
 def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
                          today: str) -> CompResult:
     """Refresh one Competition's current Season and return what changed.
 
     Force-refreshes the /leagues record and the current-season fixture list, collects
-    per-fixture data for Final fixtures not yet in the ledger (healing stale-empties),
-    then runs the enrichment chain for the players/teams those Finals surface."""
+    per-fixture data for Final fixtures still owing a stage — never collected, collected
+    under a Coverage the provider has since widened, or in a stats-light Season whose
+    expected stats merely lag the flag (probed optimistically until they land) — then runs
+    the enrichment chain for the players/teams those Finals surface."""
     league_id, name = comp["league_id"], comp["name"]
     current = max(comp["seasons"])
 
@@ -159,6 +245,7 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
     record = client.get("leagues", {"id": league_id}, force=True).get("response") or []
     newer_season: int | None = None
     coverage = orchestrate.SeasonCoverage(current, False, False)
+    expected = {"players": False, "fixture_stats": False}
     if record:
         rec = record[0]
         provider_years = [s.get("year") for s in rec.get("seasons", []) if s.get("year")]
@@ -167,6 +254,9 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
         cur_cov = orchestrate._seasons(rec, current, current)
         if cur_cov:
             coverage = cur_cov[0]
+        # What the Competition normally carries — the yardstick for probing a stats-light
+        # current Season whose stat flags may just be lagging the data (ADR 0018 amend. 2).
+        expected = _expected_coverage(rec, current)
 
     # 2. current-season fixture list (force) — surfaces matches played since last run.
     fixtures = client.get(
@@ -179,42 +269,82 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
             if t.get("id"):
                 all_teams[t["id"]] = t.get("name") or str(t["id"])
 
-    # 3. per-fixture data for Final fixtures not already collected.
-    new_finals = [
-        f for f in fixtures
-        if f["fixture"]["status"]["short"] in FINAL_STATUSES
-        and f["fixture"]["id"] not in ledger
-    ]
+    # 3. per-fixture data for every Final owing a stat stage — never collected, or
+    #    collected while the Season was stats-light and a stage is now available (the
+    #    provider widened Coverage, or its stats merely lagged the flag). `season_cov` is
+    #    the current Season's flags; `expected` is what the Competition normally carries.
+    season_cov = {"players": coverage.has_player_stats,
+                  "fixture_stats": coverage.has_fixture_stats}
+    finals = [f for f in fixtures
+              if f["fixture"]["status"]["short"] in FINAL_STATUSES]
     updated: dict[int, list[FixtureUpdate]] = defaultdict(list)
+    collected_fids: set[int] = set()  # Finals that gained data this run (report + count)
     player_season: dict[int, int] = {}
-    for f in new_finals:
+    for f in finals:
         fid = f["fixture"]["id"]
         status = f["fixture"]["status"]["short"]
-        if coverage.has_player_stats:
+        fdate = (f["fixture"].get("date") or "")[:10]
+        prev_fp = ledger.fingerprint(fid)
+        is_new = fid not in ledger
+        attempt = _stages_to_attempt(prev_fp, season_cov, expected, fdate, today)
+        if not is_new and not any(attempt.values()):
+            continue  # already carries every stage it can — nothing to do
+
+        # A stat stage is collected (fingerprint True) as soon as a fetch returns data.
+        # An *empty* fetch is trusted as genuinely-empty (stamped True) only once the Final
+        # has aged out of the probe window; while it is still recent the stage is left owing
+        # and retried next night — a covered Season's flag can be on before a given match's
+        # payload has landed (data populates unevenly across a matchday), so an empty within
+        # the window may simply be lagging, not absent. A stats-light Season (flag off) is
+        # never stamped off an empty probe regardless of age, as before.
+        recent = _within(fdate, today, OPTIMISTIC_PROBE_DAYS)
+        live_before = client.live_requests
+        new_fp = dict(prev_fp)
+        if attempt["players"]:
             fp = _heal_get(client, "fixtures/players", {"fixture": fid})
-            for _, pblock in collect.players_in_fixture(fp):
+            blocks = collect.players_in_fixture(fp)
+            if blocks or (season_cov["players"] and not recent):
+                new_fp["players"] = True
+            for _, pblock in blocks:
                 pid = pblock["player"]["id"]
                 if pid:
                     player_season.setdefault(pid, current)
-        _heal_get(client, "fixtures/events", {"fixture": fid})
-        if coverage.has_fixture_stats:
-            _heal_get(client, "fixtures/statistics", {"fixture": fid})
+        if is_new:  # events are unconditional but immutable — collect once, healing a
+            _heal_get(client, "fixtures/events", {"fixture": fid})  # stale-empty backfill.
+        if attempt["fixture_stats"]:
+            st = _heal_get(client, "fixtures/statistics", {"fixture": fid})
+            if (st.get("response") or []) or (season_cov["fixture_stats"] and not recent):
+                new_fp["fixture_stats"] = True
 
-        upd = FixtureUpdate(
-            fid=fid,
-            home_id=(f["teams"].get("home") or {}).get("id") or 0,
-            home=(f["teams"].get("home") or {}).get("name") or "?",
-            away_id=(f["teams"].get("away") or {}).get("id") or 0,
-            away=(f["teams"].get("away") or {}).get("name") or "?",
-            date=(f["fixture"].get("date") or "")[:10],
-            score=_score(f),
-            status=status,
-        )
-        for tid in (upd.home_id, upd.away_id):
-            if tid:
-                updated[tid].append(upd)
-        # Ledger only after every applicable stage above has succeeded for this match.
-        ledger.record(fid, status, today)
+        normalized = {k: new_fp.get(k, False) for k in season_cov}
+        # "Updated" (reportable/counted) iff genuinely new, or a stage flipped to collected
+        # off the back of a *live* fetch this run. Gating on a live call is what tells a real
+        # first landing (players cache was absent → fetched → data) apart from a legacy entry
+        # (absent fingerprint) being back-stamped from an already-present cache (a cache hit,
+        # no live call) — the latter is silent and doesn't churn the collected-date.
+        pulled_live = client.live_requests > live_before
+        gained = pulled_live and any(normalized[s] and not prev_fp.get(s)
+                                     for s in season_cov)
+        if is_new or gained:
+            collected_fids.add(fid)
+            upd = FixtureUpdate(
+                fid=fid,
+                home_id=(f["teams"].get("home") or {}).get("id") or 0,
+                home=(f["teams"].get("home") or {}).get("name") or "?",
+                away_id=(f["teams"].get("away") or {}).get("id") or 0,
+                away=(f["teams"].get("away") or {}).get("name") or "?",
+                date=fdate,
+                score=_score(f),
+                status=status,
+            )
+            for tid in (upd.home_id, upd.away_id):
+                if tid:
+                    updated[tid].append(upd)
+        # Persist whenever the fingerprint moved (a fresh collection, a landed stage, or a
+        # legacy entry gaining an explicit fingerprint); a no-op empty re-probe is not
+        # re-recorded, so its collected-date stays put.
+        if is_new or normalized != prev_fp:
+            ledger.record(fid, status, today, normalized)
 
     # 4. enrichment chain for the players/teams the new Finals surfaced (cache-first,
     #    so already-seen players and teams are free). Careers gate Team Profiles, both
@@ -236,7 +366,7 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
     return CompResult(
         name=name, comp_type=comp.get("type", "league"), current_season=current,
         all_teams=all_teams, updated_teams=dict(updated),
-        new_finals=len(new_finals), newer_season=newer_season,
+        new_finals=len(collected_fids), newer_season=newer_season,
     )
 
 
