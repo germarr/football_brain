@@ -16,8 +16,10 @@ import sys
 from dataclasses import dataclass, field
 
 # The operator-facing groups (ADR 0021; ADR 0023 dropped Live, added Publish).
-# Order is display order. Every command here touches football.db (or its serving
-# copy); the Live Poll launcher moved to the Viewer's Match Tracker page (ADR 0023).
+# Order is display order. The Live Poll launcher moved to the Viewer's Match Tracker
+# page (ADR 0023). Publish covers both derived read stores: the Viewer's serving copy
+# (ADR 0023) and the remote Postgres Published Store (ADR 0027) — the latter is the one
+# command here that never touches football.db, deriving from the raw cache instead.
 GROUPS = ["Collect", "Build", "Refresh", "Publish"]
 
 
@@ -31,13 +33,18 @@ class Param:
                          positional, i.e. flag is None)
       - "competition" -> <select> the app fills with tracked competitions; the
                          chosen league_id is emitted as a positional/flag value
+      - "competitions"-> multi <select> of tracked competitions; emits each chosen
+                         league_id as a positional (nargs="*"). Distinct from
+                         "competition": for a command whose argument is a *set*
+                         (publish_pg's Published Store IS exactly the ids given),
+                         a single-pick widget cannot express the intent.
       - "fixture"     -> multi <select> the app fills with this week's fixtures;
                          emits each chosen fixture id as a positional (nargs="+")
     `flag` None means a positional argument.
     """
     name: str
     label: str
-    kind: str = "str"           # bool | int | str | competition | fixture
+    kind: str = "str"           # bool | int | str | competition | competitions | fixture
     flag: str | None = None     # e.g. "--from", "--no-events"; None = positional
     required: bool = False
     default: object = None
@@ -268,7 +275,7 @@ COMMANDS: list[Command] = [
         ],
     ),
 
-    # --- Publish (football.db → the Viewer's serving store) ----------------
+    # --- Publish (rebuild a derived read store; offline, no API quota) ------
     Command(
         key="publish", group="Publish", title="Publish serve.db (for the Viewer)",
         module="web.publish",
@@ -290,6 +297,37 @@ COMMANDS: list[Command] = [
             Param("after", "Days of upcoming fixtures", "int", "--after", default=10,
                   placeholder="10", advanced=True,
                   help="How many days of upcoming fixtures to include (the slate). Default 10."),
+        ],
+    ),
+    Command(
+        key="publish_pg", group="Publish", title="Publish the Postgres Published Store",
+        module="football.publish_pg",
+        summary="Rebuild the remote Postgres replica: selected Competitions + all commentary.",
+        detail="Zero-API re-parse of the chosen Competitions from the raw cache, plus a clone "
+               "of the whole ESPN commentary store, bulk-loaded into Postgres and swapped "
+               "over `public` in one transaction (ADR 0027). REPLACES the Published Store "
+               "wholesale — the football tables end up holding exactly the Competitions you "
+               "pick and nothing else, so leaving one out REMOVES it. The commentary tables "
+               "are always copied in FULL: a Narrated Match is ESPN's unit and is not "
+               "Competition-scoped (most narrate leagues we do not collect at all). Never "
+               "merges — Venue ids and Event indexes are re-derived every build, so an upsert "
+               "would corrupt them. Touches no local store: football.db, serve.db, "
+               "commentary.db and the raw cache are all read-only or untouched.",
+        example="Leave the picker empty → publishes the default pair, Liga MX + Major League "
+                "Soccer (~498k rows), plus every Narrated Match and Commentary Line, into the "
+                "remote Postgres `football` database (~2 min, no API quota). Readers keep "
+                "querying the previous copy until the final swap, then see the new one — never "
+                "a half-loaded table. Pick Liga MX ALONE and the football half becomes Liga MX "
+                "only: MLS is dropped. The commentary half is unaffected either way.",
+        scope="selected competitions + all commentary → remote Postgres · offline",
+        long_running=True,   # ~2 min for the default pair; minutes more per added competition
+        params=[
+            Param("league_ids", "Competitions to publish", "competitions", None,
+                  help="The Published Store's FOOTBALL tables will hold EXACTLY these "
+                       "Competitions — any you leave unselected are removed from Postgres. "
+                       "Select none for the default pair (Liga MX + Major League Soccer). "
+                       "Does not scope the commentary tables: those are always published in "
+                       "full, so a narration may name a Fixture no longer in the store."),
         ],
     ),
 ]
@@ -319,7 +357,9 @@ def build_argv(cmd: Command, values: dict) -> list[str]:
             if _truthy(v):
                 argv.append(p.flag)
             continue
-        if p.kind == "fixture":
+        if p.kind in ("fixture", "competitions"):
+            # Multi-select -> repeated positionals. Selecting none emits nothing, so the
+            # command's own argparse default applies (publish_pg: the Liga MX + MLS pair).
             ids = v if isinstance(v, list) else ([v] if v not in (None, "") else [])
             for fid in ids:
                 fid = str(fid).strip()

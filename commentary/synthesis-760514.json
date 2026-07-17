@@ -1,0 +1,1083 @@
+{
+  "game_id": "760514",
+  "league": "FIFA World Cup",
+  "date": "2026-07-14T19:00Z",
+  "venue": "AT&T Stadium",
+  "home": {
+    "team": "France",
+    "team_id": "478",
+    "score": "0"
+  },
+  "away": {
+    "team": "Spain",
+    "team_id": "164",
+    "score": "2"
+  },
+  "model": "claude-haiku-4-5",
+  "events": [
+    {
+      "sequence": 0,
+      "minute": null,
+      "clock_seconds": 0.0,
+      "team": null,
+      "category": "lineups",
+      "source": "llm",
+      "text": "Lineups are announced and players are warming up."
+    },
+    {
+      "sequence": 1,
+      "minute": null,
+      "clock_seconds": 0.0,
+      "team": null,
+      "category": "period_marker",
+      "source": "llm",
+      "text": "First Half begins."
+    },
+    {
+      "sequence": 2,
+      "minute": "6'",
+      "clock_seconds": 319.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Pau Cubarsí."
+    },
+    {
+      "sequence": 3,
+      "minute": "6'",
+      "clock_seconds": 353.0,
+      "team": "France",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Adrien Rabiot (France) left footed shot from outside the box misses to the left following a corner."
+    },
+    {
+      "sequence": 4,
+      "minute": "8'",
+      "clock_seconds": 473.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Adrien Rabiot (France)."
+    },
+    {
+      "sequence": 5,
+      "minute": "8'",
+      "clock_seconds": 473.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Dani Olmo (Spain) wins a free kick in the attacking half."
+    },
+    {
+      "sequence": 6,
+      "minute": "9'",
+      "clock_seconds": 502.0,
+      "team": "France",
+      "category": "yellow_card",
+      "source": "espn_keyevent",
+      "text": "Adrien Rabiot (France) is shown the yellow card for a bad foul."
+    },
+    {
+      "sequence": 7,
+      "minute": "11'",
+      "clock_seconds": 601.0,
+      "team": "Spain",
+      "category": "attempt_blocked",
+      "source": "llm",
+      "text": "Attempt blocked. Álex Baena (Spain) right footed shot from outside the box is blocked."
+    },
+    {
+      "sequence": 8,
+      "minute": "15'",
+      "clock_seconds": 841.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Michael Olise (France)."
+    },
+    {
+      "sequence": 9,
+      "minute": "15'",
+      "clock_seconds": 841.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Rodri (Spain) wins a free kick in the attacking half."
+    },
+    {
+      "sequence": 10,
+      "minute": "16'",
+      "clock_seconds": 916.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Pau Cubarsí."
+    },
+    {
+      "sequence": 11,
+      "minute": "20'",
+      "clock_seconds": 1162.0,
+      "team": "Spain",
+      "category": "penalty_awarded",
+      "source": "llm",
+      "text": "Penalty conceded by Lucas Digne (France) after a foul in the penalty area."
+    },
+    {
+      "sequence": 12,
+      "minute": "20'",
+      "clock_seconds": 1162.0,
+      "team": "Spain",
+      "category": "penalty_awarded",
+      "source": "llm",
+      "text": "Penalty Spain. Lamine Yamal draws a foul in the penalty area."
+    },
+    {
+      "sequence": 13,
+      "minute": "22'",
+      "clock_seconds": 1312.0,
+      "team": "Spain",
+      "category": "penalty_scored",
+      "source": "espn_keyevent",
+      "text": "Goal! France 0, Spain 1. Mikel Oyarzabal (Spain) converts the penalty with a left footed shot to the top right corner."
+    },
+    {
+      "sequence": 14,
+      "minute": "24'",
+      "clock_seconds": 1412.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay in match for a drinks break."
+    },
+    {
+      "sequence": 15,
+      "minute": "27'",
+      "clock_seconds": 1595.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay over. They are ready to continue."
+    },
+    {
+      "sequence": 16,
+      "minute": "29'",
+      "clock_seconds": 1685.0,
+      "team": "France",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay in match because of an injury William Saliba (France)."
+    },
+    {
+      "sequence": 17,
+      "minute": "30'",
+      "clock_seconds": 1780.0,
+      "team": "France",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay over. They are ready to continue."
+    },
+    {
+      "sequence": 18,
+      "minute": "30'",
+      "clock_seconds": 1786.0,
+      "team": "France",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, France. Maxence Lacroix replaces William Saliba because of an injury."
+    },
+    {
+      "sequence": 19,
+      "minute": "31'",
+      "clock_seconds": 1826.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Michael Olise (France) wins a free kick on the right wing."
+    },
+    {
+      "sequence": 20,
+      "minute": "31'",
+      "clock_seconds": 1826.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Marc Cucurella (Spain)."
+    },
+    {
+      "sequence": 21,
+      "minute": "31'",
+      "clock_seconds": 1829.0,
+      "team": "Spain",
+      "category": "yellow_card",
+      "source": "espn_keyevent",
+      "text": "Marc Cucurella (Spain) is shown the yellow card for a bad foul."
+    },
+    {
+      "sequence": 22,
+      "minute": "34'",
+      "clock_seconds": 1988.0,
+      "team": "Spain",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Dani Olmo (Spain) right footed shot from outside the box is high and wide to the right. Assisted by Fabián Ruiz."
+    },
+    {
+      "sequence": 23,
+      "minute": "34'",
+      "clock_seconds": 2031.0,
+      "team": "Spain",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, Spain. Álex Baena is caught offside."
+    },
+    {
+      "sequence": 24,
+      "minute": "35'",
+      "clock_seconds": 2062.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Michael Olise (France) wins a free kick on the left wing."
+    },
+    {
+      "sequence": 25,
+      "minute": "35'",
+      "clock_seconds": 2062.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Rodri (Spain)."
+    },
+    {
+      "sequence": 26,
+      "minute": "36'",
+      "clock_seconds": 2145.0,
+      "team": "France",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Bradley Barcola (France) right footed shot from outside the box is high and wide to the right. Assisted by Ousmane Dembélé."
+    },
+    {
+      "sequence": 27,
+      "minute": "37'",
+      "clock_seconds": 2194.0,
+      "team": "Spain",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Pedro Porro (Spain) right footed shot from outside the box is high and wide to the left. Assisted by Fabián Ruiz."
+    },
+    {
+      "sequence": 28,
+      "minute": "38'",
+      "clock_seconds": 2228.0,
+      "team": "Spain",
+      "category": "attempt_blocked",
+      "source": "llm",
+      "text": "Attempt blocked. Fabián Ruiz (Spain) left footed shot from the centre of the box is blocked. Assisted by Lamine Yamal."
+    },
+    {
+      "sequence": 29,
+      "minute": "38'",
+      "clock_seconds": 2230.0,
+      "team": "Spain",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, Spain. Conceded by Dayot Upamecano."
+    },
+    {
+      "sequence": 30,
+      "minute": "39'",
+      "clock_seconds": 2293.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Lucas Digne (France) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 31,
+      "minute": "39'",
+      "clock_seconds": 2293.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Lamine Yamal (Spain)."
+    },
+    {
+      "sequence": 32,
+      "minute": "39'",
+      "clock_seconds": 2337.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Michael Olise (France) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 33,
+      "minute": "39'",
+      "clock_seconds": 2337.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Rodri (Spain)."
+    },
+    {
+      "sequence": 34,
+      "minute": "40'",
+      "clock_seconds": 2362.0,
+      "team": "France",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, France. Kylian Mbappé is caught offside."
+    },
+    {
+      "sequence": 35,
+      "minute": "41'",
+      "clock_seconds": 2403.0,
+      "team": "France",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, France. Kylian Mbappé is caught offside."
+    },
+    {
+      "sequence": 36,
+      "minute": "42'",
+      "clock_seconds": 2513.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Pau Cubarsí."
+    },
+    {
+      "sequence": 37,
+      "minute": "43'",
+      "clock_seconds": 2550.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay in match because of an injury Aymeric Laporte (Spain)."
+    },
+    {
+      "sequence": 38,
+      "minute": "44'",
+      "clock_seconds": 2590.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay over. They are ready to continue."
+    },
+    {
+      "sequence": 39,
+      "minute": "44'",
+      "clock_seconds": 2597.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay in match (Spain)."
+    },
+    {
+      "sequence": 40,
+      "minute": "44'",
+      "clock_seconds": 2637.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay over. They are ready to continue."
+    },
+    {
+      "sequence": 41,
+      "minute": "45'",
+      "clock_seconds": 2698.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Adrien Rabiot (France)."
+    },
+    {
+      "sequence": 42,
+      "minute": "45'",
+      "clock_seconds": 2698.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Fabián Ruiz (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 43,
+      "minute": "45'+1'",
+      "clock_seconds": 2708.0,
+      "team": null,
+      "category": "added_time",
+      "source": "llm",
+      "text": "Fourth official has announced 6 minutes of added time."
+    },
+    {
+      "sequence": 44,
+      "minute": "45'+1'",
+      "clock_seconds": 2755.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Jules Koundé (France)."
+    },
+    {
+      "sequence": 45,
+      "minute": "45'+1'",
+      "clock_seconds": 2755.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Álex Baena (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 46,
+      "minute": "45'+3'",
+      "clock_seconds": 2823.0,
+      "team": "France",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, France. Adrien Rabiot is caught offside."
+    },
+    {
+      "sequence": 47,
+      "minute": "45'+4'",
+      "clock_seconds": 2938.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Jules Koundé (France) wins a free kick on the right wing."
+    },
+    {
+      "sequence": 48,
+      "minute": "45'+4'",
+      "clock_seconds": 2938.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Álex Baena (Spain)."
+    },
+    {
+      "sequence": 49,
+      "minute": "45'+7'",
+      "clock_seconds": 3075.0,
+      "team": null,
+      "category": "period_marker",
+      "source": "espn_keyevent",
+      "text": "First Half ends, France 0, Spain 1."
+    },
+    {
+      "sequence": 50,
+      "minute": "45'",
+      "clock_seconds": 2700.0,
+      "team": "France",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, France. Manu Koné replaces Adrien Rabiot."
+    },
+    {
+      "sequence": 51,
+      "minute": "45'",
+      "clock_seconds": 2700.0,
+      "team": null,
+      "category": "period_marker",
+      "source": "llm",
+      "text": "Second Half begins France 0, Spain 1."
+    },
+    {
+      "sequence": 52,
+      "minute": "49'",
+      "clock_seconds": 2894.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Dayot Upamecano (France) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 53,
+      "minute": "49'",
+      "clock_seconds": 2894.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Fabián Ruiz (Spain)."
+    },
+    {
+      "sequence": 54,
+      "minute": "50'",
+      "clock_seconds": 2967.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Maxence Lacroix (France)."
+    },
+    {
+      "sequence": 55,
+      "minute": "50'",
+      "clock_seconds": 2967.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Mikel Oyarzabal (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 56,
+      "minute": "51'",
+      "clock_seconds": 3011.0,
+      "team": "Spain",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, Spain. Lamine Yamal is caught offside."
+    },
+    {
+      "sequence": 57,
+      "minute": "52'",
+      "clock_seconds": 3084.0,
+      "team": "Spain",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Mikel Oyarzabal (Spain) left footed shot from outside the box is too high. Assisted by Álex Baena."
+    },
+    {
+      "sequence": 58,
+      "minute": "55'",
+      "clock_seconds": 3299.0,
+      "team": "Spain",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, Spain. Álex Baena is caught offside."
+    },
+    {
+      "sequence": 59,
+      "minute": "57'",
+      "clock_seconds": 3370.0,
+      "team": "France",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, France. Désiré Doué replaces Bradley Barcola."
+    },
+    {
+      "sequence": 60,
+      "minute": "58'",
+      "clock_seconds": 3437.0,
+      "team": "Spain",
+      "category": "attempt_blocked",
+      "source": "llm",
+      "text": "Attempt blocked. Álex Baena (Spain) right footed shot from outside the box is blocked. Assisted by Dani Olmo."
+    },
+    {
+      "sequence": 61,
+      "minute": "58'",
+      "clock_seconds": 3453.0,
+      "team": "Spain",
+      "category": "goal",
+      "source": "espn_keyevent",
+      "text": "Goal! France 0, Spain 2. Pedro Porro (Spain) right footed shot from the centre of the box to the bottom right corner. Assisted by Dani Olmo."
+    },
+    {
+      "sequence": 62,
+      "minute": "61'",
+      "clock_seconds": 3623.0,
+      "team": "Spain",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, Spain. Lamine Yamal is caught offside."
+    },
+    {
+      "sequence": 63,
+      "minute": "64'",
+      "clock_seconds": 3839.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Unai Simón."
+    },
+    {
+      "sequence": 64,
+      "minute": "65'",
+      "clock_seconds": 3858.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Pedro Porro."
+    },
+    {
+      "sequence": 65,
+      "minute": "65'",
+      "clock_seconds": 3877.0,
+      "team": "France",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Aurélien Tchouaméni (France) right footed shot from the centre of the box is too high. Assisted by Michael Olise with a cross following a corner."
+    },
+    {
+      "sequence": 66,
+      "minute": "65'",
+      "clock_seconds": 3898.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Manu Koné (France)."
+    },
+    {
+      "sequence": 67,
+      "minute": "65'",
+      "clock_seconds": 3898.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Dani Olmo (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 68,
+      "minute": "67'",
+      "clock_seconds": 3991.0,
+      "team": "France",
+      "category": "attempt_blocked",
+      "source": "llm",
+      "text": "Attempt blocked. Kylian Mbappé (France) right footed shot from the right side of the box is blocked."
+    },
+    {
+      "sequence": 69,
+      "minute": "67'",
+      "clock_seconds": 3993.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Marc Cucurella."
+    },
+    {
+      "sequence": 70,
+      "minute": "67'",
+      "clock_seconds": 4020.0,
+      "team": "France",
+      "category": "attempt_blocked",
+      "source": "llm",
+      "text": "Attempt blocked. Désiré Doué (France) right footed shot from outside the box is blocked. Assisted by Michael Olise."
+    },
+    {
+      "sequence": 71,
+      "minute": "68'",
+      "clock_seconds": 4043.0,
+      "team": "France",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, France. Kylian Mbappé is caught offside."
+    },
+    {
+      "sequence": 72,
+      "minute": "69'",
+      "clock_seconds": 4111.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Jules Koundé (France)."
+    },
+    {
+      "sequence": 73,
+      "minute": "69'",
+      "clock_seconds": 4111.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Álex Baena (Spain) wins a free kick on the left wing."
+    },
+    {
+      "sequence": 74,
+      "minute": "69'",
+      "clock_seconds": 4128.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay in match for a drinks break."
+    },
+    {
+      "sequence": 75,
+      "minute": "72'",
+      "clock_seconds": 4266.0,
+      "team": "Spain",
+      "category": "delay",
+      "source": "espn_keyevent",
+      "text": "Delay over. They are ready to continue."
+    },
+    {
+      "sequence": 76,
+      "minute": "72'",
+      "clock_seconds": 4315.0,
+      "team": "France",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, France. Théo Hernández replaces Lucas Digne."
+    },
+    {
+      "sequence": 77,
+      "minute": "72'",
+      "clock_seconds": 4320.0,
+      "team": "France",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, France. Rayan Cherki replaces Michael Olise."
+    },
+    {
+      "sequence": 78,
+      "minute": "73'",
+      "clock_seconds": 4347.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Aurélien Tchouaméni (France) wins a free kick on the left wing."
+    },
+    {
+      "sequence": 79,
+      "minute": "73'",
+      "clock_seconds": 4347.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Dani Olmo (Spain)."
+    },
+    {
+      "sequence": 80,
+      "minute": "74'",
+      "clock_seconds": 4428.0,
+      "team": "Spain",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, Spain. Ferran Torres replaces Mikel Oyarzabal."
+    },
+    {
+      "sequence": 81,
+      "minute": "75'",
+      "clock_seconds": 4441.0,
+      "team": "Spain",
+      "category": "offside",
+      "source": "llm",
+      "text": "Offside, Spain. Ferran Torres is caught offside."
+    },
+    {
+      "sequence": 82,
+      "minute": "76'",
+      "clock_seconds": 4537.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Kylian Mbappé (France) wins a free kick on the left wing."
+    },
+    {
+      "sequence": 83,
+      "minute": "76'",
+      "clock_seconds": 4537.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Lamine Yamal (Spain)."
+    },
+    {
+      "sequence": 84,
+      "minute": "77'",
+      "clock_seconds": 4590.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Maxence Lacroix (France)."
+    },
+    {
+      "sequence": 85,
+      "minute": "77'",
+      "clock_seconds": 4590.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Rodri (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 86,
+      "minute": "78'",
+      "clock_seconds": 4624.0,
+      "team": "Spain",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, Spain. Mikel Merino replaces Dani Olmo."
+    },
+    {
+      "sequence": 87,
+      "minute": "78'",
+      "clock_seconds": 4631.0,
+      "team": "Spain",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, Spain. Pedri replaces Fabián Ruiz."
+    },
+    {
+      "sequence": 88,
+      "minute": "78'",
+      "clock_seconds": 4668.0,
+      "team": "Spain",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Ferran Torres (Spain) header from the centre of the box is close, but misses to the left."
+    },
+    {
+      "sequence": 89,
+      "minute": "79'",
+      "clock_seconds": 4715.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Manu Koné (France) wins a free kick in the attacking half."
+    },
+    {
+      "sequence": 90,
+      "minute": "79'",
+      "clock_seconds": 4715.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Rodri (Spain)."
+    },
+    {
+      "sequence": 91,
+      "minute": "81'",
+      "clock_seconds": 4855.0,
+      "team": "France",
+      "category": "attempt_saved",
+      "source": "llm",
+      "text": "Attempt saved. Désiré Doué (France) right footed shot from outside the box is saved in the top centre of the goal by Unai Simón (Spain)."
+    },
+    {
+      "sequence": 92,
+      "minute": "83'",
+      "clock_seconds": 4962.0,
+      "team": null,
+      "category": "var_decision",
+      "source": "llm",
+      "text": "VAR Decision: Other Decision Cancelled."
+    },
+    {
+      "sequence": 93,
+      "minute": "84'",
+      "clock_seconds": 4992.0,
+      "team": "Spain",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, Spain. Marcos Llorente replaces Pedro Porro."
+    },
+    {
+      "sequence": 94,
+      "minute": "84'",
+      "clock_seconds": 4993.0,
+      "team": "Spain",
+      "category": "substitution",
+      "source": "espn_keyevent",
+      "text": "Substitution, Spain. Nico Williams replaces Álex Baena."
+    },
+    {
+      "sequence": 95,
+      "minute": "84'",
+      "clock_seconds": 5019.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Théo Hernández (France) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 96,
+      "minute": "84'",
+      "clock_seconds": 5019.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Ferran Torres (Spain)."
+    },
+    {
+      "sequence": 97,
+      "minute": "85'",
+      "clock_seconds": 5093.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Ousmane Dembélé (France) wins a free kick on the left wing."
+    },
+    {
+      "sequence": 98,
+      "minute": "85'",
+      "clock_seconds": 5093.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Rodri (Spain)."
+    },
+    {
+      "sequence": 99,
+      "minute": "86'",
+      "clock_seconds": 5143.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Kylian Mbappé (France)."
+    },
+    {
+      "sequence": 100,
+      "minute": "86'",
+      "clock_seconds": 5143.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Unai Simón (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 101,
+      "minute": "86'",
+      "clock_seconds": 5145.0,
+      "team": "France",
+      "category": "yellow_card",
+      "source": "espn_keyevent",
+      "text": "Kylian Mbappé (France) is shown the yellow card for a bad foul."
+    },
+    {
+      "sequence": 102,
+      "minute": "88'",
+      "clock_seconds": 5242.0,
+      "team": "France",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Désiré Doué (France) wins a free kick in the attacking half."
+    },
+    {
+      "sequence": 103,
+      "minute": "88'",
+      "clock_seconds": 5242.0,
+      "team": "Spain",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Lamine Yamal (Spain)."
+    },
+    {
+      "sequence": 104,
+      "minute": "89'",
+      "clock_seconds": 5287.0,
+      "team": "France",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Kylian Mbappé (France) right footed shot from outside the box is too high from a direct free kick."
+    },
+    {
+      "sequence": 105,
+      "minute": "90'",
+      "clock_seconds": 5389.0,
+      "team": "France",
+      "category": "corner",
+      "source": "llm",
+      "text": "Corner, France. Conceded by Marc Cucurella."
+    },
+    {
+      "sequence": 106,
+      "minute": "90'",
+      "clock_seconds": 5400.0,
+      "team": null,
+      "category": "added_time",
+      "source": "llm",
+      "text": "Fourth official has announced 7 minutes of added time."
+    },
+    {
+      "sequence": 107,
+      "minute": "90'+3'",
+      "clock_seconds": 5557.0,
+      "team": "France",
+      "category": "foul",
+      "source": "llm",
+      "text": "Foul by Manu Koné (France)."
+    },
+    {
+      "sequence": 108,
+      "minute": "90'+3'",
+      "clock_seconds": 5557.0,
+      "team": "Spain",
+      "category": "free_kick_won",
+      "source": "llm",
+      "text": "Rodri (Spain) wins a free kick in the defensive half."
+    },
+    {
+      "sequence": 109,
+      "minute": "90'+4'",
+      "clock_seconds": 5624.0,
+      "team": "Spain",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Nico Williams (Spain) left footed shot from a difficult angle on the left is close, but misses to the left. Assisted by Ferran Torres."
+    },
+    {
+      "sequence": 110,
+      "minute": "90'+5'",
+      "clock_seconds": 5657.0,
+      "team": "France",
+      "category": "attempt_saved",
+      "source": "llm",
+      "text": "Attempt saved. Ousmane Dembélé (France) left footed shot from the right side of the box is saved in the top centre of the goal by Unai Simón (Spain). Assisted by Rayan Cherki."
+    },
+    {
+      "sequence": 111,
+      "minute": "90'+7'",
+      "clock_seconds": 5770.0,
+      "team": "France",
+      "category": "attempt_saved",
+      "source": "llm",
+      "text": "Attempt saved. Ousmane Dembélé (France) right footed shot from the right side of the box is saved in the centre of the goal by Unai Simón (Spain). Assisted by Désiré Doué."
+    },
+    {
+      "sequence": 112,
+      "minute": "90'+7'",
+      "clock_seconds": 5782.0,
+      "team": "France",
+      "category": "attempt_missed",
+      "source": "llm",
+      "text": "Attempt missed. Kylian Mbappé (France) right footed shot from outside the box is too high. Assisted by Désiré Doué."
+    },
+    {
+      "sequence": 113,
+      "minute": "90'+7'",
+      "clock_seconds": 5820.0,
+      "team": null,
+      "category": "period_marker",
+      "source": "espn_keyevent",
+      "text": "Second Half ends, France 0, Spain 2."
+    },
+    {
+      "sequence": 114,
+      "minute": null,
+      "clock_seconds": 0.0,
+      "team": null,
+      "category": "period_marker",
+      "source": "llm",
+      "text": "Match ends, France 0, Spain 2."
+    }
+  ],
+  "summary": {
+    "total": 115,
+    "from_espn": 27,
+    "from_llm": 88,
+    "by_category": {
+      "foul": 22,
+      "free_kick_won": 22,
+      "attempt_missed": 10,
+      "delay": 10,
+      "substitution": 10,
+      "offside": 9,
+      "corner": 8,
+      "period_marker": 5,
+      "attempt_blocked": 5,
+      "yellow_card": 3,
+      "attempt_saved": 3,
+      "penalty_awarded": 2,
+      "added_time": 2,
+      "lineups": 1,
+      "penalty_scored": 1,
+      "goal": 1,
+      "var_decision": 1
+    },
+    "usage": {
+      "input_tokens": 8011,
+      "output_tokens": 1574,
+      "requests": 4
+    }
+  }
+}

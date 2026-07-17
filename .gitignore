@@ -15,7 +15,14 @@ wheels/
 # Secrets
 .env
 
-# Data cache and derived DB (regenerable via collect.py / parse.py)
+# Data cache and derived DB (regenerable via collect.py / parse.py).
+#
+# One deliberate exception: data/commentary.db is NOT regenerable. It is the
+# system of record for ESPN Commentary Lines, whose inferred Categories are
+# assigned by a language model — they cost money to produce and re-running the
+# classifier will not reproduce them exactly. It is ignored anyway, with no
+# backup, as an accepted risk: losing data/ loses those labels for good. Every
+# other store here can be rebuilt from the raw cache; this one cannot.
 data/
 
 # Refresh runtime state (ADR 0018): run-history DB, ledger, and per-run logs.

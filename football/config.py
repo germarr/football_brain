@@ -7,6 +7,7 @@ La Liga, season 2024 (the 2024/25 campaign) — see docs/adr/0001.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 # --- paths -----------------------------------------------------------------
@@ -165,15 +166,42 @@ def targets():
             yield c["league_id"], c["name"], season
 
 
-def load_api_key() -> str:
-    """Return the API key from the .env file (`football_api=...`)."""
+def _env_value(key: str) -> str | None:
+    """First `key=value` in the .env, or None. First-wins, matching load_api_key()."""
     if not ENV_FILE.exists():
-        raise FileNotFoundError(f"No .env at {ENV_FILE} (expected `football_api=...`)")
+        return None
     for line in ENV_FILE.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         name, _, value = line.partition("=")
-        if name.strip() == "football_api":
+        if name.strip() == key:
             return value.strip().strip('"').strip("'")
-    raise KeyError("`football_api` not found in .env")
+    return None
+
+
+def load_api_key() -> str:
+    """Return the API key from the .env file (`football_api=...`)."""
+    if not ENV_FILE.exists():
+        raise FileNotFoundError(f"No .env at {ENV_FILE} (expected `football_api=...`)")
+    key = _env_value("football_api")
+    if key is None:
+        raise KeyError("`football_api` not found in .env")
+    return key
+
+
+def load_pg_url() -> str:
+    """The Published Store's Postgres URL (ADR 0027), from the environment or .env.
+
+    Reads FOOTBALL_DATABASE_URL and never the bare PG* vars: those are defined twice
+    in this project's .env (PGDATABASE=football, then PGDATABASE=content_analysis
+    further down), so resolving them would silently target the wrong database.
+    """
+    url = os.environ.get("FOOTBALL_DATABASE_URL") or _env_value("FOOTBALL_DATABASE_URL")
+    if not url:
+        raise KeyError(
+            "`FOOTBALL_DATABASE_URL` not found in the environment or .env.\n"
+            "    Expected: postgresql://user:pass@host:5432/football?sslmode=require\n"
+            "    (percent-encode the password: % -> %25, ! -> %21)"
+        )
+    return url

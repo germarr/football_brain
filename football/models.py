@@ -206,7 +206,11 @@ class Event(SQLModel, table=True):
     player_id/assist_id are nullable: an assist is only present on a Goal, and the
     provider occasionally names a coach (a card) or no one (some VAR). Any id not
     in the Player table is nulled at parse time so the build never fails on an
-    out-of-scope actor. team_id is always one of the fixture's two Teams.
+    out-of-scope actor. team_id is a required FK, so the same guard drops the
+    whole event when its team is not a known Team rather than nulling: the parser
+    enforces this (it previously only assumed it), which keeps the load valid
+    under a strict FK — the provider does occasionally name a team that is on
+    neither side of the fixture (see ADR 0007).
     """
     fixture_id: int = Field(foreign_key="fixture.id", primary_key=True)
     event_index: int = Field(primary_key=True)   # position in the fixture's event list

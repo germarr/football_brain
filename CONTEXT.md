@@ -249,6 +249,85 @@ _Avoid_: incident, moment; conflating an Event with a Squad Entry's stat totals;
 counting a shootout kick as a Goal Event; reading a subst's `player_id` as the
 player who came on; crediting an Own Goal to the scorer's Team.
 
+**Narrated Match**:
+A match as **ESPN** publishes it, identified by ESPN's own **game id** — the unit a
+**Commentary Line** belongs to, and the only identity a Commentary Line has.
+A Narrated Match is **not a Fixture**. A Fixture is an API-Football record of a
+match in a **Competition** — one we collect — and *most Narrated Matches have no
+Fixture at all*, because ESPN narrates competitions we do not collect (Swedish
+Allsvenskan, NWSL, LigaPro Ecuador, Argentine Nacional B). Absence of a Fixture is
+therefore the normal case, not missing data.
+Where a Narrated Match *is* also a Fixture, the two may be **linked** — but the
+link is optional, hand-supplied, and **verified before it is stored**: the Fixture's
+kickoff and team names must agree with ESPN's, and an unverifiable link is refused
+rather than guessed (the two providers' kickoff times agree exactly, in UTC). The
+Fixture id is a **bridge, never the key**.
+_Avoid_: fixture, game, match; assuming a Narrated Match has a Fixture (most do
+not); keying a Narrated Match on a Fixture id; reading an absent Fixture link as a
+collection failure (it means ESPN narrates a competition we do not collect);
+calling ESPN's league a **Competition** (a Competition is one we collect).
+
+**Commentary Line**:
+One narrated line of a **Narrated Match's** play-by-play, as published by **ESPN** — a
+different provider from the API-Football source of everything else here. It
+carries the minute it happened, the **Team** it is attributed to (which may be
+none), a **Category**, and the narration text itself. It carries **no Player**:
+players are named inside the text, but are not modelled — a Commentary Line is
+about an occurrence, not the people in it.
+A Commentary Line is **not an Event**, and the distinction is the whole point of
+the term. An Event is the API-Football `fixtures/events` timeline and covers only
+goals, cards, substitutions and VAR. A Commentary Line also covers fouls, corners,
+offsides and attempts — occurrences that are *not* Events and have no Event
+counterpart. Where the two *do* describe the same occurrence (a goal), they are
+**two records of one occurrence from two providers**, and they may disagree: the
+two feeds are collected at different times, so one can be Final while the other is
+still in play.
+Attribution follows the occurrence, not the sentence: for "Corner, France.
+Conceded by Pau Cubarsí." the Team is **France** (whose corner it is), not the
+conceding side. An **own goal** Commentary Line is attributed to the Team that
+**benefits**, mirroring the Event rule.
+_Avoid_: event, incident, moment, play (an Event is a different, API-Football
+thing); assuming a Commentary Line exists for every Event (an `events_only`
+**Narration Coverage** narrates only goals, cards and substitutions, and some
+matches publish no narration at all); reading a Commentary Line's Team as the team
+named first in the text; expecting a Commentary Line to identify a Player (it names
+them only inside its text).
+
+**Narration Coverage**:
+How much of a **Narrated Match** ESPN actually narrates — the **Commentary Line**
+analogue of **Coverage**, but per *Narrated Match* rather than per Season, and about
+a different provider. Neither value is exotic: the two are roughly **half the feed each**.
+- **narrative** — the full play-by-play: fouls, corners, offsides and attempts
+  alongside the goals and cards (~110 lines for a 90-minute match). Only the
+  notable subset arrives typed, so most Categories here are **inferred**.
+- **events_only** — goals, cards and substitutions and nothing else (~15 lines),
+  every line arriving **already typed** by the provider. So every Category is
+  **asserted** and none is ever inferred.
+This is the difference between *not narrated* and *did not happen*, and it must be
+consulted before aggregating: an `events_only` Narrated Match reports zero fouls
+because fouls are never narrated there, not because none were committed. Any
+per-match rate over a narrative Category (fouls, corners, attempts) is silently
+wrong if it mixes the two.
+An events_only Narrated Match is often said to be the **Event** timeline restated —
+but that comparison only exists where the match is *also* a **Fixture**, which is
+the minority case. Where it is not, there is no Event timeline for it to duplicate
+and the Commentary Lines are the only record we hold.
+_Avoid_: reading a missing Category as an absent occurrence; averaging a narrative
+Category across both kinds; conflating this with **Coverage** (that is
+API-Football, per Season, about which *classes of data* exist at all).
+
+**Category**:
+The standardized bucket a **Commentary Line** falls into — `goal`, `foul`,
+`corner`, `offside`, `attempt_saved`, `yellow_card`, `own_goal`, and so on. It is
+**ours**, not a provider field: ESPN types only the notable subset of lines, so a
+Category is either **asserted** (mapped from ESPN's own type — authoritative) or
+**inferred** (assigned by a language model reading the text). Every Commentary
+Line records which of the two it was, because they carry different confidence and
+only the asserted ones can ever be checked against the provider.
+_Avoid_: treating a Category as a provider fact; equating a Category with an
+Event's type/detail pair (they are different vocabularies over different sets of
+occurrences); trusting an inferred Category as heavily as an asserted one.
+
 **Assist**:
 The Player credited with setting up a **Goal** — a field on the Goal Event, not an
 Event in its own right. The "minute of an assist" is therefore the minute of the
@@ -361,3 +440,33 @@ it is a side store the main rebuild never touches. Squad, lineups and team stats
 absent (out of a Live Poll's scope), so a reader must degrade gracefully on them.
 _Avoid_: reading the Live Mirror as authoritative or complete; expecting squad/stats
 in it; keeping a poll's row once the Refresh has written the Final record.
+
+**Published Store**:
+The **remote Postgres** replica of a chosen subset of Competitions **plus the whole
+commentary store** — the only store that is not a local SQLite file, and the one other
+tools and people query over the network rather than by opening a file on this box. It is
+**derived, never authored**: rebuilt wholesale and swapped in atomically, so a re-run
+makes it match what we hold locally. Its Competitions are one **multi-Competition**
+build, not a concatenation of per-Competition stores — **Venue** ids are surrogates
+enumerated per build, so two separately scoped stores number their stadiums from 1 and
+collide head-on; building the subset in one pass makes the ids consistent across it
+(ADR 0027). That union is also what lets a player appearing in two of its Competitions
+be one Player with one career, rather than two unrelated rows.
+Its two halves are scoped differently, and this is the thing to know about it: the
+Competitions are a **chosen subset**, while the **Narrated Matches** and **Commentary
+Lines** are always **all of them** — a Narrated Match is ESPN's unit and is not
+Competition-scoped at all. So a Narrated Match's **Fixture** bridge may be present and
+still resolve to nothing here, when that Fixture's Competition was not published; the
+narration is no less real for it.
+Because it replicates a *subset* of Competitions, it is complete for the ones it names
+and simply silent about every other — a Competition it does not hold is out of its
+scope, not missing data.
+_Avoid_: mirror (a **Live Mirror** is provisional and per-poll; a Published Store is a
+faithful replica); warehouse (it is schema-identical to the stores it replicates, not
+dimensionally modelled); export, dump (it is re-runnable, not one-shot); confusing it
+with the serving store (`serve.db` is a *window* over every Competition for the Viewer;
+a Published Store is *every* row of *some* Competitions for an open-ended SQL consumer);
+reading a Competition's absence from it as a collection gap; reading a dangling Fixture
+bridge as a broken link (the bridge is optional and never a foreign key); expecting its
+commentary half to follow its Competition selection (it never does); merging or
+upserting into it (its surrogate keys are re-derived each build — it is replaced whole).

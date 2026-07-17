@@ -602,7 +602,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
 
         _build_team_profiles(session, client, career_teams, team_home_league)
 
-        _build_events(session, client, set(player_season), targets)
+        _build_events(session, client, set(player_season), set(teams), targets)
         _build_team_stats(session, client, set(teams), targets)
         _summary(session, db_path)
 
@@ -707,14 +707,19 @@ def _build_team_profiles(session: Session, client: CachedClient,
 
 
 def _build_events(session: Session, client: CachedClient, known_players: set[int],
-                  targets: list[tuple[int, str, int]]) -> None:
+                  known_teams: set[int], targets: list[tuple[int, str, int]]) -> None:
     """Second pass over the fixtures (from cache) to insert the event timeline.
 
     Runs after players exist so the FK guard can resolve, and re-reads events from
     the cache rather than hoarding ~400k rows from the first pass. Drops penalty-
     shootout kicks (_is_shootout_kick, ADR 0013), nulls any player/assist id without
-    a Player row (coach cards, off-scope actors), and skips the rare event with no
-    team; commits in batches to bound memory (ADR 0007).
+    a Player row (coach cards, off-scope actors), and skips events with no team or a
+    team outside the Team table; commits in batches to bound memory (ADR 0007).
+
+    The team_id guard mirrors _build_team_stats' known_teams filter: the provider's
+    events array occasionally names a team that is neither side of the fixture (a
+    quirk, e.g. team 864), which would never be in the Team table and would break the
+    FK when the store is loaded into a store that enforces it (publish_pg -> Postgres).
     """
     batch: list[Event] = []
     seen: set[int] = set()  # a fixture under two targets would re-key (fid, event_index)
@@ -733,8 +738,9 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
                     continue  # tie-break kick, not a match event (ADR 0013); idx
                               # keeps its raw-array position, so survivors' keys don't shift
                 e = _parse_event(fid, idx, ev)
-                if e.team_id is None:
-                    continue
+                if e.team_id not in known_teams:
+                    continue  # null team, or a team the events array names but that
+                              # isn't one of the fixture's two sides (off-scope FK)
                 if e.player_id not in known_players:
                     e.player_id = None
                 if e.assist_id not in known_players:

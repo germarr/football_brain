@@ -28,10 +28,12 @@ one-row-per-fact stance.
   chronological order.
 - **`team_id` is a FK to `Team`; `player_id`/`assist_id` are nullable FKs to
   `Player` with a parse-time guard** that nulls any id not in the known Player set.
-  Events come only from collected fixtures, so the team is always in scope, but the
+  Events come only from collected fixtures, so the team is *usually* in scope, but the
   provider occasionally names an off-scope actor (a **coach** card) or a null
   player (some `Var`); the guard keeps those from failing the build, mirroring the
-  existing "unknown player id 0/None → skip" handling.
+  existing "unknown player id 0/None → skip" handling. (See amendment below: the
+  team-in-scope assumption does not always hold, and `_build_events` now guards
+  `team_id` the same way.)
 - **Added Time is per-event only.** We store `extra` on each event; we do **not**
   store a per-half announced-added-time total — the provider does not expose it and
   inferring it from events undercounts (see CONTEXT.md → Added Time).
@@ -56,3 +58,17 @@ one-row-per-fact stance.
 - **Denormalize `player_name`/`assist_name` with no FK** (as `PlayerTeam` does for
   off-scope clubs). Rejected: event players ARE in scope (they play in our
   fixtures), so a guarded FK keeps referential integrity without duplicating names.
+
+## Amendment (2026-07-17): guard `team_id` too
+
+The original decision assumed an event's `team_id` was always in scope because
+events come only from collected fixtures. That does not always hold: the provider
+occasionally names a team on **neither side** of the fixture (observed: team 864 in
+an event whose fixture is between two other teams), which is absent from the `Team`
+table entirely. SQLite tolerated the dangling FK; the Postgres Published Store
+(ADR 0027) rejected it, aborting the whole COPY+swap on the `event` load.
+
+`_build_events` now takes `known_teams` and **drops** any event whose `team_id`
+isn't a known Team — a required FK can't be nulled — mirroring the guard
+`_build_team_stats` already applied and the existing player-id guard above. The
+model docstring (`Event`) states this as enforced rather than assumed.
