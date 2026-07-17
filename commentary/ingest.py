@@ -4,6 +4,7 @@
     python -m commentary.ingest 760514 --fixture-id 1585131
     python -m commentary.ingest 760514 --reclassify
     python -m commentary.ingest --stats
+    uv run python -m commentary.ingest 401877045 --fixture-id 1550894 --force-link
 
 The pipeline, and the decision behind each step:
 
