@@ -168,3 +168,8 @@ why it is wrong drives most of what follows.
 - **Incremental sync of only the current Season (à la the nightly Refresh, ADR 0018).** Rejected as
   premature: the full publish takes ~110s end to end, which is well inside "just re-run it". Revisit
   if the Competition set grows enough that the re-parse dominates.
+  *Revisited in ADR 0028:* once `--only` scoping (ADR 0018 amendment 2) made `refresh_pg` a frequent
+  path, the re-parse *did* dominate, and a delta publish was added — `refresh_pg` now sends only
+  new/re-healed Finals by default, with this wholesale build kept as the manual reset. That required
+  making `Venue.id` stable across builds (a committed registry, `football/venues.json`), which
+  amends the "surrogate re-derived per build" premise of the two decisions above.

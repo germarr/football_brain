@@ -32,6 +32,7 @@ Run with:
     uv run python -m refresh
     uv run python -m refresh --scope-only     # skip the full football.db rebuild; re-scope only
     uv run python -m refresh --no-rebuild     # collect + log only
+    uv run python -m refresh --only 262 253   # refresh just these Competitions (quota-saving scope)
 
 See refresh/README.md for the operator's guide (crontab, the new-season warning, etc.).
 """
@@ -505,6 +506,25 @@ def _rescope_existing() -> list[str]:
 
 # --- entrypoint ------------------------------------------------------------
 
+def _select_competitions(only: list[int] | None) -> list[dict]:
+    """The Competitions to refresh — all of config, or just the given league ids.
+
+    Preserves config order (so the log reads the same for a scoped run) and errors on any
+    id that isn't a tracked Competition rather than silently refreshing fewer than asked.
+    """
+    if not only:
+        return list(config.COMPETITIONS)
+    by_id = {c["league_id"]: c for c in config.COMPETITIONS}
+    unknown = [lid for lid in only if lid not in by_id]
+    if unknown:
+        raise SystemExit(
+            f"--only: not tracked Competition(s): {' '.join(map(str, unknown))}. "
+            f"Choose from config.COMPETITIONS league ids."
+        )
+    wanted = set(only)
+    return [c for c in config.COMPETITIONS if c["league_id"] in wanted]
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
         prog="python -m refresh",
@@ -517,7 +537,12 @@ def main(argv: list[str] | None = None) -> None:
                     help="skip the full football.db rebuild but still re-scope existing "
                          "data/<slug>.db files (the interactive fast path — leaves "
                          "football.db stale until the next full Refresh)")
+    ap.add_argument("--only", type=int, nargs="+", metavar="LEAGUE_ID",
+                    help="refresh only these Competitions' current Season instead of every "
+                         "tracked one (a quota-saving scope for frequent partial runs); the "
+                         "rebuild/re-scope, if any, still runs over the whole cache")
     args = ap.parse_args(argv)
+    comps = _select_competitions(args.only)
 
     started = datetime.now()
     today = started.date().isoformat()
@@ -527,9 +552,10 @@ def main(argv: list[str] | None = None) -> None:
     per_comp_calls: dict[str, dict[str, int]] = {}
     outcome = "ok"
 
-    print(f"Refresh — {started:%Y-%m-%d %H:%M:%S}: {len(config.COMPETITIONS)} competitions")
+    print(f"Refresh — {started:%Y-%m-%d %H:%M:%S}: {len(comps)} competitions"
+          f"{' (--only)' if args.only else ''}")
     try:
-        for comp in config.COMPETITIONS:
+        for comp in comps:
             before = dict(client.live_by_endpoint)
             try:
                 res = _refresh_competition(client, comp, ledger, today)

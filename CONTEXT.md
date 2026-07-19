@@ -473,13 +473,18 @@ in it; keeping a poll's row once the Refresh has written the Final record.
 The **remote Postgres** replica of a chosen subset of Competitions **plus the whole
 commentary store** — the only store that is not a local SQLite file, and the one other
 tools and people query over the network rather than by opening a file on this box. It is
-**derived, never authored**: rebuilt wholesale and swapped in atomically, so a re-run
-makes it match what we hold locally. Its Competitions are one **multi-Competition**
-build, not a concatenation of per-Competition stores — **Venue** ids are surrogates
-enumerated per build, so two separately scoped stores number their stadiums from 1 and
-collide head-on; building the subset in one pass makes the ids consistent across it
-(ADR 0027). That union is also what lets a player appearing in two of its Competitions
-be one Player with one career, rather than two unrelated rows.
+**derived, never authored**, kept current two ways (ADR 0028): a fast **delta publish**
+(the default `refresh_pg` path) applies only the Finals whose data actually changed —
+new or Coverage-re-healed — and a **wholesale** rebuild-and-swap (`publish_pg`, the
+manual reset) replaces the whole thing. Either way a re-run makes it match what we hold
+locally. Its Competitions are one **multi-Competition** build, not a concatenation of
+per-Competition stores — **Venue** ids once collided because they were enumerated per
+build (two separately scoped stores each number their stadiums from 1), so they are now
+assigned from a committed append-only registry (`football/venues.json`) that gives the
+**same stadium the same id in every store** and lets the additive delta reference
+existing venues without renumbering (ADR 0028, amending ADR 0027). That union is also
+what lets a player appearing in two of its Competitions be one Player with one career,
+rather than two unrelated rows.
 Its two halves are scoped differently, and this is the thing to know about it: the
 Competitions are a **chosen subset**, while the **Narrated Matches** and **Commentary
 Lines** are always **all of them** — a Narrated Match is ESPN's unit and is not
@@ -496,5 +501,8 @@ with the serving store (`serve.db` is a *window* over every Competition for the 
 a Published Store is *every* row of *some* Competitions for an open-ended SQL consumer);
 reading a Competition's absence from it as a collection gap; reading a dangling Fixture
 bridge as a broken link (the bridge is optional and never a foreign key); expecting its
-commentary half to follow its Competition selection (it never does); merging or
-upserting into it (its surrogate keys are re-derived each build — it is replaced whole).
+commentary half to follow its Competition selection (it never does — it is always copied
+whole, on a delta run too); assuming it is only ever replaced wholesale (the default
+intraday path is now an additive **delta** of changed Finals — ADR 0028); expecting a
+provider-retracted Final to disappear on a delta run (only a wholesale `publish_pg`
+removes retracted rows — an accepted blind spot of the additive path).

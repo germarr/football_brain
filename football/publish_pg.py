@@ -39,6 +39,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sqlite3
 import tempfile
@@ -51,8 +52,9 @@ from sqlmodel import SQLModel, create_engine
 from commentary.store import DB_PATH as COMMENTARY_DB
 from commentary.store import SCHEMA as COMMENTARY_SCHEMA
 
-from . import config, parse, scope
+from . import collect, config, parse, scope, venues
 from . import models  # noqa: F401 — importing models registers the schema
+from .client import CachedClient
 
 # The Competitions a bare run publishes: Liga MX (262) + Major League Soccer (253).
 DEFAULT_LEAGUE_IDS = [262, 253]
@@ -181,6 +183,285 @@ def _load(sqlite_path: Path, url: str, commentary_path: Path | None) -> dict[str
     return counts
 
 
+# --- Delta publish (ADR 0028) ----------------------------------------------
+# The frequent intraday path: apply only the Finals whose data changed since we last
+# published them, against the live `public` tables in one transaction — instead of
+# re-parsing the whole history and swapping it wholesale. The wholesale `publish()` above
+# stays the manual reset (first migration, venue-registry loss, dropping retracted rows).
+
+# The per-fixture watermark: which Fixtures are in the Published Store, and the ledger
+# `collected` date they were published at. Kept OUT of FOOTBALL_TABLES so the ten published
+# tables stay schema-identical to football.db (ADR 0027); it is publish metadata, not data.
+STAMP_TABLE = "publish_fixture"
+
+# What a delta touches. Fact tables are delete+reinserted per changed Fixture (Event.event_index
+# is a per-fixture surrogate, stable within the fixture we replace). Core dimensions are upserted
+# by primary key — sound now that Venue.id is registry-stable (ADR 0028), like team/player/
+# competition provider ids always were. The career directory (teamprofile/playerteam) is
+# deliberately NOT here: it is FK-referenced by nothing (PlayerTeam.team_id is not a key), it is
+# lag-tolerant by design (CONTEXT.md), and it is ~10x a delta's row volume — so it is refreshed
+# only by the wholesale publish.
+DELTA_FACTS = ["fixture", "event", "squadentry", "teammatchstat"]
+DELTA_DIMENSIONS = [("competition", "id"), ("team", "id"), ("player", "id"), ("venue", "id")]
+
+
+def _ledger_collected() -> dict[int, str]:
+    """`fixture_id -> last-collected date`, from the Refresh ledger (ADR 0018).
+
+    A Fixture is in the ledger exactly once it is Final and its per-fixture data is collected,
+    and its date advances on a Coverage re-heal — so this is the authoritative "this Fixture's
+    data changed on this date" signal the delta keys on.
+    """
+    from refresh.core import LEDGER_FILE
+    if not LEDGER_FILE.exists():
+        return {}
+    data = json.loads(LEDGER_FILE.read_text())
+    return {int(fid): e["collected"] for fid, e in data.items() if e.get("collected")}
+
+
+def _current_season_targets(comps: list[dict]) -> list[tuple[int, str, int]]:
+    """(league_id, name, season) for each Competition's current (latest cached) Season only.
+
+    The delta parses just the frontier: past Seasons are immutable (ADR 0018) and already in
+    Postgres, so re-parsing them is waste. Coverage heals live inside the 14-day probe window,
+    i.e. always within the current Season, so restricting here still catches them. Both
+    Tournaments of a split Season (Apertura + Clausura share one year) come in together.
+    """
+    targets: list[tuple[int, str, int]] = []
+    for comp in comps:
+        cached = scope._cached_targets(comp)
+        if not cached:
+            continue
+        current = max(season for _l, _n, season in cached)
+        targets += [t for t in cached if t[2] == current]
+    return targets
+
+
+def _ensure_stamp_table(pg: psycopg.Connection) -> None:
+    pg.execute(f"CREATE TABLE IF NOT EXISTS public.{STAMP_TABLE} "
+               "(fixture_id bigint PRIMARY KEY, collected text NOT NULL)")
+
+
+def _sq_cols(sq: sqlite3.Connection, table: str) -> list[str]:
+    return [r[1] for r in sq.execute(f"PRAGMA table_info({table})")]
+
+
+def _stage(sq: sqlite3.Connection, pg: psycopg.Connection, table: str,
+           where_col: str | None = None, where_vals: list[int] | None = None) -> tuple[str, list[str], int]:
+    """COPY rows of a temp-SQLite `table` (optionally filtered to `where_col IN where_vals`)
+    into a fresh Postgres TEMP table shaped like `public.<table>`, dropped at COMMIT. Returns
+    (temp_name, columns, rows_staged). Column names come from SQLite, robust to column-order
+    divergence (the same reason _copy_table and web.publish read PRAGMA table_info)."""
+    cols = _sq_cols(sq, table)
+    collist = ", ".join(f'"{c}"' for c in cols)
+    stg = f"_stg_{table}"
+    pg.execute(f"CREATE TEMP TABLE {stg} (LIKE public.{table}) ON COMMIT DROP")
+    sql, params = f"SELECT {collist} FROM {table}", ()
+    if where_col is not None:
+        if not where_vals:
+            return stg, cols, 0
+        sql += f" WHERE {where_col} IN ({','.join('?' for _ in where_vals)})"
+        params = tuple(where_vals)
+    n = 0
+    with pg.cursor().copy(f'COPY {stg} ({collist}) FROM STDIN') as cp:
+        for row in sq.execute(sql, params):
+            cp.write_row(row)
+            n += 1
+    return stg, cols, n
+
+
+def _upsert_dimension(sq: sqlite3.Connection, pg: psycopg.Connection, table: str, pk: str) -> int:
+    """Upsert every row of a temp dimension table into public, ON CONFLICT(pk) DO UPDATE."""
+    stg, cols, n = _stage(sq, pg, table)
+    if n:
+        collist = ", ".join(f'"{c}"' for c in cols)
+        updates = ", ".join(f'"{c}" = EXCLUDED."{c}"' for c in cols if c != pk)
+        pg.execute(f'INSERT INTO public.{table} ({collist}) SELECT {collist} FROM {stg} '
+                   f'ON CONFLICT ("{pk}") DO UPDATE SET {updates}')
+    return n
+
+
+def _insert_changed(sq: sqlite3.Connection, pg: psycopg.Connection, table: str,
+                    key_col: str, ids: list[int]) -> int:
+    """Insert the changed fixtures' rows of a fact table (already deleted from public)."""
+    stg, cols, n = _stage(sq, pg, table, key_col, ids)
+    if n:
+        collist = ", ".join(f'"{c}"' for c in cols)
+        pg.execute(f'INSERT INTO public.{table} ({collist}) SELECT {collist} FROM {stg}')
+    return n
+
+
+def _copy_commentary_full(pg: psycopg.Connection, commentary_path: Path) -> dict[str, int]:
+    """Replace the commentary half wholesale, inside the delta transaction — it has no
+    per-fixture watermark and is tiny (~200 KB), so it is always copied whole and unscoped,
+    the same invariant the wholesale publish holds (ADR 0027)."""
+    counts: dict[str, int] = {}
+    cm = sqlite3.connect(f"file:{commentary_path}?mode=ro", uri=True)
+    try:
+        for t in reversed(COMMENTARY_TABLES):       # children first (FK order)
+            pg.execute(f"DELETE FROM public.{t}")
+        for t in COMMENTARY_TABLES:                 # parents first
+            cols = _sq_cols(cm, t)
+            collist = ", ".join(f'"{c}"' for c in cols)
+            n = 0
+            with pg.cursor().copy(f'COPY public.{t} ({collist}) FROM STDIN') as cp:
+                for row in cm.execute(f"SELECT {collist} FROM {t}"):
+                    cp.write_row(row)
+                    n += 1
+            counts[t] = n
+    finally:
+        cm.close()
+    return counts
+
+
+def _rebuild_stamps(url: str) -> None:
+    """Baseline the delta watermark after a wholesale publish (ADR 0028): stamp every
+    published Fixture the ledger knows as Final with its collected date, so the next delta
+    treats them as already-published and applies only what changes afterwards."""
+    ledger = _ledger_collected()
+    with psycopg.connect(url, connect_timeout=30) as pg:
+        pg.execute(f"DROP TABLE IF EXISTS public.{STAMP_TABLE}")
+        _ensure_stamp_table(pg)
+        ids = [r[0] for r in pg.execute("SELECT id FROM public.fixture")]
+        stamps = [(fid, ledger[fid]) for fid in ids if fid in ledger]
+        if stamps:
+            with pg.cursor().copy(f"COPY public.{STAMP_TABLE} (fixture_id, collected) FROM STDIN") as cp:
+                for row in stamps:
+                    cp.write_row(row)
+        pg.commit()
+    print(f"  stamped {len(stamps):,} published Final(s) into {STAMP_TABLE} (delta baseline)")
+
+
+def delta_publish(league_ids: list[int] | None = None, use_all: bool = False) -> dict[str, int]:
+    """Apply only the new/re-healed Finals to the Published Store (ADR 0028). Additive: a
+    provider-retracted Final is removed only by a wholesale `publish()` (an accepted blind
+    spot). Requires a prior wholesale publish to baseline the store."""
+    url = config.load_pg_url()
+    comps = _competitions(league_ids, use_all)
+    commentary_path = COMMENTARY_DB if COMMENTARY_DB.exists() else None
+    print(f"Delta publish {len(comps)} Competition(s) -> {_redact(url)}")
+    print(f"  {', '.join(c['name'] for c in comps)}")
+
+    targets = _current_season_targets(comps)
+    if not targets:
+        raise SystemExit("No cached current Season for any requested Competition — nothing to delta.")
+    ledger = _ledger_collected()
+
+    with tempfile.TemporaryDirectory(prefix="football-pg-delta-") as tmpdir:
+        staged = Path(tmpdir) / "delta.db"
+        print(f"  parsing current Season(s) {sorted({s for _l, _n, s in targets})} from cache (read-only registry) …")
+        parse.build(db_path=staged, targets=targets, register=False)
+        sq = sqlite3.connect(f"file:{staged}?mode=ro", uri=True)
+        try:
+            candidates = [r[0] for r in sq.execute("SELECT id FROM fixture")]
+            with psycopg.connect(url, connect_timeout=30) as pg:
+                if not pg.execute("SELECT to_regclass('public.fixture')").fetchone()[0]:
+                    raise SystemExit("No Published Store yet — run a full publish first:\n"
+                                     "    uv run python -m football.publish_pg")
+                _ensure_stamp_table(pg)
+                stamps = {fid: col for fid, col in
+                          pg.execute(f"SELECT fixture_id, collected FROM public.{STAMP_TABLE}").fetchall()}
+                # Changed = a candidate current-season Fixture the ledger knows as Final whose
+                # collected date is newer than what Postgres holds (absent stamp => never published).
+                changed = [fid for fid in candidates
+                           if fid in ledger and ledger[fid] > stamps.get(fid, "")]
+                counts = _apply_delta(sq, pg, changed, ledger, commentary_path)
+                pg.commit()
+        finally:
+            sq.close()
+
+    print(f"\n  applied {counts.get('fixture', 0):,} changed Final(s)")
+    _report_bridges(url)
+    return counts
+
+
+def _apply_delta(sq: sqlite3.Connection, pg: psycopg.Connection, changed: list[int],
+                 ledger: dict[int, str], commentary_path: Path | None) -> dict[str, int]:
+    """One transaction: upsert core dimensions, delete+reinsert the changed Finals and their
+    child rows, advance their stamps, and full-copy commentary. TEMP tables drop at COMMIT."""
+    counts: dict[str, int] = {}
+    # 1) Core dimensions (bounded: one Season) — upsert so a debut player / promoted team /
+    #    new venue a changed Fixture references exists before its rows land.
+    for table, pk in DELTA_DIMENSIONS:
+        counts[table] = _upsert_dimension(sq, pg, table, pk)
+
+    # 2) Changed Finals: delete child rows then the fixture (FK order), then reinsert from temp.
+    if changed:
+        for t in ("teammatchstat", "squadentry", "event"):
+            pg.execute(f"DELETE FROM public.{t} WHERE fixture_id = ANY(%s)", (changed,))
+        pg.execute("DELETE FROM public.fixture WHERE id = ANY(%s)", (changed,))
+        counts["fixture"] = _insert_changed(sq, pg, "fixture", "id", changed)
+        for t in ("event", "squadentry", "teammatchstat"):
+            counts[t] = _insert_changed(sq, pg, t, "fixture_id", changed)
+        # 3) Advance the watermark for exactly what we just applied.
+        pg.cursor().executemany(
+            f"INSERT INTO public.{STAMP_TABLE} (fixture_id, collected) VALUES (%s, %s) "
+            "ON CONFLICT (fixture_id) DO UPDATE SET collected = EXCLUDED.collected",
+            [(fid, ledger[fid]) for fid in changed])
+    else:
+        counts["fixture"] = 0
+
+    # 4) Commentary: always full, unscoped (tiny).
+    if commentary_path:
+        counts.update(_copy_commentary_full(pg, commentary_path))
+    return counts
+
+
+def heal_venues(league_ids: list[int] | None = None, use_all: bool = False) -> dict[str, int]:
+    """Fill venue_ids the intraday delta left null, once the nightly build has minted the
+    new grounds (ADR 0028) — the surgical alternative to a nightly wholesale publish.
+
+    An unattended delta is read-only against the registry, so a Fixture at a not-yet-registered
+    ground publishes with a null venue_id. The nightly full football.db build mints that ground
+    into the registry; this then re-derives each published current-Season Fixture's (name, city)
+    from the raw cache — the identity is not stored on the null Fixture row — and, for any public
+    Fixture still null whose ground is now registered, inserts the Venue row if missing (so the FK
+    holds) and sets the Fixture's venue_id. Genuinely venue-less Fixtures (the provider named no
+    ground) have no (name, city) and are correctly left null.
+    """
+    url = config.load_pg_url()
+    comps = _competitions(league_ids, use_all)
+    registry = venues.load()
+
+    probe = CachedClient(max_live_requests=0)
+    fx_key: dict[int, tuple[str, str | None]] = {}          # fixture id -> (name, city)
+    provider: dict[tuple[str, str | None], int | None] = {}  # ground -> provider venue id
+    for league_id, _name, season in _current_season_targets(comps):
+        for fx in collect.fetch_fixtures(probe, league_id, season):
+            key = parse._venue_key(fx)
+            if key is None:
+                continue
+            fx_key[fx["fixture"]["id"]] = key
+            provider.setdefault(key, (fx["fixture"].get("venue") or {}).get("id"))
+
+    with psycopg.connect(url, connect_timeout=30) as pg:
+        if not pg.execute("SELECT to_regclass('public.fixture')").fetchone()[0]:
+            raise SystemExit("No Published Store yet — nothing to heal.")
+        null_ids = [r[0] for r in pg.execute(
+            "SELECT id FROM public.fixture WHERE venue_id IS NULL AND id = ANY(%s)",
+            (list(fx_key),)).fetchall()]
+        heals = [(fid, registry[fx_key[fid]]) for fid in null_ids if fx_key[fid] in registry]
+        if not heals:
+            print("  venue heal: nothing to fill.")
+            return {"healed": 0, "venues_inserted": 0}
+
+        # A just-minted ground may not have a Venue row in public yet — insert it first (FK).
+        need = {vid: fx_key[fid] for fid, vid in heals}
+        have = {r[0] for r in pg.execute("SELECT id FROM public.venue WHERE id = ANY(%s)",
+                                         (list(need),)).fetchall()}
+        new_rows = [(vid, k[0], k[1], provider.get(k)) for vid, k in need.items() if vid not in have]
+        if new_rows:
+            pg.cursor().executemany(
+                "INSERT INTO public.venue (id, name, city, provider_id) VALUES (%s, %s, %s, %s) "
+                "ON CONFLICT (id) DO NOTHING", new_rows)
+        pg.cursor().executemany(
+            "UPDATE public.fixture SET venue_id = %s WHERE id = %s AND venue_id IS NULL",
+            [(vid, fid) for fid, vid in heals])
+        pg.commit()
+    print(f"  venue heal: filled {len(heals)} fixture(s); inserted {len(new_rows)} new Venue row(s).")
+    return {"healed": len(heals), "venues_inserted": len(new_rows)}
+
+
 def _commentary_note(commentary_path: Path | None) -> None:
     """Announce what the commentary half will contribute, before the load."""
     if not commentary_path:
@@ -257,6 +538,7 @@ def publish(league_ids: list[int] | None = None, use_all: bool = False) -> dict[
         print(f"\n▶ Loading {size_mb:.0f} MB into Postgres …")
         counts = _load(staged, url, commentary_path)
 
+    _rebuild_stamps(url)   # baseline the delta watermark (ADR 0028)
     _report_bridges(url)
     return counts
 
@@ -271,11 +553,17 @@ def main(argv: list[str] | None = None) -> None:
                          "— Liga MX, Major League Soccer)")
     ap.add_argument("--all", action="store_true",
                     help="publish every tracked Competition instead")
+    ap.add_argument("--heal-venues", action="store_true",
+                    help="fill venue_ids the intraday delta left null, once tonight's build "
+                         "minted the new grounds (ADR 0028) — no publish; run nightly")
     args = ap.parse_args(argv)
     if args.league_ids and args.all:
         raise SystemExit("Pass league ids or --all, not both.")
 
     t0 = time.monotonic()
+    if args.heal_venues:
+        heal_venues(args.league_ids, args.all)
+        return
     counts = publish(args.league_ids, args.all)
     print(f"\nPublished Store updated — {sum(counts.values()):,} rows "
           f"in {time.monotonic() - t0:.0f}s")

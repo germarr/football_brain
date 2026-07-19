@@ -18,7 +18,7 @@ from pathlib import Path
 from sqlalchemy import func
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from . import collect, config
+from . import collect, config, venues
 from .client import CachedClient, QuotaExceeded
 from .models import (
     Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team,
@@ -405,14 +405,23 @@ def _parse_team_stats(fixture_id: int, entry: dict) -> TeamMatchStat:
 
 
 def _build_venues(session: Session, client: CachedClient,
-                  targets: list[tuple[int, str, int]]) -> dict[tuple[str, str | None], int]:
+                  targets: list[tuple[int, str, int]],
+                  register: bool = True) -> dict[tuple[str, str | None], int]:
     """Sweep every target's fixtures for venues, insert the Venue rows, and return
-    the (name, city) -> surrogate id map the main loop uses to set Fixture.venue_id.
+    the (name, city) -> stable id map the main loop uses to set Fixture.venue_id.
 
     A cheap pre-pass (fixtures are local cache reads; no player fetches): the main
     build loop commits and expunges Fixtures per season to bound memory, so the
-    surrogate ids must exist *before* those rows are parsed. provider_id is taken
-    from the first fixture that exposes a non-null venue.id for the ground.
+    ids must exist *before* those rows are parsed. provider_id is taken from the
+    first fixture that exposes a non-null venue.id for the ground.
+
+    Ids come from the committed Venue registry (football.venues, ADR 0028), so the
+    same ground carries the same id in every store — no longer a 1..N enumeration
+    that reshuffles when the venue set grows. `register=True` (a full or scoped
+    football.db build) mints any new ground into the registry; `register=False`
+    (the delta temp store, which runs unattended and must not write the registry)
+    resolves against the committed registry only and leaves an unregistered ground
+    out of the map, so its fixtures get a null venue_id until the nightly build mints it.
     """
     provider_ids: dict[tuple[str, str | None], int | None] = {}
     for league_id, _name, season in targets:
@@ -422,9 +431,13 @@ def _build_venues(session: Session, client: CachedClient,
                 continue
             provider_ids[key] = provider_ids.get(key) or (fx["fixture"].get("venue") or {}).get("id")
 
-    # Enumerate sorted (name, city) pairs for a deterministic surrogate id (see Venue).
-    venue_ids = {key: i for i, key in enumerate(sorted(provider_ids, key=lambda k: (k[0], k[1] or "")), 1)}
-    for (name, city), sid in venue_ids.items():
+    id_map = venues.mint(provider_ids) if register else venues.load()
+    venue_ids: dict[tuple[str, str | None], int] = {}
+    for (name, city) in provider_ids:
+        sid = id_map.get((name, city))
+        if sid is None:            # read-only build meeting an unregistered ground
+            continue
+        venue_ids[(name, city)] = sid
         session.add(Venue(id=sid, name=name, city=city, provider_id=provider_ids[(name, city)]))
     session.commit()
     session.expunge_all()
@@ -432,13 +445,18 @@ def _build_venues(session: Session, client: CachedClient,
 
 
 def build(db_path: Path | None = None,
-          targets: list[tuple[int, str, int]] | None = None) -> None:
+          targets: list[tuple[int, str, int]] | None = None,
+          register: bool = True) -> None:
     """Rebuild the store, serialized against any other concurrent build.
 
     Defaults rebuild the full store (config.DB_PATH, every config.targets()). Pass
     a db_path and a filtered targets list to extract a single Competition into its
     own SQLite file from the same raw cache (football.scope) — the pipeline is
     identical, only the output file and the (competition, season) set differ.
+
+    `register=False` builds read-only against the Venue registry (ADR 0028): the
+    delta publish's temp store must not mint new venue ids from an unattended run,
+    so an unregistered ground yields a null venue_id rather than a fresh id.
 
     _rebuild() drops and recreates every table, so two builds racing on the one
     SQLite file corrupt each other — one's drop_all() deletes tables the other is
@@ -454,7 +472,7 @@ def build(db_path: Path | None = None,
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with open(db_path.with_suffix(".build.lock"), "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)   # blocks until any other build finishes
-        _rebuild(db_path, targets)
+        _rebuild(db_path, targets, register)
 
 
 def _competition_metadata(client: CachedClient, league_id: int) -> dict:
@@ -486,7 +504,7 @@ def _competition_metadata(client: CachedClient, league_id: int) -> dict:
     }
 
 
-def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
+def _rebuild(db_path: Path, targets: list[tuple[int, str, int]], register: bool = True) -> None:
     engine = create_engine(f"sqlite:///{db_path}")
     SQLModel.metadata.drop_all(engine)   # disposable store (ADR 0002)
     SQLModel.metadata.create_all(engine)
@@ -513,7 +531,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]]) -> None:
     # Skip any fixture id already seen this pass so the build stays idempotent.
     seen_fixtures: set[int] = set()
     with Session(engine) as session:
-        venue_ids = _build_venues(session, client, targets)
+        venue_ids = _build_venues(session, client, targets, register)
         for league_id, _name, season in targets:
             for fx in collect.fetch_fixtures(client, league_id, season):
                 fid = fx["fixture"]["id"]

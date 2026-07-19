@@ -9,24 +9,32 @@ Published Store **without a football.db rebuild** — the reason it works is tha
      cache-first read would freeze it, so a match played since the last run would never
      surface) and collect per-fixture data for the newly-**Final** matches into the raw
      cache. Seconds. It deliberately skips the minutes-long football.db rebuild.
-  2. **Publish** — `publish_pg` re-parses the selected Competitions out of that fresh
-     cache into a throwaway store and swaps them into Postgres (a wholesale replace).
+  2. **Publish** — by default a **delta** (ADR 0028): `publish_pg.delta_publish` re-parses only
+     the selected Competitions' current Season from the fresh cache and applies just the Finals
+     whose data changed since the last publish, against the live Postgres tables. Sub-second and
+     additive. `--full` instead runs the wholesale replace (`publish_pg.publish`) — the reset used
+     for first migration, a venue-registry re-baseline, or dropping a provider-retracted Final.
 
 The cost of skipping the rebuild is that `data/football.db` (and the Viewer) stay stale
 until the next full `python -m refresh`, which self-heals them — the Finals collected
 here are already ledgered and cached, so that run costs nothing extra for them.
 
-Note the two scopes differ, on purpose: step 1 refreshes the current Season of **every**
-Competition in the config (that is what Refresh does — it is cheap, one forced call per
-Competition plus enrichment for genuinely new Finals), while step 2 publishes only the
-Competitions you name (default: the Liga MX + MLS pair). Publishing is destructive by
-omission — an unnamed Competition is *removed* from Postgres (ADR 0027) — so always list
-the full set you want present.
+Step 1 scopes the frontier collection to exactly the Competitions step 2 will publish
+(via Refresh's `--only`), so a run makes one forced /leagues + fixtures pair per *published*
+Competition rather than for all ~42 tracked — the quota win that makes frequent runs cheap.
+`--all` publishes every tracked Competition, so it refreshes all of them (no `--only`).
+Publishing is destructive by omission — an unnamed Competition is *removed* from Postgres
+(ADR 0027) — so always list the full set you want present.
+
+The trade-off vs. refreshing everything: the un-refreshed Competitions' current Seasons stay
+frozen in the cache until the next full `python -m refresh`, which force-refreshes and
+self-heals them — so nothing is lost, only deferred to that run's expense instead of this one.
 
 Run:
-    uv run python -m football.refresh_pg               # Liga MX + MLS (the default pair)
+    uv run python -m football.refresh_pg               # Liga MX + MLS delta (the default pair)
     uv run python -m football.refresh_pg 262 253 71    # ... plus Brasileirao
-    uv run python -m football.refresh_pg --all         # publish every tracked Competition
+    uv run python -m football.refresh_pg --full        # wholesale replace (reset / re-baseline)
+    uv run python -m football.refresh_pg --all         # publish every tracked Competition (delta)
     uv run python -m football.refresh_pg --skip-refresh 262 253   # publish only, no refresh
 """
 from __future__ import annotations
@@ -40,9 +48,10 @@ from . import publish_pg
 
 
 def run(league_ids: list[int] | None = None, use_all: bool = False,
-        skip_refresh: bool = False) -> dict[str, int]:
+        skip_refresh: bool = False, full: bool = False) -> dict[str, int]:
     """Refresh the cache frontier (unless skipped) then publish to Postgres.
 
+    Publishes a delta by default (ADR 0028); `full=True` runs the wholesale replace.
     Returns publish_pg's per-table row counts.
     """
     if skip_refresh:
@@ -51,8 +60,16 @@ def run(league_ids: list[int] | None = None, use_all: bool = False,
     else:
         print("━━ Step 1/2 · Refreshing the current-Season frontier into the cache "
               "(no football.db rebuild) ━━\n")
+        # Scope the frontier to exactly the Competitions we're about to publish (the
+        # quota win — one forced /leagues + fixtures pair per Competition, so refreshing
+        # only the published pair instead of all ~42 is ~40 fewer forced calls per run).
+        # --all publishes everything, so it refreshes everything (no --only).
+        refresh_argv = ["--no-rebuild"]
+        if not use_all:
+            scoped = [str(lid) for lid in (league_ids or publish_pg.DEFAULT_LEAGUE_IDS)]
+            refresh_argv += ["--only", *scoped]
         try:
-            refresh.main(["--no-rebuild"])
+            refresh.main(refresh_argv)
         except SystemExit as e:
             # Refresh exits non-zero on a hit quota or a bad Competition, but the cache
             # is internally consistent even after a partial run (ADR 0018) and publishing
@@ -63,8 +80,11 @@ def run(league_ids: list[int] | None = None, use_all: bool = False,
                       "holds whatever it collected; publishing it as-is.")
         print()
 
-    print("━━ Step 2/2 · Publishing to the Postgres Published Store ━━\n")
-    return publish_pg.publish(league_ids, use_all)
+    label = "wholesale replace" if full else "delta"
+    print(f"━━ Step 2/2 · Publishing to the Postgres Published Store ({label}) ━━\n")
+    if full:
+        return publish_pg.publish(league_ids, use_all)
+    return publish_pg.delta_publish(league_ids, use_all)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -79,6 +99,8 @@ def main(argv: list[str] | None = None) -> None:
                          "— Liga MX, Major League Soccer)")
     ap.add_argument("--all", action="store_true",
                     help="publish every tracked Competition instead")
+    ap.add_argument("--full", action="store_true",
+                    help="wholesale replace instead of the default delta (reset / re-baseline)")
     ap.add_argument("--skip-refresh", action="store_true",
                     help="skip the cache refresh; publish from the current cache only")
     args = ap.parse_args(argv)
@@ -86,7 +108,7 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("Pass league ids or --all, not both.")
 
     t0 = time.monotonic()
-    counts = run(args.league_ids, args.all, args.skip_refresh)
+    counts = run(args.league_ids, args.all, args.skip_refresh, args.full)
     print(f"\nrefresh_pg done — {sum(counts.values()):,} rows in Postgres "
           f"in {time.monotonic() - t0:.0f}s")
 

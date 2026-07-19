@@ -211,6 +211,24 @@ the current Season of every Competition — and leaves immutable past Seasons un
   no second parser, just one fewer step. `--no-rebuild` (skip both) and `--scope-only`
   (skip only the full rebuild) are mutually exclusive.
 
+  *Amendment 2 (2026-07-19): `--only <league_id …>` to scope the collection itself.* The
+  nightly cron still refreshes every Competition — that is the point of a nightly run, and
+  keeping the whole current-Season frontier warm makes the next full rebuild free (every new
+  Final is already ledgered and cached). But the frequent partial path — `football.refresh_pg`
+  (ADR 0027), which pushes fresh results to the Postgres Published Store many times a day for
+  the Liga MX + MLS pair — paid the whole config's forced-call cost on every run: one forced
+  `/leagues` + fixture-list pair per Competition, ~84 calls for all ~42 tracked, of which ~40
+  are for Competitions it never publishes. `--only` filters the collection loop to the named
+  league ids (order preserved from config; an untracked id is a hard error, never a silent
+  narrowing), and `refresh_pg` now passes exactly the set it is about to publish (`--all`
+  publishes and so refreshes everything). This scopes *which Competitions are collected*, an
+  orthogonal axis to `--scope-only`/`--no-rebuild` (*which rebuild steps run*), so it composes
+  with either. The trade-off mirrors `--scope-only`'s: the un-named Competitions' current
+  Seasons stay frozen in cache until the next full `python -m refresh`, which force-refreshes
+  and self-heals them — nothing is lost, only deferred to that run's expense instead of the
+  partial run's. The nightly full run therefore stays authoritative; `--only` is purely a
+  quota lever for high-frequency partial runs.
+
 - **Concurrency and scheduling are the operator's, via `flock` + crontab.** We deliver
   the entrypoint and a documented `flock`-wrapped crontab line (recommended 04:00 server
   time, late enough for the day's matches to be Final) rather than touching the crontab.

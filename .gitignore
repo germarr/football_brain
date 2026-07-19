@@ -45,3 +45,9 @@ football/ui/logs/
 web/serve.db
 web/serve.db.tmp
 web/logs/
+
+# Venue registry write lock (ADR 0028) — transient; the registry itself (football/venues.json) is committed.
+football/venues.json.lock
+
+# Harness-written transient settings temp files
+.claude/*.tmp.*
