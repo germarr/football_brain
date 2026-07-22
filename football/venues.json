@@ -7784,5 +7784,9 @@
 {"id":7783,"name":"Štadión Pod Dubňom","city":"Zilina"},
 {"id":7784,"name":"Štadión Pod Dubňom","city":"Žilina"},
 {"id":7785,"name":"Štadión Tehelné pole","city":"Bratislava"},
-{"id":7786,"name":"Štadión na Sihoti","city":"Trencin"}
+{"id":7786,"name":"Štadión na Sihoti","city":"Trencin"},
+{"id":7787,"name":"epet ARENA","city":"Prague"},
+{"id":7788,"name":"Europa Sports Complex","city":"Gibraltar"},
+{"id":7789,"name":"Strandvallen","city":"Hallevik"},
+{"id":7790,"name":"Toto Turner Stadium","city":"Szombathely"}
 ]
