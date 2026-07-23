@@ -7788,5 +7788,7 @@
 {"id":7787,"name":"epet ARENA","city":"Prague"},
 {"id":7788,"name":"Europa Sports Complex","city":"Gibraltar"},
 {"id":7789,"name":"Strandvallen","city":"Hallevik"},
-{"id":7790,"name":"Toto Turner Stadium","city":"Szombathely"}
+{"id":7790,"name":"Toto Turner Stadium","city":"Szombathely"},
+{"id":7791,"name":"Citi Field","city":"New York"},
+{"id":7792,"name":"Estadio Tigo La Huerta","city":"Sucre"}
 ]
