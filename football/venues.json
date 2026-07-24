@@ -7790,5 +7790,8 @@
 {"id":7789,"name":"Strandvallen","city":"Hallevik"},
 {"id":7790,"name":"Toto Turner Stadium","city":"Szombathely"},
 {"id":7791,"name":"Citi Field","city":"New York"},
-{"id":7792,"name":"Estadio Tigo La Huerta","city":"Sucre"}
+{"id":7792,"name":"Estadio Tigo La Huerta","city":"Sucre"},
+{"id":7793,"name":"Alberto Jose Armando","city":"Buenos Aires"},
+{"id":7794,"name":"Estadio Eva Perón","city":"Junin"},
+{"id":7795,"name":"Thermoplan Arena","city":"Luzern"}
 ]
