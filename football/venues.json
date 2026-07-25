@@ -7793,5 +7793,13 @@
 {"id":7792,"name":"Estadio Tigo La Huerta","city":"Sucre"},
 {"id":7793,"name":"Alberto Jose Armando","city":"Buenos Aires"},
 {"id":7794,"name":"Estadio Eva Perón","city":"Junin"},
-{"id":7795,"name":"Thermoplan Arena","city":"Luzern"}
+{"id":7795,"name":"Thermoplan Arena","city":"Luzern"},
+{"id":7796,"name":"Dick's Sporting Goods Park","city":"Trade City"},
+{"id":7797,"name":"Dignity Health Sports Park","city":"Los Angeles"},
+{"id":7798,"name":"Exploria Stadium","city":"Orlando"},
+{"id":7799,"name":"Nu Stadium","city":"Fort Lauderdale"},
+{"id":7800,"name":"PayPal Park","city":"Stanford"},
+{"id":7801,"name":"Subaru Park","city":"Philadelphia"},
+{"id":7802,"name":"Víctor Legrotaglie","city":"Mendoza"},
+{"id":7803,"name":"Yankee Stadium","city":"Flushing, Queens"}
 ]
