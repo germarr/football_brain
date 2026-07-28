@@ -7821,5 +7821,9 @@
 {"id":7820,"name":"Olimpico Pascual Guerrero","city":"Santiago de Cali"},
 {"id":7821,"name":"Pedro Bidegain","city":"Buenos Aires"},
 {"id":7822,"name":"Vejlby Stadion","city":"Aarhus"},
-{"id":7823,"name":"Estadio Metropolitano Ciudad de Itagüí","city":"Itagui"}
+{"id":7823,"name":"Estadio Metropolitano Ciudad de Itagüí","city":"Itagui"},
+{"id":7824,"name":"Estadio Alejandro Villanueva","city":"Ayacucho"},
+{"id":7825,"name":"Estadio Atanasio Girardot","city":"Itagui"},
+{"id":7826,"name":"General Pablo Rojas","city":"Asuncion"},
+{"id":7827,"name":"Polideportivo de Pueblo Nuevo","city":"San Cristóbal"}
 ]
