@@ -7825,5 +7825,8 @@
 {"id":7824,"name":"Estadio Alejandro Villanueva","city":"Ayacucho"},
 {"id":7825,"name":"Estadio Atanasio Girardot","city":"Itagui"},
 {"id":7826,"name":"General Pablo Rojas","city":"Asuncion"},
-{"id":7827,"name":"Polideportivo de Pueblo Nuevo","city":"San Cristóbal"}
+{"id":7827,"name":"Polideportivo de Pueblo Nuevo","city":"San Cristóbal"},
+{"id":7828,"name":"AlbertPark","city":"Oostende"},
+{"id":7829,"name":"Arena Z’dezele","city":"Celje"},
+{"id":7830,"name":"Parken","city":"Copenhagen"}
 ]
