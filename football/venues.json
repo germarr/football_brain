@@ -7833,5 +7833,7 @@
 {"id":7832,"name":"Enea Poznań","city":"Poznan"},
 {"id":7833,"name":"Haladás Sportkomplexum","city":"Szombathely"},
 {"id":7834,"name":"Stadium Rajko Mitić","city":"Belgrade"},
-{"id":7835,"name":"Tehelne Pole Stadion","city":"Bratislava"}
+{"id":7835,"name":"Tehelne Pole Stadion","city":"Bratislava"},
+{"id":7836,"name":"Estadio Metropolitano de Futbol de Lara","city":"Lara"},
+{"id":7837,"name":"Estadio Osvaldo Dominguez Dibb","city":null}
 ]
