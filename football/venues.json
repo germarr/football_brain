@@ -7835,5 +7835,15 @@
 {"id":7834,"name":"Stadium Rajko Mitić","city":"Belgrade"},
 {"id":7835,"name":"Tehelne Pole Stadion","city":"Bratislava"},
 {"id":7836,"name":"Estadio Metropolitano de Futbol de Lara","city":"Lara"},
-{"id":7837,"name":"Estadio Osvaldo Dominguez Dibb","city":null}
+{"id":7837,"name":"Estadio Osvaldo Dominguez Dibb","city":null},
+{"id":7838,"name":"Arena Egnatia","city":"Rrogozhine"},
+{"id":7839,"name":"Chobani Stadium","city":"Istanbul"},
+{"id":7840,"name":"Estadio Ester Roa","city":"Santiago"},
+{"id":7841,"name":"Estadio Municipal Nelson Oyarzun Arenas","city":"La Cisterna"},
+{"id":7842,"name":"Europa Sports Park","city":"Gibraltar"},
+{"id":7843,"name":"Georgi Asparuhov Stadium","city":"Sofia"},
+{"id":7844,"name":"Mezőkövesdi Városi Stadion","city":"Mezokovesd"},
+{"id":7845,"name":"Savon Sanomat Areena","city":"Kuopio"},
+{"id":7846,"name":"Skonto","city":"Rīga"},
+{"id":7847,"name":"Stadiumi Fadil Vokrri","city":"Prishtinë"}
 ]
