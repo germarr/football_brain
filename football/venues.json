@@ -7845,5 +7845,6 @@
 {"id":7844,"name":"Mezőkövesdi Városi Stadion","city":"Mezokovesd"},
 {"id":7845,"name":"Savon Sanomat Areena","city":"Kuopio"},
 {"id":7846,"name":"Skonto","city":"Rīga"},
-{"id":7847,"name":"Stadiumi Fadil Vokrri","city":"Prishtinë"}
+{"id":7847,"name":"Stadiumi Fadil Vokrri","city":"Prishtinë"},
+{"id":7848,"name":"Lyngby Stadium","city":"Lyngby"}
 ]
