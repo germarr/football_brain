@@ -7859,5 +7859,6 @@
 {"id":7858,"name":"Estádio Primeiro de Maio","city":"São Bernardo do Campo"},
 {"id":7859,"name":"Estádio Raulino de Oliveira","city":"Volta Redonda"},
 {"id":7860,"name":"Estadio Municipal Alfredo Joao Krieck","city":"Rio do Sul"},
-{"id":7861,"name":"Turkestan Arena","city":"Turkestan"}
+{"id":7861,"name":"Turkestan Arena","city":"Turkestan"},
+{"id":7862,"name":"Raiffeisen Arena","city":"Linz"}
 ]
