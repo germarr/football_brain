@@ -46,8 +46,9 @@ web/serve.db
 web/serve.db.tmp
 web/logs/
 
-# Venue registry write lock (ADR 0028) — transient; the registry itself (football/venues.json) is committed.
-football/venues.json.lock
+# Venue registry write lock (ADR 0028) — transient; the registry itself
+# (football/registry/venues.json) is committed. Path moved by ADR 0031.
+football/registry/venues.json.lock
 
 # Harness-written transient settings temp files
 .claude/*.tmp.*
