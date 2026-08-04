@@ -510,3 +510,59 @@ whole, on a delta run too); assuming it is only ever replaced wholesale (the def
 intraday path is now an additive **delta** of changed Finals — ADR 0028); expecting a
 provider-retracted Final to disappear on a delta run (only a wholesale `publish_pg`
 removes retracted rows — an accepted blind spot of the additive path).
+
+**Editorial Store**:
+The PocketBase instance holding **Publications**, **Match Posts** and their
+**Narratives** — the only store here that is **authored rather than derived**, and so
+the only one with no rebuild path: there is no re-parse that reconstructs it and no
+raw cache behind it. Losing it loses the writing.
+It is also the only **co-tenanted** store: the same instance serves a personal site
+whose `posts`, `pages`, `projects`, `profile` and `users` collections are nothing to
+do with football. The pipeline never reads or writes those, but they share one
+`pb_data`, so a restore or a loss takes both down together — and the name collision on
+`posts` is why ours is `match_post`.
+_Avoid_: blog store, CMS; **Published Store** (that is the remote Postgres replica —
+derived, re-runnable, and about data rather than writing); treating its co-tenants as
+ours; assuming a rebuild exists.
+
+**Publication**:
+A Competition we have decided to cover on the blog, together with how it renders
+there: a URL **slug**, a display name, a **default language** (`es`/`en`, which picks
+the system prompt the model is given), a **display timezone** (which fixes the local
+date in every **Match Post**'s slug and every kickoff we print), a brand colour, and
+any per-Competition **prompt overrides**. It joins to a Competition by that
+Competition's provider league id, and carries its own **published** gate — false
+until a human flips it, so a Competition can be drafted against long before anything
+about it is public.
+A Publication is *not* a Competition: it is our editorial decision to cover one, and
+the two have separate lifecycles. Dropping a Publication stops the blog covering that
+Competition and changes nothing about what we collect.
+_Avoid_: league (a Publication may cover a **cup** — the World Cup is one of the three
+published Competitions, and this is exactly the confusion the bare word was banned to
+prevent); competition (that is the upstream thing a Publication points at); reading
+its `published` flag as saying anything about collection or about the **Published
+Store** (it gates the public site alone).
+
+**Match Post**:
+The blog's unit of work: exactly one per **Fixture**, identified by that Fixture's id
+and by nothing else. It carries the **Narrative**, a URL slug composed from both teams
+and the kickoff date *in its Publication's timezone*, an SEO title and description, an
+author, and a **status** of `draft` or `published` with the publication timestamp that
+goes with it. The drafter only ever writes `draft`; moving a Match Post to `published`
+is a manual, human act, and the only one.
+_Avoid_: post (the PocketBase instance also serves a personal site with its own,
+entirely unrelated `posts` collection — hence `match_post`); article; treating the slug
+as its identity (the Fixture id is — the slug is derived and could change).
+
+**Narrative**:
+The prose body of a **Match Post** — the match report itself, in its Publication's
+language, drafted by the model from the Fixture's Events, Squad Entries, Team Match
+Stats and **Commentary Lines**, and then edited by hand before it is published.
+It is the one thing in this project that **cannot be regenerated**. Every other store
+falls out of a re-parse of the raw cache, and even a Commentary Line's *inferred*
+**Category** can at least be re-inferred at a price. An edited Narrative cannot: a
+re-run produces different prose and silently loses the edit. That is why redrafting a
+*published* Match Post is refused rather than merely warned about.
+_Avoid_: crónica (that is only its Spanish rendering — a Publication may be `en`);
+copy, article, content; treating it as derived data (it is **authored**, and it is the
+only authored thing here).
