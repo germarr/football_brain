@@ -4,9 +4,15 @@ __pycache__/
 
 # marimo session caches (regenerated on every notebook run)
 __marimo__/
-build/
-dist/
-wheels/
+
+# Python packaging artifacts. Anchored with a leading slash so they match only at the
+# repo root: unanchored, `build/` also matched the `football/build/` package (ADR 0031)
+# and silently excluded files added to it — `git add` says nothing about an ignored
+# path, and a missing __init__.py still imports as a namespace package, so the loss
+# would surface only as a broken clone.
+/build/
+/dist/
+/wheels/
 *.egg-info
 
 # Virtual environments
