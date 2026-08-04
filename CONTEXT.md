@@ -47,6 +47,36 @@ data; treating `continent` as a provider field (it is derived from `country`);
 expecting the Champions League's continent to be `"Europe"` (a `"World"` cup is
 `"International / Intercontinental"`).
 
+**Registry**:
+A small committed file naming the entities the recurring jobs must cover. There are
+two: the **Competition registry** — the single source of truth for every Competition
+we collect, league and cup alike (ADR 0019) — and the **Venue registry**, an
+append-only `(name, city) → stable id` map that gives the same stadium the same id in
+every store (ADR 0028).
+A Registry is **input** to the pipeline, never its output: alone among the data here
+it is *decided* rather than fetched or derived, so it has no rebuild path from the raw
+cache, and every change to it is reviewed as a diff. Nothing is collected, parsed or
+published for an entity no Registry names.
+_Avoid_: config (a Registry names entities; it does not tune behaviour); store,
+database (every store is derived by a run that *reads* a Registry); cache (a Registry
+cannot be refetched); treating a Registry as regenerable.
+
+**Onboarding**:
+Admitting an entity to a **Registry** so the recurring jobs begin covering it — the
+decision that a Competition is ours to collect, or (as a **Publication**) ours to
+write about. It is one-time and idempotent, and its effect is entirely forward: every
+later **Refresh**, parse and publish includes the entity without being told again.
+Onboarding is not **backfilling**. A backfill bulk-fetches an entity's Seasons into
+the raw cache; it is resumable, quota-bound, and admits nothing. Onboarding is the
+decision, backfilling the labour that follows — one command may do both
+(`football.orchestrate` registers a Competition and then collects it) — but they fail
+differently, and that is why they are named apart: a backfill cut short resumes for
+free, while an entity that was never onboarded is covered by nothing, however much of
+its data already sits in the cache.
+_Avoid_: collecting, importing, ingesting (those move data; onboarding admits an
+entity); treating onboarding a Publication and onboarding a Competition as one act
+(same shape, different Registries, and either can happen without the other).
+
 **Season**:
 The provider's season for a Competition, identified by a single year (e.g.
 `2024`). For European leagues and Liga MX this is the **starting** year of a
@@ -484,7 +514,7 @@ manual reset) replaces the whole thing. Either way a re-run makes it match what 
 locally. Its Competitions are one **multi-Competition** build, not a concatenation of
 per-Competition stores — **Venue** ids once collided because they were enumerated per
 build (two separately scoped stores each number their stadiums from 1), so they are now
-assigned from a committed append-only registry (`football/venues.json`) that gives the
+assigned from the committed append-only **Venue registry** that gives the
 **same stadium the same id in every store** and lets the additive delta reference
 existing venues without renumbering (ADR 0028, amending ADR 0027). That union is also
 what lets a player appearing in two of its Competitions be one Player with one career,
