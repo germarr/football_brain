@@ -7,8 +7,11 @@ in Postgres without renumbering. Enumerating the unique `(name, city)` pairs `1.
 build* — as `parse._build_venues` used to — cannot give that: one new alphabetically-early
 ground shifts every id. So ids are assigned **once**, here, and never reshuffled.
 
-The registry is a committed JSON array beside this module, exactly like `competitions.json`
-(ADR 0019). It is deliberately **not** regenerable from the raw cache — rebuilt in sorted
+The registry is a committed JSON array, held with `competitions.json` in one registry
+directory and located through `football.paths` rather than relative to this module —
+so this module can be reorganized without the data following it (ADR 0031, which also
+records the silent orphaning that motivated the change). It is deliberately **not**
+regenerable from the raw cache — rebuilt in sorted
 order, a later-added early-alphabet ground would take a *different* id than it did when
 appended incrementally — so it joins `data/commentary.db` as a durable artifact. But a
 *milder* one: losing it costs a one-time global re-baseline (every store renumbers its
@@ -23,14 +26,15 @@ from __future__ import annotations
 
 import fcntl
 import json
-from pathlib import Path
 from typing import Iterable
+
+from . import paths
 
 # The identity of a ground, matching parse._venue_key: its name plus city (city may be
 # null, which disambiguates same-named stadiums in different cities).
 VenueKey = tuple[str, str | None]
 
-REGISTRY_FILE = Path(__file__).resolve().parent / "venues.json"
+REGISTRY_FILE = paths.VENUES_FILE
 _LOCK_FILE = REGISTRY_FILE.with_name("venues.json.lock")
 
 # The same order parse used when it enumerated (name, city) pairs, so a fresh registry

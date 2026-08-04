@@ -8,17 +8,20 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 
 # --- paths -----------------------------------------------------------------
-ROOT = Path(__file__).resolve().parent.parent
-ENV_FILE = ROOT / ".env"
-RAW_DIR = ROOT / "data" / "raw"          # Layer 1: raw response cache (ADR 0002)
-DB_PATH = ROOT / "data" / "football.db"  # Layer 2: modeled SQLite store
-# The single source of truth for every Competition — leagues and cups alike (ADR
-# 0019). A committed JSON array beside this module; `football.orchestrate`/`.cups`
-# upsert into it. There is no separate built-in list or registry anymore.
-COMPETITIONS_FILE = Path(__file__).resolve().parent / "competitions.json"
+# Sourced from `football.paths`, the single anchor for every path in this package
+# (ADR 0031) — nothing here resolves its own location any more. Re-exported rather
+# than referenced through `paths.` so that `config.RAW_DIR` stays the one name every
+# caller (and every test monkeypatch) already uses.
+from .paths import (  # noqa: E402
+    COMPETITIONS_FILE,
+    DB_PATH,
+    ENV_FILE,
+    RAW_DIR,
+    REGISTRY_DIR,
+    REPO_ROOT as ROOT,
+)
 
 # --- API -------------------------------------------------------------------
 BASE_URL = "https://v3.football.api-sports.io"
