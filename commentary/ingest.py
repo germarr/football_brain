@@ -37,7 +37,7 @@ import sys
 
 from .espn import fetch_summary
 from .events_only import build_events_only
-from .fixture_link import FixtureMismatch, verify_fixture
+from .fixture_link import FixtureMismatch, verify_fixture, verify_fixture_any
 from .join import build_match, match_meta, match_status, narration_coverage
 from .store import connect, delete_match, has_match, write_match
 
@@ -152,9 +152,19 @@ def main(argv: list[str] | None = None) -> int:
         "--force-link",
         action="store_true",
         help="accept a --fixture-id whose team names disagree with ESPN's (e.g. "
-        "ESPN's 'United States' vs football.db's 'USA'). The kickoff must still "
-        "match. You are asserting these are the same match; nothing downstream "
-        "can detect it if you are wrong.",
+        "ESPN's 'United States' vs football.db's 'USA'). The kickoffs must still "
+        "agree within 15 min, and if they are not identical then at least one "
+        "team name must still match exactly — this flag cannot waive both. You "
+        "are asserting these are the same match; nothing downstream can detect "
+        "it if you are wrong.",
+    )
+    parser.add_argument(
+        "--verify-fallback-pg",
+        action="store_true",
+        help="if football.db cannot confirm --fixture-id, try the Published Store "
+        "(Postgres) too, and refuse only if both disagree. For a match played since "
+        "the last nightly rebuild, football.db may not know it yet. This is what "
+        "football_blog.pipeline passes; it does not waive any check.",
     )
     parser.add_argument(
         "--reclassify",
@@ -209,8 +219,9 @@ def main(argv: list[str] | None = None) -> int:
     fixture_id = None
     if args.fixture_id is not None:
         meta = match_meta(payload, game_id)
+        check = verify_fixture_any if args.verify_fallback_pg else verify_fixture
         try:
-            fixture = verify_fixture(args.fixture_id, meta, force=args.force_link)
+            fixture = check(args.fixture_id, meta, force=args.force_link)
         except FixtureMismatch as error:
             print(f"REFUSED: {error}", file=sys.stderr)
             return 1
@@ -228,8 +239,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             print(
-                f"fixture {fixture_id} verified: {fixture['home_team_name']} v "
-                f"{fixture['away_team_name']} ({fixture['league_name']}) @ {fixture['date']}",
+                f"fixture {fixture_id} verified against {fixture['verified_against']}: "
+                f"{fixture['home_team_name']} v {fixture['away_team_name']} "
+                f"({fixture['league_name']}) @ {fixture['date']}",
                 file=sys.stderr,
             )
 

@@ -2,9 +2,11 @@
 
 A standalone SQLite database, written with the stdlib driver and nothing else.
 It deliberately does not import `football.models` or `sqlmodel`: this store shares
-no schema with `football.db` and must not grow a dependency on it. `football.db`
-is read (never written, never opened without `--fixture-id`) only by
-`fixture_link.py`.
+no schema with `football.db` and must not grow a dependency on it. Everything
+outside this package is reached only by `fixture_link.py`, and only to *verify* an
+operator-supplied `--fixture-id` — read-only, never opened without one. Two sources
+answer that check now (`football.db` and the Published Store, ADR 0029); the
+invariant is the read-only, verification-only *kind* of the contact, not its count.
 
 **This store is the system of record and is NOT disposable.** That breaks the
 invariant of ADR 0002, knowingly. Every other store here rebuilds from the raw

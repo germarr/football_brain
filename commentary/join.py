@@ -114,16 +114,62 @@ def narration_coverage(payload: dict) -> str:
     return "events_only" if any("sequence" not in c for c in commentary) else "narrative"
 
 
+def _collapse_per_team_duplicates(key_events: list) -> tuple[list, list]:
+    """Collapse keyEvents that are the same event recorded against both teams.
+
+    ESPN emits a **match-level** marker — a delay starting or ending — once per
+    team: two keyEvents, identical in period, clock, type, text and participants,
+    differing only in `id` and which side they are hung on. The commentary feed
+    carries the line once, so the second copy would claim a sequence the first
+    already took and `join_commentary` would refuse it as a conflict. Observed on
+    4 of 62 cached payloads, every one a `Start Delay` / `End Delay`.
+
+    This is not the "refuse rather than guess" case that raise exists for. Nothing
+    is guessed: the two rows agree on everything that says what happened, and a
+    delay is not attributable to one side anyway. So the later copy is dropped and
+    reported — never silently — while any pair differing in *meaning* (a different
+    minute, text, or set of players) still collides and still raises.
+
+    Returns `(kept_events, dropped)`, `dropped` describing what was collapsed.
+    """
+    seen: dict[tuple, dict] = {}
+    kept, dropped = [], []
+    for event in key_events:
+        row = _event_row(event)
+        # Everything that says *what happened* — deliberately excluding `id` and
+        # the team fields, which are the only things a per-team pair differs on.
+        signature = (
+            row["type_slug"], row["type"], row["period"], row["minute"],
+            row["clock_seconds"], _norm(row["text"]), row["scoring_play"],
+            row["shootout"], tuple(p["id"] for p in row["players"]),
+        )
+        first = seen.get(signature)
+        if first is None:
+            seen[signature] = row
+            kept.append(event)
+            continue
+        dropped.append({
+            "type": row["type"], "minute": row["minute"],
+            "kept_id": first["id"], "kept_team": first["team"],
+            "dropped_id": row["id"], "dropped_team": row["team"],
+        })
+    return kept, dropped
+
+
 def join_commentary(payload: dict) -> dict:
     """Attach typed keyEvents to commentary lines.
 
     Returns `{commentary, key_events, join}` where each commentary row carries
     `key_event` (the typed event, or None) and `join` reports how every
     text-bearing keyEvent was resolved. Raises on an ambiguous match rather
-    than guessing.
+    than guessing — with one narrow exception, `_collapse_per_team_duplicates`,
+    for a match-level marker ESPN records against both teams at once; those are
+    collapsed and reported in `join.per_team_duplicates`.
     """
     commentary = payload.get("commentary") or []
-    key_events = payload.get("keyEvents") or []
+    key_events, per_team_duplicates = _collapse_per_team_duplicates(
+        payload.get("keyEvents") or []
+    )
 
     missing_seq = [c for c in commentary if "sequence" not in c]
     if missing_seq:
@@ -199,6 +245,7 @@ def join_commentary(payload: dict) -> dict:
             "key_events_with_text": len(matched) + len(unmatched),
             "matched": len(matched),
             "by_strategy": dict(strategies),
+            "per_team_duplicates": per_team_duplicates,
             "structural_unjoined": [
                 {"type": r["type"], "minute": r["minute"]} for r in structural
             ],

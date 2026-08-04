@@ -288,8 +288,12 @@ therefore the normal case, not missing data.
 Where a Narrated Match *is* also a Fixture, the two may be **linked** — but the
 link is optional, hand-supplied, and **verified before it is stored**: the Fixture's
 kickoff and team names must agree with ESPN's, and an unverifiable link is refused
-rather than guessed (the two providers' kickoff times agree exactly, in UTC). The
-Fixture id is a **bridge, never the key**.
+rather than guessed. Kickoffs are compared in UTC within a **15-minute tolerance**,
+because ESPN rounds to the hour where API-Football keeps the broadcast minute
+(`03:00Z` against `03:05` is one Liga MX match, not two); a kickoff that agrees only
+*within* the tolerance must additionally be **anchored** by at least one exactly
+agreeing team name, which `--force-link` cannot waive (ADR 0030). The Fixture id is
+a **bridge, never the key**.
 _Avoid_: fixture, game, match; assuming a Narrated Match has a Fixture (most do
 not); keying a Narrated Match on a Fixture id; reading an absent Fixture link as a
 collection failure (it means ESPN narrates a competition we do not collect);
