@@ -26,9 +26,9 @@ See [`CONTEXT.md`](CONTEXT.md) for the project's domain language and
 The pipeline is two layers, so re-modelling the data never re-spends API quota:
 
 ```
-API-Football  ──collect.py──▶  data/raw/       ──parse.py──▶  data/football.db
- (network)                     (raw JSON cache,               (modeled SQLite,
-                                cache-first)                   disposable)
+API-Football  ──onboard/──▶  data/raw/       ──build/──▶  data/football.db
+ (network)     collect/       (raw JSON cache,             (modeled SQLite,
+                               cache-first)                 disposable)
 ```
 
 - **Layer 1 — raw cache** (`data/raw/`): every API response is cached to disk,
@@ -36,8 +36,8 @@ API-Football  ──collect.py──▶  data/raw/       ──parse.py──▶
   each fixture is fetched exactly once, ever. Re-running collection is free and
   resumes wherever a previous run stopped.
 - **Layer 2 — SQLite** (`data/football.db`): a disposable store rebuilt from the
-  cache with **no network access**. `parse.py` drops and recreates every table
-  on each run, so you can change the schema and reparse without refetching.
+  cache with **no network access**. `build/parse.py` drops and recreates every
+  table on each run, so you can change the schema and reparse without refetching.
 
 Neither `data/` nor the `.env` secret is committed — both are regenerable /
 private (see `.gitignore`).
@@ -64,25 +64,28 @@ paid plan is needed for the full historical range.
 
 ## Usage
 
-### 1. Collect raw data (network — costs API quota)
+### 1. Onboard a competition (network — costs API quota)
 
 ```bash
-uv run python -m football.collect
+uv run python -m football.onboard.orchestrate 140   # a league
+uv run python -m football.onboard.cups 2            # a cup
 ```
 
-Fetches, per season in `football/config.py`, the league fixture list, each
-fixture's player data, and every unique player's biography — all cache-first.
-Interrupt and re-run any time; cached responses are never refetched. The run
-stops cleanly when the provider's daily request quota is hit.
+Registers the Competition in `football/registry/competitions.json` — after which
+every later Refresh, parse and publish covers it without being told again — and
+then collects it end to end: the league fixture list, each fixture's player data,
+every unique player's biography and career history, the Event timeline and Team
+Match Stats. All cache-first, so interrupt and re-run any time; cached responses
+are never refetched, and the run stops cleanly when the daily quota is hit.
 
-Edit the `COMPETITIONS` list in `football/config.py` to add/remove a league or
-season. Player career histories (the `players/teams` endpoint, ~18.5k extra
-calls) are deferred by default — enable with `COLLECT_CAREERS = True`.
+The old full-sweep `football.collect` entrypoint was retired by ADR 0031: it
+predated this orchestrator, was not Coverage-aware, and collected neither events
+nor team stats. Its shared fetch helpers live on as `football/fetch.py`.
 
 ### 1b. Collect the match-event timeline (network — separate run)
 
 ```bash
-uv run python -m football.collect_events
+uv run python -m football.collect.events
 ```
 
 Fetches one `fixtures/events` call per fixture (~20,780 calls — a full day under
@@ -97,7 +100,7 @@ no events yet.
 ### 2. Build the database (offline — no network)
 
 ```bash
-uv run python -m football.parse
+uv run python -m football.build.parse
 ```
 
 Rebuilds `data/football.db` from the raw cache and prints a summary (row counts
@@ -109,8 +112,8 @@ rather than silently spending quota, so this is safe to run repeatedly.
 An interactive [marimo](https://marimo.io/) notebook reads the SQLite store:
 
 ```bash
-uv run marimo edit football/explore.py   # editable notebook
-uv run marimo run  football/explore.py   # read-only app
+uv run marimo edit notebooks/explore.py   # editable notebook
+uv run marimo run  notebooks/explore.py   # read-only app
 ```
 
 Pick a Competition, Season, and Tournament (Liga MX splits into Apertura /
@@ -125,7 +128,7 @@ and shows the tracked competitions plus this week's fixtures in NYC time
 ([ADR-0021](docs/adr/0021-operator-dashboard-command-registry.md)):
 
 ```bash
-uv run python -m football.ui        # then open http://127.0.0.1:8000
+uv run python -m console           # then open http://127.0.0.1:8000
 ```
 
 Bound to `127.0.0.1` only — it spawns subprocesses and spends API quota, so it is
@@ -136,20 +139,52 @@ while another build is in progress (the same `*.build.lock` `parse` uses). The s
 triggers is defined in [`football/commands.py`](football/commands.py) — the documented
 registry both the UI and this README read; add a command there to surface it in the UI.
 
+## Roles
+
+Folders are organised by **context** — each package owns exactly one store. A
+script's **role** is declared in [`football/commands.py`](football/commands.py) and
+here, never by where the file sits, because role cross-cuts context: `commentary/`
+alone collects, builds and publishes ([ADR-0031](docs/adr/0031-package-by-context-role-in-the-registry.md)).
+
+| Role | What it does | Where |
+|---|---|---|
+| **Onboard** | Admit an entity to a **Registry** so every later recurring job covers it. One-time, idempotent, forward-acting. | `football/onboard/`, `football_blog/onboard.py` |
+| **Backfill** | Bulk-fetch Seasons into the raw cache. Resumable, quota-bound, admits nothing. | `football/collect/` |
+| **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
+| **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/` |
+| **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `web/publish.py`, `football/publish/`, `football_blog/` |
+| **Control** | Fire the pipeline. Populates nothing — the Console *renders* the registry, so it has no entry in it. | `console/` |
+
+Onboard and Backfill were one group until ADR 0031. They split because they fail
+differently: a backfill cut short resumes for free, while an entity that was never
+onboarded is covered by nothing, however much of its data sits in the cache.
+
 ## Project layout
 
 ```
-football/
-  config.py        target leagues/seasons, API config, .env key loader
-  client.py        cache-first API-Football client (Layer 1)
-  collect.py       fetch fixtures, squads, bios, careers into data/raw/  (network)
-  collect_events.py  backfill the match-event timeline — separate run  (network)
-  parse.py         rebuild data/football.db from the cache  (offline)
-  models.py        SQLModel tables (Fixture, Player, SquadEntry, Event, …) + age_at
-  commands.py      registry of triggerable commands (role, description, params)  (ADR 0021)
-  ui/              local FastAPI + Jinja operator dashboard  (ADR 0021)
-  notebooks/       marimo exploration notebooks (explore, ligamx, worldcup, …)
-docs/adr/       architecture decision records
-CONTEXT.md      domain glossary (Competition, Season, Tournament, Appearance…)
-data/           raw cache + SQLite DB (git-ignored, regenerable)
+football/            the pipeline package — one package, one store (ADR 0011)
+  paths.py           every path, resolved from one anchor  (ADR 0031)
+  config.py          target leagues/seasons, API config, .env key loader
+  client.py          cache-first API-Football client (Layer 1)
+  fetch.py           the shared cache-first fetch helpers every stage uses
+  models.py          SQLModel tables (Fixture, Player, SquadEntry, Event, …) + age_at
+  commands.py        registry of triggerable commands (role, description, params)  (ADR 0021)
+  registry/          the committed Registries — competitions.json, venues.json
+  onboard/           admit a Competition to the registry, then collect it  (network)
+  collect/           backfill events, team stats, team profiles  (network)
+  build/             parse / scope / venues — cache to SQLite  (offline)
+  publish/           pg (wholesale) + delta — the Postgres Published Store
+console/         local FastAPI + Jinja Operator Console, :8000  (ADR 0021/0023)
+web/             the reader-facing Viewer, :8001, over its own serve.db  (ADR 0023)
+commentary/      ESPN Commentary Store  (ADR 0026)
+live/            provisional Live Mirror during a match  (ADR 0020)
+refresh/         nightly frontier Refresh  (ADR 0018)
+football_blog/   Editorial Store + match-report pipeline  (ADR 0029)
+notebooks/       marimo exploration notebooks (explore, ligamx, worldcup, …)
+scripts/         nightly.sh (the cron's one entrypoint) + preflight  (ADR 0032/0033)
+tests/           the silent-failure guards + a committed cache slice  (ADR 0033)
+docs/adr/        architecture decision records
+docs/reference/  background reference material
+CONTEXT.md       domain glossary (Competition, Season, Tournament, Appearance…)
+data/            raw cache + SQLite DB (git-ignored, regenerable)
 ```

@@ -5,7 +5,7 @@ instead of silently spending API quota. The DB is disposable: this drops and
 rebuilds every table on each run. Covers all teams for every season in
 config.SEASONS.
 
-Run with:  uv run python -m football.parse
+Run with:  uv run python -m football.build.parse
 """
 from __future__ import annotations
 
@@ -18,9 +18,10 @@ from pathlib import Path
 from sqlalchemy import func
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from . import config, fetch, venues
-from .client import CachedClient, QuotaExceeded
-from .models import (
+from .. import config, fetch
+from . import venues
+from ..client import CachedClient, QuotaExceeded
+from ..models import (
     Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team,
     TeamMatchStat, TeamProfile, Venue, age_at,
 )
@@ -221,7 +222,7 @@ def _fetch_bio(client: CachedClient, pid: int, season: int,
     Bios are cached by (player_id, season), but the season only guarantees a
     non-empty provider response at collection time — the biography itself
     (nationality, birth, height) is season-independent. A scoped build
-    (football.scope) computes a player's first-seen season from just its one
+    (football.build.scope) computes a player's first-seen season from just its one
     Competition, so it can differ from the season the full collection cached the bio
     under, leaving the exact (pid, season) file absent. Prefer the requested season,
     then fall back to any cached season's bio for that player, so a scoped row is as
@@ -415,7 +416,7 @@ def _build_venues(session: Session, client: CachedClient,
     ids must exist *before* those rows are parsed. provider_id is taken from the
     first fixture that exposes a non-null venue.id for the ground.
 
-    Ids come from the committed Venue registry (football.venues, ADR 0028), so the
+    Ids come from the committed Venue registry (football.build.venues, ADR 0028), so the
     same ground carries the same id in every store — no longer a 1..N enumeration
     that reshuffles when the venue set grows. `register=True` (a full or scoped
     football.db build) mints any new ground into the registry; `register=False`
@@ -451,7 +452,7 @@ def build(db_path: Path | None = None,
 
     Defaults rebuild the full store (config.DB_PATH, every config.targets()). Pass
     a db_path and a filtered targets list to extract a single Competition into its
-    own SQLite file from the same raw cache (football.scope) — the pipeline is
+    own SQLite file from the same raw cache (football.build.scope) — the pipeline is
     identical, only the output file and the (competition, season) set differ.
 
     `register=False` builds read-only against the Venue registry (ADR 0028): the

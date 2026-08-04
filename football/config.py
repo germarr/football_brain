@@ -42,7 +42,7 @@ COLLECT_CAREERS = True
 # league "Serie A"). `calendar_year` labels single-year seasons (Brasileirão 2024)
 # vs straddling ones ("2024/25"); `type` is "league" or "cup" (ADR 0010) and both
 # default sensibly when a hand-added entry omits them. Add a competition or a season
-# by editing that file (or let `football.orchestrate`/`.cups` upsert into it).
+# by editing that file (or let `football.onboard.orchestrate`/`.cups` upsert into it).
 
 
 def _load_competitions() -> list[dict]:
@@ -102,7 +102,7 @@ DEFAULT_TEAM_ID = 529
 DEFAULT_TEAM_NAME = "FC Barcelona"
 
 # --- continent (docs/adr/0016) ---------------------------------------------
-# Country -> continent, extracted from context/leagues-by-continent.md (the
+# Country -> continent, extracted from docs/reference/leagues-by-continent.md (the
 # API /leagues catalogue grouped by continent). Grouped by continent for
 # readability, inverted into COUNTRY_CONTINENT below. The provider gives no
 # continent field, so this static table derives it from a Competition's

@@ -2,7 +2,7 @@
 
 Watch an **in-progress** match's timeline update, minute by minute, without
 disturbing the rest of the pipeline. Every other collector in this project
-(`football.orchestrate`, `football.cups`, `football.collect`, and the nightly
+(`football.onboard.orchestrate`, `football.onboard.cups`, the `football.collect.*` backfills, and the nightly
 `refresh`) is **cache-first**: a fixture's per-match data is fetched **once ever**
 and then frozen. `live/` is the deliberate **opposite** — it hits the provider
 **live every cycle** and *overwrites* what it fetched last time.
@@ -63,7 +63,7 @@ It takes **explicit fixture ids** — the matches you want to watch. The poll ru
 **unbounded loop** until every watched fixture reaches a terminal status, then exits on
 its own (`All watched fixtures finished. Live Poll exiting.`).
 
-You can also trigger it from the **operator dashboard** (`football.ui`): the *Live* group
+You can also trigger it from the **Operator Console** (`console`): the *Live* group
 has a **Live-poll a match** card whose form is pre-filled with this week's fixtures
 (registered in [`football/commands.py`](../football/commands.py) as `module="live.poll"`).
 The dashboard spawns exactly the same `python -m live.poll …` command as a background job
@@ -147,20 +147,20 @@ section).
 
 ```
                           cache-first, once-ever                    live, every 60s
-  API-Football  ──►  football.collect / orchestrate / cups  ──►  data/football.db     (authoritative)
+  API-Football  ──►  football.onboard.* / football.collect.*  ──►  data/football.db  (authoritative)
         │                        + nightly `refresh` (heals Finals)   data/<slug>.db
         │
         └──────────────────►  live.poll  ──►  live/live.db  (provisional, in-play only)
                                    ▲                 │
-                       reuses football.models        └──►  read by football/notebooks/match_story.py
+                       reuses football.models        └──►  read by notebooks/match_story.py
                        + parse._parse_fixture/_event        (set live=True)
 ```
 
 - **Schema-compatible by construction.** `poll.py` imports `football.models` (`Event`,
-  `Fixture`, `Player`) and `football.parse`'s `_parse_fixture` / `_parse_event` /
+  `Fixture`, `Player`) and `football.build.parse`'s `_parse_fixture` / `_parse_event` /
   `_is_shootout_kick`. So a reader built for the main store points at `live.db` **unchanged** —
   same table names, same columns, same parsing rules.
-- **`match_story.py` drops straight onto it.** The [`match_story`](../football/notebooks/match_story.py)
+- **`match_story.py` drops straight onto it.** The [`match_story`](../notebooks/match_story.py)
   marimo notebook has a `live` toggle: set `live=True` and its `db_path` switches from
   `data/world-cup.db` to `live/live.db`. The **headline and timeline light up for an
   in-progress match**; the squad, team-stats and Man-of-the-Match sections have no data in the

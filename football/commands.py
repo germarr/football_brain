@@ -4,7 +4,7 @@ triggerable pipeline command (ADR 0021).
 Each `Command` records a script's role (`group`), a human `summary`/`detail` of
 what it accomplishes, the module invoked as `python -m <module>`, and its typed
 `params`. The terminal keeps calling `python -m <module>` directly and needs
-nothing here; the operator dashboard (`football.ui`) reads this registry to render
+nothing here; the Operator Console (`console`) reads this registry to render
 its trigger sections and to build the exact same argv as a background subprocess.
 
 Adding a command to the UI = adding an entry here. That's the deliberate cost of
@@ -15,12 +15,23 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 
-# The operator-facing groups (ADR 0021; ADR 0023 dropped Live, added Publish).
-# Order is display order. The Live Poll launcher moved to the Viewer's Match Tracker
-# page (ADR 0023). Publish covers both derived read stores: the Viewer's serving copy
-# (ADR 0023) and the remote Postgres Published Store (ADR 0027) — the latter is the one
-# command here that never touches football.db, deriving from the raw cache instead.
-GROUPS = ["Collect", "Build", "Refresh", "Publish"]
+# The operator-facing groups (ADR 0021; ADR 0023 dropped Live, added Publish; ADR 0031
+# split Collect and added Control). Order is display order.
+#
+# Onboard admits an entity to a Registry so every later recurring job covers it;
+# Backfill bulk-fetches Seasons into the raw cache and admits nothing. They were one
+# group until ADR 0031, but they fail differently: a backfill cut short resumes for
+# free, while an entity that was never onboarded is covered by nothing (CONTEXT.md).
+#
+# Publish covers both derived read stores: the Viewer's serving copy (ADR 0023) and the
+# remote Postgres Published Store (ADR 0027) — the latter is the one command here that
+# never touches football.db, deriving from the raw cache instead.
+#
+# Control is the Operator Console, and it is the one group with NO entry below: the
+# Console renders this registry, so it cannot invoke itself. It is named so the role
+# table is complete and the Console is not mistaken for something that populates a
+# store. The Live Poll launcher moved to the Viewer's Match Tracker page (ADR 0023).
+GROUPS = ["Onboard", "Backfill", "Build", "Refresh", "Publish", "Control"]
 
 
 @dataclass
@@ -113,10 +124,10 @@ def _collect_flags() -> list[Param]:
 
 
 COMMANDS: list[Command] = [
-    # --- Collect (network — spends API quota) ------------------------------
+    # --- Onboard / Backfill (network — spends API quota) ------------------------------
     Command(
-        key="orchestrate", group="Collect", title="Add / re-collect a league",
-        module="football.orchestrate",
+        key="orchestrate", group="Onboard", title="Add / re-collect a league",
+        module="football.onboard.orchestrate",
         summary="Collect one league end-to-end and register it as a Competition.",
         detail="Fixtures, squads, bios, careers, team profiles, events and team "
                "stats for the given provider league id, then rebuild football.db and "
@@ -137,8 +148,8 @@ COMMANDS: list[Command] = [
         ],
     ),
     Command(
-        key="cups", group="Collect", title="Add / re-collect a cup",
-        module="football.cups",
+        key="cups", group="Onboard", title="Add / re-collect a cup",
+        module="football.onboard.cups",
         summary="Collect one cup-type Competition (tags group/knockout phases).",
         detail="Like the league orchestrator but for cups (Champions League id 2, "
                "World Cup id 1). Refuses a non-cup id. Rebuilds football.db at the end, "
@@ -161,8 +172,8 @@ COMMANDS: list[Command] = [
     # (ADR 0007) or team stats (ADR 0010), and none of the registered competitions was
     # collected through it. Its shared fetch helpers survive as football/fetch.py.
     Command(
-        key="collect_events", group="Collect", title="Backfill event timeline",
-        module="football.collect_events",
+        key="collect_events", group="Backfill", title="Backfill event timeline",
+        module="football.collect.events",
         summary="Fetch the goal/card/sub/VAR timeline (fixtures/events) for every fixture.",
         detail="Separate, day-long run (~20.8k calls, ADR 0007). Cache-first and "
                "resumable; the daily quota stops it cleanly. Writes the raw cache only.",
@@ -174,8 +185,8 @@ COMMANDS: list[Command] = [
         network=True, long_running=True,
     ),
     Command(
-        key="collect_stats", group="Collect", title="Backfill team match stats",
-        module="football.collect_stats",
+        key="collect_stats", group="Backfill", title="Backfill team match stats",
+        module="football.collect.stats",
         summary="Fetch per-team match aggregates (possession, shots, xG).",
         detail="Separate resumable backfill of fixtures/statistics into the raw "
                "cache. Run a Build afterwards to surface it in football.db.",
@@ -187,8 +198,8 @@ COMMANDS: list[Command] = [
         network=True, long_running=True,
     ),
     Command(
-        key="teams", group="Collect", title="Enrich team profiles",
-        module="football.teams",
+        key="teams", group="Backfill", title="Enrich team profiles",
+        module="football.collect.teams",
         summary="Build the Team Profile directory for every team a career touches.",
         detail="Resolves each career team's identity and representative league "
                "(ADR 0017), then rebuilds football.db unless told not to.",
@@ -207,7 +218,7 @@ COMMANDS: list[Command] = [
     # --- Build (offline — no network) --------------------------------------
     Command(
         key="parse", group="Build", title="Rebuild football.db",
-        module="football.parse",
+        module="football.build.parse",
         summary="Re-model the raw cache into data/football.db (drops & rebuilds all tables).",
         detail="Offline, no network. A cache miss fails loudly rather than spending "
                "quota, so it is safe to run repeatedly.",
@@ -220,7 +231,7 @@ COMMANDS: list[Command] = [
     ),
     Command(
         key="scope", group="Build", title="Extract / delete a single-competition DB",
-        module="football.scope",
+        module="football.build.scope",
         summary="Build data/<slug>.db for one tracked Competition from the shared cache.",
         detail="Zero-API re-parse of one already-collected Competition into its own "
                "SQLite file (ADR 0011). Use Delete to remove that scoped DB.",
@@ -291,7 +302,7 @@ COMMANDS: list[Command] = [
     ),
     Command(
         key="publish_pg", group="Publish", title="Publish the Postgres Published Store",
-        module="football.publish_pg",
+        module="football.publish.pg",
         summary="Rebuild the remote Postgres replica: selected Competitions + all commentary.",
         detail="Zero-API re-parse of the chosen Competitions from the raw cache, plus a clone "
                "of the whole ESPN commentary store, bulk-loaded into Postgres and swapped "

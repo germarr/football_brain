@@ -1,7 +1,7 @@
 """Marimo notebook — explore La Liga & Liga MX (data/football.db).
 
-Run with:  uv run marimo edit football/notebooks/explore.py
-      or:   uv run marimo run  football/notebooks/explore.py   (read-only app)
+Run with:  uv run marimo edit notebooks/explore.py
+      or:   uv run marimo run  notebooks/explore.py   (read-only app)
 
 Pick a Competition, Season, and Tournament (Liga MX splits into Apertura /
 Clausura; La Liga has a single Regular Season). Reads Layer 2 (SQLite) only.
@@ -23,7 +23,7 @@ def _():
     from pathlib import Path
     from sqlalchemy import create_engine
 
-    # The notebook lives at football/notebooks/, so we can't hard-code a fixed
+    # The notebook's depth below the project root is not fixed, so we can't
     # number of .parent hops to the project root. Walk up from the file (or the
     # CWD when __file__ is undefined) until we find data/football.db.
     try:
@@ -69,7 +69,7 @@ def _():
     )
     # Match-event timeline (ADR 0007): one row per goal/card/sub/VAR, scoped to the
     # same Competition/Season/Tournament via the fixture join. Only fixtures that
-    # have been backfilled (football.collect_events) contribute rows, so a scope
+    # have been backfilled (football.collect.events) contribute rows, so a scope
     # can legitimately be empty — every events view below guards for that.
     events = pd.read_sql(
         """
@@ -279,8 +279,8 @@ def _(mo):
     Goals, cards, substitutions and VAR calls with the **minute** they
     happened, the **goal type** (normal / penalty / own goal), the **assist**
     behind each goal, and **added time**. Requires the events backfill
-    (`uv run python -m football.collect_events`, then rebuild with
-    `python -m football.parse`); scopes without cached events show a note.
+    (`uv run python -m football.collect.events`, then rebuild with
+    `python -m football.build.parse`); scopes without cached events show a note.
     """)
     return
 
@@ -292,8 +292,8 @@ def _(events_scope, mo, scored_goals):
         mo.callout(
             mo.md(
                 "**No events cached for this competition / season / tournament "
-                "yet.** Run `uv run python -m football.collect_events` to backfill "
-                "the timeline, then rebuild with `uv run python -m football.parse`."
+                "yet.** Run `uv run python -m football.collect.events` to backfill "
+                "the timeline, then rebuild with `uv run python -m football.build.parse`."
             ),
             kind="info",
         ),

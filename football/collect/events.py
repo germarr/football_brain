@@ -6,12 +6,12 @@ cap. Cache-first and resumable, so a stop (or hitting the daily cap) loses nothi
 and a re-run resumes for free. Fixture lists come from cache (already collected by
 `collect`), so the only live requests here are the events calls themselves.
 
-Run with:  uv run python -m football.collect_events
+Run with:  uv run python -m football.collect.events
 """
 from __future__ import annotations
 
-from . import config, fetch
-from .client import CachedClient, QuotaExceeded
+from .. import config, fetch
+from ..client import CachedClient, QuotaExceeded
 
 
 def collect_events() -> None:

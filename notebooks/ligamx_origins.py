@@ -14,7 +14,7 @@ def _():
     from pathlib import Path
     import duckdb
 
-    # The notebook lives at football/notebooks/, so we can't hard-code a fixed
+    # The notebook's depth below the project root is not fixed, so we can't
     # number of .parent hops to the project root. Walk up from the file (or the
     # CWD when __file__ is undefined) until we find data/football.db. We use the
     # full modeled store — not liga-mx.db — because a League of Origin is derived

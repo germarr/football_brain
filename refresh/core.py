@@ -47,7 +47,10 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import NamedTuple
 
-from football import config, fetch, orchestrate, parse, scope, teams
+from football import config, fetch
+from football.build import parse, scope
+from football.collect import teams
+from football.onboard import orchestrate
 from football.client import CachedClient, QuotaExceeded
 
 # A Fixture is Final (CONTEXT.md) — played to completion with per-fixture data to

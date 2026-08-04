@@ -31,9 +31,9 @@ PY=.venv/bin/python
 # cannot drift from where the data actually lands. This is the failure that used to be
 # silent: `git add` on a moved path adds nothing, `--quiet` is then true, and the
 # registry goes uncommitted for weeks without one error (ADR 0032).
-VENUES=$("$PY" -c 'from football import venues; print(venues.REGISTRY_FILE)') || exit 1
+VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE)') || exit 1
 
 "$PY" -m refresh >> refresh/logs/cron.out
-"$PY" -m football.publish_pg --heal-venues >> refresh/logs/heal.out 2>&1
+"$PY" -m football.publish.pg --heal-venues >> refresh/logs/heal.out 2>&1
 { git add "$VENUES"; git diff --cached --quiet || git commit -m "venues: nightly registry append [cron]"; } >> refresh/logs/venues.out 2>&1
 "$PY" -m web.publish >> web/logs/publish-cron.out 2>&1

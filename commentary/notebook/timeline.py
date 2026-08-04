@@ -27,7 +27,7 @@ def _():
             f"  python -m commentary.ingest https://www.espn.com/soccer/commentary/_/gameId/760514"
         )
 
-    # duckdb reads the SQLite file directly, same as football/notebooks/match_story.py
+    # duckdb reads the SQLite file directly, same as notebooks/match_story.py
     conn = duckdb.connect(str(db_path), read_only=True)
     return CATEGORY_NAMES, alt, conn, mo, pd
 

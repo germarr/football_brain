@@ -1,7 +1,7 @@
 # `refresh/` — the nightly Refresh job
 
 The recurring job that keeps the store current. Every other collector
-(`football.orchestrate`, `football.cups`, `football.collect`) is a **one-shot
+(`football.onboard.orchestrate`, `football.onboard.cups`) is a **one-shot
 backfill** — point it at a Competition, it fills the raw cache once, then stops.
 `refresh` is the only thing meant to run **again and again**, unattended, from cron.
 
@@ -204,8 +204,8 @@ Then collect it. Either is fine:
 
 ```bash
 uv run python -m refresh                        # next run picks 2026 as current, backfills its Finals so far, rebuilds
-uv run python -m football.orchestrate 140       # heavier one-shot backfill of the whole new season, then rebuild
-uv run python -m football.cups <id>             # for a cup, use the cups collector instead
+uv run python -m football.onboard.orchestrate 140       # heavier one-shot backfill of the whole new season, then rebuild
+uv run python -m football.onboard.cups <id>             # for a cup, use the cups collector instead
 ```
 
 Use `orchestrate` (or `cups`) if you want the new season's already-played matches pulled in

@@ -9,10 +9,10 @@ Published Store **without a football.db rebuild** — the reason it works is tha
      cache-first read would freeze it, so a match played since the last run would never
      surface) and collect per-fixture data for the newly-**Final** matches into the raw
      cache. Seconds. It deliberately skips the minutes-long football.db rebuild.
-  2. **Publish** — by default a **delta** (ADR 0028): `publish_pg.delta_publish` re-parses only
+  2. **Publish** — by default a **delta** (ADR 0028): `pg.delta_publish` re-parses only
      the selected Competitions' current Season from the fresh cache and applies just the Finals
      whose data changed since the last publish, against the live Postgres tables. Sub-second and
-     additive. `--full` instead runs the wholesale replace (`publish_pg.publish`) — the reset used
+     additive. `--full` instead runs the wholesale replace (`pg.publish`) — the reset used
      for first migration, a venue-registry re-baseline, or dropping a provider-retracted Final.
 
 The cost of skipping the rebuild is that `data/football.db` (and the Viewer) stay stale
@@ -31,11 +31,11 @@ frozen in the cache until the next full `python -m refresh`, which force-refresh
 self-heals them — so nothing is lost, only deferred to that run's expense instead of this one.
 
 Run:
-    uv run python -m football.refresh_pg               # Liga MX + MLS delta (the default pair)
-    uv run python -m football.refresh_pg 262 253 71    # ... plus Brasileirao
-    uv run python -m football.refresh_pg --full        # wholesale replace (reset / re-baseline)
-    uv run python -m football.refresh_pg --all         # publish every tracked Competition (delta)
-    uv run python -m football.refresh_pg --skip-refresh 262 253   # publish only, no refresh
+    uv run python -m football.publish.delta               # Liga MX + MLS delta (the default pair)
+    uv run python -m football.publish.delta 262 253 71    # ... plus Brasileirao
+    uv run python -m football.publish.delta --full        # wholesale replace (reset / re-baseline)
+    uv run python -m football.publish.delta --all         # publish every tracked Competition (delta)
+    uv run python -m football.publish.delta --skip-refresh 262 253   # publish only, no refresh
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ import time
 
 import refresh
 
-from . import publish_pg
+from . import pg
 
 
 def run(league_ids: list[int] | None = None, use_all: bool = False,
@@ -66,7 +66,7 @@ def run(league_ids: list[int] | None = None, use_all: bool = False,
         # --all publishes everything, so it refreshes everything (no --only).
         refresh_argv = ["--no-rebuild"]
         if not use_all:
-            scoped = [str(lid) for lid in (league_ids or publish_pg.DEFAULT_LEAGUE_IDS)]
+            scoped = [str(lid) for lid in (league_ids or pg.DEFAULT_LEAGUE_IDS)]
             refresh_argv += ["--only", *scoped]
         try:
             refresh.main(refresh_argv)
@@ -83,19 +83,19 @@ def run(league_ids: list[int] | None = None, use_all: bool = False,
     label = "wholesale replace" if full else "delta"
     print(f"━━ Step 2/2 · Publishing to the Postgres Published Store ({label}) ━━\n")
     if full:
-        return publish_pg.publish(league_ids, use_all)
-    return publish_pg.delta_publish(league_ids, use_all)
+        return pg.publish(league_ids, use_all)
+    return pg.delta_publish(league_ids, use_all)
 
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.refresh_pg",
+        prog="python -m football.publish.delta",
         description="Refresh the current-Season frontier into the cache, then publish "
                     "selected Competitions to Postgres (ADR 0018 + ADR 0027).",
     )
     ap.add_argument("league_ids", type=int, nargs="*",
                     help=f"provider league ids to publish (default: "
-                         f"{' '.join(map(str, publish_pg.DEFAULT_LEAGUE_IDS))} "
+                         f"{' '.join(map(str, pg.DEFAULT_LEAGUE_IDS))} "
                          "— Liga MX, Major League Soccer)")
     ap.add_argument("--all", action="store_true",
                     help="publish every tracked Competition instead")

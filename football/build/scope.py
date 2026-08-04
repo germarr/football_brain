@@ -1,10 +1,10 @@
 """Build (or delete) a single-competition SQLite DB from the raw cache (no network).
 
-`football.parse` builds one football.db holding every Competition. This extracts
+`football.build.parse` builds one football.db holding every Competition. This extracts
 ONE Competition into its own data/<slug>.db — e.g. just the Premier League — by
 re-parsing only that competition's fixtures out of the shared raw cache. Like
 parse, it uses a cache-only client, so it never spends API quota: the data must
-already be collected (via football.orchestrate / football.collect); an uncollected
+already be collected (via football.onboard.orchestrate / football.onboard.cups); an uncollected
 competition errors out with the command to collect it.
 
 Career Stints are kept in full — a player's whole cross-competition career, faithful
@@ -12,8 +12,8 @@ to CONTEXT.md — so this DB's playerteam table carries team ids/names that are
 deliberately not in its own (single-competition) team table.
 
 Run with:
-    uv run python -m football.scope 39            # build data/premier-league.db
-    uv run python -m football.scope 39 --delete   # remove it (raw cache untouched)
+    uv run python -m football.build.scope 39            # build data/premier-league.db
+    uv run python -m football.build.scope 39 --delete   # remove it (raw cache untouched)
 """
 from __future__ import annotations
 
@@ -22,8 +22,9 @@ import re
 import unicodedata
 from pathlib import Path
 
-from . import config, fetch, parse
-from .client import CachedClient, QuotaExceeded
+from .. import config, fetch
+from . import parse
+from ..client import CachedClient, QuotaExceeded
 
 
 def _slugify(name: str) -> str:
@@ -50,7 +51,7 @@ def _competition(league_id: int) -> dict:
             return c
     raise SystemExit(
         f"League {league_id} is not a known Competition. Collect it first with:\n"
-        f"    uv run python -m football.orchestrate {league_id}"
+        f"    uv run python -m football.onboard.orchestrate {league_id}"
     )
 
 
@@ -90,7 +91,7 @@ def _build(league_id: int) -> None:
     if not targets:
         raise SystemExit(
             f"No cached fixtures for {comp['name']} (id {league_id}). Collect it with:\n"
-            f"    uv run python -m football.orchestrate {league_id}"
+            f"    uv run python -m football.onboard.orchestrate {league_id}"
         )
     seasons = [s for _, _, s in targets]
     print(f"Scoping {comp['name']} (id {league_id}) -> {db_path.relative_to(config.ROOT)}")
@@ -116,7 +117,7 @@ def _delete(league_id: int) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.scope",
+        prog="python -m football.build.scope",
         description="Build (or delete) a single-competition SQLite DB from the raw cache.",
     )
     ap.add_argument("league_id", type=int,

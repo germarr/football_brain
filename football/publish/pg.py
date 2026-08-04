@@ -32,9 +32,9 @@ meanings under rows still pointing at the old numbering, and would never delete 
 provider has retracted. Wholesale replacement is the only sound refresh.
 
 Run:
-    uv run python -m football.publish_pg                # Liga MX + MLS (the default pair)
-    uv run python -m football.publish_pg 262 253 71     # ... plus Brasileirao
-    uv run python -m football.publish_pg --all          # every tracked Competition
+    uv run python -m football.publish.pg                # Liga MX + MLS (the default pair)
+    uv run python -m football.publish.pg 262 253 71     # ... plus Brasileirao
+    uv run python -m football.publish.pg --all          # every tracked Competition
 """
 from __future__ import annotations
 
@@ -52,9 +52,10 @@ from sqlmodel import SQLModel, create_engine
 from commentary.store import DB_PATH as COMMENTARY_DB
 from commentary.store import SCHEMA as COMMENTARY_SCHEMA
 
-from . import config, fetch, parse, scope, venues
-from . import models  # noqa: F401 — importing models registers the schema
-from .client import CachedClient
+from .. import config, fetch
+from ..build import parse, scope, venues
+from .. import models  # noqa: F401 — importing models registers the schema
+from ..client import CachedClient
 
 # The Competitions a bare run publishes: Liga MX (262) + Major League Soccer (253).
 DEFAULT_LEAGUE_IDS = [262, 253]
@@ -93,7 +94,7 @@ def _competitions(league_ids: list[int] | None, use_all: bool) -> list[dict]:
 def _targets(comps: list[dict]) -> list[tuple[int, str, int]]:
     """(league_id, name, season) for every cached season across ALL the Competitions.
 
-    Reuses football.scope's per-Competition cache probe, so a partially collected
+    Reuses football.build.scope's per-Competition cache probe, so a partially collected
     Competition publishes the seasons it does have and reports the rest — the same
     behaviour a scoped build has (ADR 0011).
     """
@@ -357,7 +358,7 @@ def delta_publish(league_ids: list[int] | None = None, use_all: bool = False) ->
             with psycopg.connect(url, connect_timeout=30) as pg:
                 if not pg.execute("SELECT to_regclass('public.fixture')").fetchone()[0]:
                     raise SystemExit("No Published Store yet — run a full publish first:\n"
-                                     "    uv run python -m football.publish_pg")
+                                     "    uv run python -m football.publish.pg")
                 _ensure_stamp_table(pg)
                 stamps = {fid: col for fid, col in
                           pg.execute(f"SELECT fixture_id, collected FROM public.{STAMP_TABLE}").fetchall()}
@@ -522,7 +523,7 @@ def publish(league_ids: list[int] | None = None, use_all: bool = False) -> dict[
     if not targets:
         raise SystemExit(
             "No cached fixtures for any requested Competition. Collect one first with:\n"
-            f"    uv run python -m football.orchestrate {comps[0]['league_id']}"
+            f"    uv run python -m football.onboard.orchestrate {comps[0]['league_id']}"
         )
     print(f"\n  {len(targets)} (competition, season) target(s) in cache\n")
 
@@ -545,7 +546,7 @@ def publish(league_ids: list[int] | None = None, use_all: bool = False) -> dict[
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.publish_pg",
+        prog="python -m football.publish.pg",
         description="Publish selected Competitions to the Postgres Published Store (ADR 0027).",
     )
     ap.add_argument("league_ids", type=int, nargs="*",

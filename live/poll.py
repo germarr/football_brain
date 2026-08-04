@@ -27,7 +27,7 @@ from sqlmodel import Field, Session, SQLModel, create_engine, delete, select
 
 from football import config
 from football.models import Event, Fixture, Player
-from football.parse import _is_shootout_kick, _parse_event, _parse_fixture
+from football.build.parse import _is_shootout_kick, _parse_event, _parse_fixture
 
 DB_PATH = Path(__file__).resolve().parent / "live.db"
 

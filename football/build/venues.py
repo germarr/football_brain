@@ -28,7 +28,7 @@ import fcntl
 import json
 from typing import Iterable
 
-from . import paths
+from .. import paths
 
 # The identity of a ground, matching parse._venue_key: its name plus city (city may be
 # null, which disambiguates same-named stadiums in different cities).
@@ -97,8 +97,9 @@ def seed_from_cache() -> dict[VenueKey, int]:
     sorted `1..N` map over the union, matching what a full `football.db` build would assign.
     Idempotent: re-running only appends genuinely new grounds. Zero API (cache-only reads).
     """
-    from . import config, fetch, scope
-    from .client import CachedClient
+    from .. import config, fetch
+    from . import scope
+    from ..client import CachedClient
     from .parse import _venue_key
 
     probe = CachedClient(max_live_requests=0)

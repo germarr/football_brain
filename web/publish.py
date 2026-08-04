@@ -4,7 +4,7 @@ A zero-API DB→DB copy: open the authoritative `data/football.db` read-only and
 small, schema-identical slice into a fresh `serve.db` — everything the Viewer renders
 and nothing else. It writes `serve.db.tmp` and then **atomically renames** it over
 `serve.db`, so a reader never sees a half-written store (the blue-green swap of ADR
-0023). This is distinct from `football.scope` (which re-parses a Competition from the
+0023). This is distinct from `football.build.scope` (which re-parses a Competition from the
 *raw cache*, ADR 0011): publish never re-parses and never hits the API — it clones from
 the already-built authoritative store, exactly "cloned, not pulled".
 

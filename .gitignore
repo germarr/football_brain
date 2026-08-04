@@ -37,7 +37,7 @@ live/live.db
 
 # Operator dashboard runtime logs (ADR 0021): per-trigger subprocess logs.
 # The football/ui/ code is tracked; only the captured job logs are ignored.
-football/ui/logs/
+console/logs/
 
 # Viewer serving store + runtime (ADR 0023): serve.db is a re-derivable daily slice
 # of football.db (rebuild via `python -m web.publish`); logs are live-poll subprocess

@@ -32,7 +32,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import commands, config
+from football import commands, config
 
 NY = zoneinfo.ZoneInfo("America/New_York")
 

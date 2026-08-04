@@ -7,8 +7,8 @@ sourced from the API-Football provider. (FC Barcelona is the default view for
 exploration, not a data boundary.)
 
 The modeled store is one SQLite file, `data/football.db`, holding every
-Competition (`football.parse`). A single Competition can be extracted into its own
-`data/<slug>.db` from the same raw cache with `python -m football.scope <id>` (and
+Competition (`football.build.parse`). A single Competition can be extracted into its own
+`data/<slug>.db` from the same raw cache with `python -m football.build.scope <id>` (and
 removed with `--delete`) — a zero-API re-parse, so it needs the data already
 collected (ADR 0011).
 
@@ -69,7 +69,7 @@ later **Refresh**, parse and publish includes the entity without being told agai
 Onboarding is not **backfilling**. A backfill bulk-fetches an entity's Seasons into
 the raw cache; it is resumable, quota-bound, and admits nothing. Onboarding is the
 decision, backfilling the labour that follows — one command may do both
-(`football.orchestrate` registers a Competition and then collects it) — but they fail
+(`football.onboard.orchestrate` registers a Competition and then collects it) — but they fail
 differently, and that is why they are named apart: a backfill cut short resumes for
 free, while an entity that was never onboarded is covered by nothing, however much of
 its data already sits in the cache.

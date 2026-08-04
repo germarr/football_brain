@@ -1,7 +1,7 @@
 """Process-wide Postgres singleton. psycopg 3, autocommit read-only.
 
 Connects via **`FOOTBALL_DATABASE_URL`**, never the bare `PG*` vars — the same
-rule `football.publish_pg` follows, and for the same reason (see
+rule `football.publish.pg` follows, and for the same reason (see
 `football.config.load_pg_url`): this project's `.env` defines `PGHOST/PGPORT/
 PGUSER/PGPASSWORD/PGDATABASE` **twice**, once for the YouTube store
 (`content_analysis`) and once for the Published Store (`football_prod`). The
@@ -42,7 +42,7 @@ def _assert_published_store(conn: psycopg.Connection) -> None:
         f"    Check FOOTBALL_DATABASE_URL in the project-root .env: it must point at "
         f"the football database, not the YouTube one.\n"
         f"    If the store has never been published, run: "
-        f"uv run python -m football.publish_pg"
+        f"uv run python -m football.publish.pg"
     )
 
 

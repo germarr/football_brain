@@ -259,7 +259,7 @@ def verify_fixture_pg(fixture_id: int, match: dict, *, force: bool = False) -> d
         raise FixtureMismatch(
             f"fixture_id {fixture_id} is not in the Published Store either. Either it "
             f"is a typo, or its Competition has never been published to Postgres — "
-            f"publish it first (`uv run python -m football.refresh_pg <league_id>`), "
+            f"publish it first (`uv run python -m football.publish.delta <league_id>`), "
             f"or omit --fixture-id to ingest this match unlinked."
         )
 

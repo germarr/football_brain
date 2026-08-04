@@ -32,7 +32,7 @@ def test_competition_registry_is_a_non_empty_list():
 
 
 def test_venue_registry_is_a_non_empty_list():
-    from football import venues
+    from football.build import venues
 
     entries = json.loads(Path(venues.REGISTRY_FILE).read_text())
     assert isinstance(entries, list) and entries
@@ -42,7 +42,7 @@ def test_venue_registry_is_a_non_empty_list():
 def test_venue_ids_are_unique_and_stable():
     """Append-only, `max(id)+1`: a duplicate id would silently collapse two grounds
     into one across every store built from the registry (ADR 0028)."""
-    from football import venues
+    from football.build import venues
 
     entries = json.loads(Path(venues.REGISTRY_FILE).read_text())
     ids = [e["id"] for e in entries]
@@ -54,7 +54,7 @@ def test_venue_ids_are_unique_and_stable():
 def test_missing_registry_is_reported_not_silently_empty(monkeypatch, tmp_path):
     """The guard must bite. `venues.load()` returning `{}` for an absent file is the
     library's documented behaviour; the point is that the *check* refuses to shrug."""
-    from football import venues
+    from football.build import venues
 
     monkeypatch.setattr(venues, "REGISTRY_FILE", tmp_path / "gone.json")
     problems = preflight.check_registries()
@@ -63,7 +63,7 @@ def test_missing_registry_is_reported_not_silently_empty(monkeypatch, tmp_path):
 
 
 def test_empty_registry_file_is_reported(monkeypatch, tmp_path):
-    from football import venues
+    from football.build import venues
 
     empty = tmp_path / "venues.json"
     empty.write_bytes(b"")

@@ -1,10 +1,10 @@
 """Collect one cup (group + knockout) end to end from a single command (ADR 0010).
 
-Like `football.orchestrate`, but for cup-type Competitions such as the Champions
+Like `football.onboard.orchestrate`, but for cup-type Competitions such as the Champions
 League (id 2) and the World Cup (id 1). A cup is one Tournament per Season played
 over qualifying → group → knockout Phases, so this:
   1. looks the id up in /leagues and refuses anything the provider doesn't call a
-     Cup (use `football.orchestrate` for leagues),
+     Cup (use `football.onboard.orchestrate` for leagues),
   2. registers it as a `type="cup"` Competition in football/competitions.json so
      parse.py tags each Fixture's Phase and future runs keep collecting it,
   3. hands off to the shared, Coverage-gated collector (`orchestrate._collect`,
@@ -18,23 +18,23 @@ it simply spends what is left of the day's budget and resumes for free after a
 stop. If cut short the DB is left untouched and resume instructions are printed.
 
 Run with:
-    uv run python -m football.cups 2                  # Champions League
-    uv run python -m football.cups 1 --calendar-year  # World Cup (single-year seasons)
-    uv run python -m football.cups 2 --from 2015 --no-rebuild
+    uv run python -m football.onboard.cups 2                  # Champions League
+    uv run python -m football.onboard.cups 1 --calendar-year  # World Cup (single-year seasons)
+    uv run python -m football.onboard.cups 2 --from 2015 --no-rebuild
 """
 from __future__ import annotations
 
 import argparse
 
 from . import orchestrate
-from .client import CachedClient, QuotaExceeded
+from ..client import CachedClient, QuotaExceeded
 
 
 # --- entrypoint ------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.cups",
+        prog="python -m football.onboard.cups",
         description="Collect one cup (group + knockout) end to end and register it.",
     )
     ap.add_argument("league_id", type=int,
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> None:
     if record["league"]["type"].lower() != "cup":
         raise SystemExit(
             f"League {args.league_id} ({record['league']['name']}) is a "
-            f"{record['league']['type']!r}, not a Cup. Use `football.orchestrate` for leagues."
+            f"{record['league']['type']!r}, not a Cup. Use `football.onboard.orchestrate` for leagues."
         )
     name = orchestrate._resolve_name(args.league_id, record, args.name)
     seasons = orchestrate._seasons(record, args.from_season, args.to_season)
@@ -98,11 +98,11 @@ def main(argv: list[str] | None = None) -> None:
           f"live {client.live_requests} / cached {client.cache_hits} requests.")
 
     if args.no_rebuild:
-        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.parse` "
+        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.build.parse` "
               "when ready.")
         return
 
-    from . import parse
+    from ..build import parse
     print("\n▶ Rebuilding football.db from the raw cache …")
     parse.build()
 

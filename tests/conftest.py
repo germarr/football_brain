@@ -54,7 +54,7 @@ def temp_venue_registry(tmp_path, monkeypatch) -> Path:
     `_LOCK_FILE` is derived from `REGISTRY_FILE` at import, so both must be patched —
     miss the second and the test takes a lock beside the real registry.
     """
-    from football import venues
+    from football.build import venues
 
     registry = tmp_path / "venues.json"
     monkeypatch.setattr(venues, "REGISTRY_FILE", registry)

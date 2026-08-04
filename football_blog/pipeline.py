@@ -75,7 +75,7 @@ import requests
 
 import refresh
 from commentary import ingest as commentary_ingest
-from football import publish_pg
+from football.publish import pg as publish_pg
 from football.config import DB_PATH as FOOTBALL_DB
 
 from . import draft
@@ -204,7 +204,7 @@ def preflight(fixture_id: int, espn_id: Optional[str], *, dry_run: bool,
     if published_count == 0:
         print(f"  ⚠ {league_name} has no Fixtures in the Published Store yet. The delta in\n"
               f"    step 3 publishes the current Season only; for its full history run\n"
-              f"    `uv run python -m football.publish_pg <all league ids you want kept>`\n"
+              f"    `uv run python -m football.publish.pg <all league ids you want kept>`\n"
               f"    (a wholesale publish is destructive by omission — list them all).")
 
     return league_id, league_name, publication, pb
@@ -223,7 +223,7 @@ def stage_refresh(league_id: int) -> None:
         # Refresh exits non-zero on a hit quota or a bad Competition, but the cache
         # is internally consistent even after a partial run (ADR 0018). Warn and
         # carry on rather than block the draft on an incomplete frontier — exactly
-        # what football.refresh_pg does for the same reason.
+        # what football.publish.delta does for the same reason.
         if e.code:
             print(f"\n⚠ Refresh exited non-zero (code {e.code}) — the cache holds whatever "
                   f"it collected; continuing with that.")
@@ -292,7 +292,7 @@ def assert_final(fixture_id: int) -> str:
         raise PipelineError(
             f"Fixture {fixture_id} still is not in the Published Store after the "
             f"publish. Its Competition may have no cached current Season — run\n"
-            f"    uv run python -m football.publish_pg <league ids>\n"
+            f"    uv run python -m football.publish.pg <league ids>\n"
             f"to baseline the store first."
         )
     status, home, away = row

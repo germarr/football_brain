@@ -8,9 +8,9 @@ only fills Layer 1 (the raw response cache) — `parse.build()` reads it, cache-
 build the `teamprofile` table.
 
 Two entry points:
-  - `enrich(...)` — the shared driver, called incrementally by football.orchestrate
+  - `enrich(...)` — the shared driver, called incrementally by football.onboard.orchestrate
     for the teams a single league run surfaces (cache-first, so repeats are free).
-  - `python -m football.teams` — the full sweep: read every career team from
+  - `python -m football.collect.teams` — the full sweep: read every career team from
     football.db, backfill any missing enrichment, then (unless --no-rebuild) rebuild
     the DB so the profiles land in SQLite.
 
@@ -18,8 +18,8 @@ Cache-first and quota-guarded like every other collector: a stop loses nothing a
 re-run resumes for free.
 
 Run with:
-    uv run python -m football.teams                 # full sweep + rebuild
-    uv run python -m football.teams --no-rebuild     # collect only
+    uv run python -m football.collect.teams                 # full sweep + rebuild
+    uv run python -m football.collect.teams --no-rebuild     # collect only
 """
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ import sys
 import time
 from collections.abc import Callable, Iterable
 
-from . import config, fetch
-from .client import CachedClient, QuotaExceeded
+from .. import config, fetch
+from ..client import CachedClient, QuotaExceeded
 
 _BAR_WIDTH = 28
 
@@ -98,7 +98,7 @@ def _career_and_known_teams(db_path) -> tuple[list[int], set[int]]:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.teams",
+        prog="python -m football.collect.teams",
         description="Backfill the Team Profile directory for every career team (ADR 0017).",
     )
     ap.add_argument("--no-rebuild", action="store_true",
@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> None:
     if not config.DB_PATH.exists():
         raise SystemExit(
             f"No {config.DB_PATH.relative_to(config.ROOT)} yet — run a collection + "
-            "`python -m football.parse` first so there are career teams to enrich."
+            "`python -m football.build.parse` first so there are career teams to enrich."
         )
 
     career, known = _career_and_known_teams(config.DB_PATH)
@@ -135,10 +135,10 @@ def main(argv: list[str] | None = None) -> None:
     print(f"\nEnrichment complete: live {client.live_requests} / cached {client.cache_hits} requests.")
 
     if args.no_rebuild:
-        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.parse` when ready.")
+        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.build.parse` when ready.")
         return
 
-    from . import parse
+    from ..build import parse
     print("\n▶ Rebuilding football.db from the raw cache …")
     parse.build()
 

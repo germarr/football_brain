@@ -10,7 +10,7 @@ Match Tracker — reading **only** its own stores, never `data/football.db`:
   - `live/live.db`  — the provisional Live Mirror (ADR 0020), the live overlay on the
     per-match page.
 
-`football.db` is written by the pipeline (`football.ui` Console) and read by exactly
+`football.db` is written by the pipeline (the `console` Operator Console) and read by exactly
 one thing, `web.publish`. No web UI reads it live.
 
 Launch the Viewer: `uv run python -m web`  (then open http://127.0.0.1:8001)

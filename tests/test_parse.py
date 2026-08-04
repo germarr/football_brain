@@ -37,7 +37,7 @@ def _counts(db_path) -> dict[str, int]:
 @pytest.fixture
 def built_db(carved_cache, temp_venue_registry, tmp_path):
     """One build, shared by the assertions below — it is the slow part of the suite."""
-    from football import parse
+    from football.build import parse
 
     db_path = tmp_path / "test.db"
     parse.build(db_path=db_path, targets=TARGETS, register=True)
@@ -95,7 +95,8 @@ def test_a_wrong_cache_path_fails_loudly(monkeypatch, temp_venue_registry, tmp_p
     risking a hollow rebuild, and a future change that gave the parser a live budget
     would turn this into exactly the silent failure the ADR feared.
     """
-    from football import config, parse
+    from football import config
+    from football.build import parse
     from football.client import QuotaExceeded
 
     monkeypatch.setattr(config, "RAW_DIR", tmp_path / "wrong-place")
@@ -113,7 +114,7 @@ def test_a_read_only_build_silently_yields_no_venues(
     success, and produces zero venues with every fixture's venue_id null. No error.
     Only a row count distinguishes it from a correct build.
     """
-    from football import parse
+    from football.build import parse
 
     db_path = tmp_path / "readonly.db"
     parse.build(db_path=db_path, targets=TARGETS, register=False)

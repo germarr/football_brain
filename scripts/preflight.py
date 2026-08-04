@@ -41,7 +41,7 @@ def check_registries() -> list[str]:
         ("Competition registry", lambda: __import__(
             "football.config", fromlist=["config"]).COMPETITIONS_FILE),
         ("Venue registry", lambda: __import__(
-            "football.venues", fromlist=["venues"]).REGISTRY_FILE),
+            "football.build.venues", fromlist=["venues"]).REGISTRY_FILE),
     ):
         try:
             path = Path(getter())

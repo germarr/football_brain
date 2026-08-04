@@ -47,7 +47,7 @@ class Venue(SQLModel, table=True):
     The provider's own venue.id is null in ~32% of fixtures and inconsistent for
     the same ground (one fixture carries it, another for the same stadium does
     not), so it cannot be the key. `id` is instead a surrogate keyed on (name, city)
-    and assigned once from the committed Venue registry (football.venues, ADR 0028):
+    and assigned once from the committed Venue registry (football.build.venues, ADR 0028):
     the same ground carries the same id in every store, so the additive delta publish
     can reference an existing venue without renumbering. This replaced an earlier 1..N
     per-build enumeration, which reshuffled every id whenever the venue set grew.

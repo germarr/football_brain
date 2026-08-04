@@ -8,13 +8,13 @@ nothing and a re-run resumes for free. Fixture lists come from cache (already
 collected by `collect`), so the only live requests here are the statistics calls
 themselves.
 
-Run with:  uv run python -m football.collect_stats
-Then rebuild:  uv run python -m football.parse
+Run with:  uv run python -m football.collect.stats
+Then rebuild:  uv run python -m football.build.parse
 """
 from __future__ import annotations
 
-from . import config, fetch
-from .client import CachedClient, QuotaExceeded
+from .. import config, fetch
+from ..client import CachedClient, QuotaExceeded
 
 
 def collect_stats() -> None:

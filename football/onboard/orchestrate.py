@@ -14,9 +14,9 @@ resumes for free. If collection is cut short, the DB is left untouched (never
 built from a half-collected league) and resume instructions are printed.
 
 Run with:
-    uv run python -m football.orchestrate 61
-    uv run python -m football.orchestrate 61 --name "Ligue 1" --from 2018
-    uv run python -m football.orchestrate 61 --no-events --no-rebuild
+    uv run python -m football.onboard.orchestrate 61
+    uv run python -m football.onboard.orchestrate 61 --name "Ligue 1" --from 2018
+    uv run python -m football.onboard.orchestrate 61 --no-events --no-rebuild
 """
 from __future__ import annotations
 
@@ -25,8 +25,9 @@ import json
 import sys
 from typing import NamedTuple
 
-from . import config, fetch, teams
-from .client import CachedClient, QuotaExceeded
+from .. import config, fetch
+from ..collect import teams
+from ..client import CachedClient, QuotaExceeded
 
 _BAR_WIDTH = 28
 
@@ -229,7 +230,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m football.orchestrate",
+        prog="python -m football.onboard.orchestrate",
         description="Collect one league end to end and register it as a Competition.",
     )
     ap.add_argument("league_id", type=int, help="provider league id, e.g. 61 (Ligue 1)")
@@ -286,13 +287,13 @@ def main(argv: list[str] | None = None) -> None:
           f"live {client.live_requests} / cached {client.cache_hits} requests.")
 
     if args.no_rebuild:
-        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.parse` "
+        print("Skipping DB rebuild (--no-rebuild). Run `python -m football.build.parse` "
               "when ready.")
         return
 
     # Rebuild the modeled store from cache (drops & rebuilds all leagues; the new
     # one is now a config target). Import here so the competitions-file write above is seen.
-    from . import parse
+    from ..build import parse
     print("\n▶ Rebuilding football.db from the raw cache …")
     parse.build()
 
