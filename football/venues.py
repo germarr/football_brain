@@ -97,7 +97,7 @@ def seed_from_cache() -> dict[VenueKey, int]:
     sorted `1..N` map over the union, matching what a full `football.db` build would assign.
     Idempotent: re-running only appends genuinely new grounds. Zero API (cache-only reads).
     """
-    from . import collect, config, scope
+    from . import config, fetch, scope
     from .client import CachedClient
     from .parse import _venue_key
 
@@ -105,7 +105,7 @@ def seed_from_cache() -> dict[VenueKey, int]:
     keys: set[VenueKey] = set()
     for comp in config.COMPETITIONS:
         for league_id, _name, season in scope._cached_targets(comp):
-            for fx in collect.fetch_fixtures(probe, league_id, season):
+            for fx in fetch.fetch_fixtures(probe, league_id, season):
                 key = _venue_key(fx)
                 if key is not None:
                     keys.add(key)

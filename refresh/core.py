@@ -47,7 +47,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import NamedTuple
 
-from football import collect, config, orchestrate, parse, scope, teams
+from football import config, fetch, orchestrate, parse, scope, teams
 from football.client import CachedClient, QuotaExceeded
 
 # A Fixture is Final (CONTEXT.md) — played to completion with per-fixture data to
@@ -303,7 +303,7 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
         new_fp = dict(prev_fp)
         if attempt["players"]:
             fp = _heal_get(client, "fixtures/players", {"fixture": fid})
-            blocks = collect.players_in_fixture(fp)
+            blocks = fetch.players_in_fixture(fp)
             if blocks or (season_cov["players"] and not recent):
                 new_fp["players"] = True
             for _, pblock in blocks:
@@ -351,11 +351,11 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
     #    so already-seen players and teams are free). Careers gate Team Profiles, both
     #    behind config.COLLECT_CAREERS to mirror the rest of the pipeline.
     for pid, season in sorted(player_season.items()):
-        collect.fetch_player(client, pid, season)  # biography
+        fetch.fetch_player(client, pid, season)  # biography
     if config.COLLECT_CAREERS and player_season:
         career_team_ids: set[int] = set()
         for pid in sorted(player_season):
-            for entry in collect.fetch_player_teams(client, pid):
+            for entry in fetch.fetch_player_teams(client, pid):
                 tid = (entry.get("team") or {}).get("id")
                 if tid:
                     career_team_ids.add(tid)

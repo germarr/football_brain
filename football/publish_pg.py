@@ -52,7 +52,7 @@ from sqlmodel import SQLModel, create_engine
 from commentary.store import DB_PATH as COMMENTARY_DB
 from commentary.store import SCHEMA as COMMENTARY_SCHEMA
 
-from . import collect, config, parse, scope, venues
+from . import config, fetch, parse, scope, venues
 from . import models  # noqa: F401 — importing models registers the schema
 from .client import CachedClient
 
@@ -427,7 +427,7 @@ def heal_venues(league_ids: list[int] | None = None, use_all: bool = False) -> d
     fx_key: dict[int, tuple[str, str | None]] = {}          # fixture id -> (name, city)
     provider: dict[tuple[str, str | None], int | None] = {}  # ground -> provider venue id
     for league_id, _name, season in _current_season_targets(comps):
-        for fx in collect.fetch_fixtures(probe, league_id, season):
+        for fx in fetch.fetch_fixtures(probe, league_id, season):
             key = parse._venue_key(fx)
             if key is None:
                 continue

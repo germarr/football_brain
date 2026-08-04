@@ -29,7 +29,7 @@ import sys
 import time
 from collections.abc import Callable, Iterable
 
-from . import collect, config
+from . import config, fetch
 from .client import CachedClient, QuotaExceeded
 
 _BAR_WIDTH = 28
@@ -73,9 +73,9 @@ def enrich(
     the number of teams processed before returning/raising."""
     ids = sorted({t for t in team_ids if t})
     for i, tid in enumerate(ids, 1):
-        collect.fetch_team(client, tid)
+        fetch.fetch_team(client, tid)
         if tid not in known_team_ids:
-            collect.fetch_team_leagues(client, tid)
+            fetch.fetch_team_leagues(client, tid)
         if on_progress:
             on_progress(i, len(ids))
     return len(ids)

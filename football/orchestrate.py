@@ -25,7 +25,7 @@ import json
 import sys
 from typing import NamedTuple
 
-from . import collect, config, teams
+from . import config, fetch, teams
 from .client import CachedClient, QuotaExceeded
 
 _BAR_WIDTH = 28
@@ -153,7 +153,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
     fixtures: list[tuple[int, dict, SeasonCoverage]] = []  # (season, fixture, coverage)
     fixture_team_ids: set[int] = set()
     for i, cov in enumerate(seasons, 1):
-        fx = collect.fetch_fixtures(client, league_id, cov.year)
+        fx = fetch.fetch_fixtures(client, league_id, cov.year)
         fixtures.extend((cov.year, f, cov) for f in fx)
         for f in fx:
             for side in ("home", "away"):
@@ -169,8 +169,8 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
     _banner(2, n_stages, "Squad & goals", f"{len(player_fixtures)} fixtures w/ player stats")
     player_season: dict[int, int] = {}
     for i, (season, f) in enumerate(player_fixtures, 1):
-        fp = collect.fetch_fixture_players(client, f["fixture"]["id"])
-        for _tid, pblock in collect.players_in_fixture(fp):
+        fp = fetch.fetch_fixture_players(client, f["fixture"]["id"])
+        for _tid, pblock in fetch.players_in_fixture(fp):
             pid = pblock["player"]["id"]
             if pid:
                 player_season.setdefault(pid, season)
@@ -181,7 +181,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
     players = sorted(player_season.items())
     _banner(3, n_stages, "Player bios", f"{len(players)} players")
     for j, (pid, season) in enumerate(players, 1):
-        collect.fetch_player(client, pid, season)
+        fetch.fetch_player(client, pid, season)
         _bar(j, max(len(players), 1), client)
 
     step = 3
@@ -192,7 +192,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
         step += 1
         _banner(step, n_stages, "Career histories", f"{len(players)} players")
         for j, (pid, _season) in enumerate(players, 1):
-            for entry in collect.fetch_player_teams(client, pid):
+            for entry in fetch.fetch_player_teams(client, pid):
                 tid = (entry.get("team") or {}).get("id")
                 if tid:
                     career_team_ids.add(tid)
@@ -211,7 +211,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
         step += 1
         _banner(step, n_stages, "Match events", f"{len(fixtures)} fixtures")
         for i, (_season, f, _cov) in enumerate(fixtures, 1):
-            collect.fetch_fixture_events(client, f["fixture"]["id"])
+            fetch.fetch_fixture_events(client, f["fixture"]["id"])
             _bar(i, max(len(fixtures), 1), client)
 
     # Stage 7 — team match stats (only seasons with fixture Coverage).
@@ -221,7 +221,7 @@ def _collect(client: CachedClient, league_id: int, seasons: list[SeasonCoverage]
         _banner(step, n_stages, "Team match stats",
                 f"{len(stat_fixtures)} fixtures w/ fixture stats")
         for i, f in enumerate(stat_fixtures, 1):
-            collect.fetch_fixture_statistics(client, f["fixture"]["id"])
+            fetch.fetch_fixture_statistics(client, f["fixture"]["id"])
             _bar(i, max(len(stat_fixtures), 1), client)
 
 

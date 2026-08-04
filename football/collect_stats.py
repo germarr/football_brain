@@ -13,7 +13,7 @@ Then rebuild:  uv run python -m football.parse
 """
 from __future__ import annotations
 
-from . import collect, config
+from . import config, fetch
 from .client import CachedClient, QuotaExceeded
 
 
@@ -22,10 +22,10 @@ def collect_stats() -> None:
     fixtures_done = 0
     try:
         for league_id, name, season in config.targets():
-            fixtures = collect.fetch_fixtures(client, league_id, season)
+            fixtures = fetch.fetch_fixtures(client, league_id, season)
             print(f"\n{name} {season}: {len(fixtures)} fixtures")
             for i, fx in enumerate(fixtures, 1):
-                collect.fetch_fixture_statistics(client, fx["fixture"]["id"])
+                fetch.fetch_fixture_statistics(client, fx["fixture"]["id"])
                 fixtures_done += 1
                 if i % 50 == 0 or i == len(fixtures):
                     print(f"  stats {i}/{len(fixtures)} "

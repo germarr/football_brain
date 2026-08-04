@@ -22,7 +22,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from . import collect, config, parse
+from . import config, fetch, parse
 from .client import CachedClient, QuotaExceeded
 
 
@@ -72,7 +72,7 @@ def _cached_targets(comp: dict) -> list[tuple[int, str, int]]:
     missing: list[int] = []
     for season in comp["seasons"]:
         try:
-            collect.fetch_fixtures(probe, comp["league_id"], season)
+            fetch.fetch_fixtures(probe, comp["league_id"], season)
         except QuotaExceeded:
             missing.append(season)
             continue

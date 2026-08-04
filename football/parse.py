@@ -18,7 +18,7 @@ from pathlib import Path
 from sqlalchemy import func
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from . import collect, config, venues
+from . import config, fetch, venues
 from .client import CachedClient, QuotaExceeded
 from .models import (
     Competition, Event, Fixture, Player, PlayerTeam, SquadEntry, Team,
@@ -228,7 +228,7 @@ def _fetch_bio(client: CachedClient, pid: int, season: int,
     complete as the full-DB row instead of degrading to a name-only stub.
     """
     try:
-        block = collect.fetch_player(client, pid, season)
+        block = fetch.fetch_player(client, pid, season)
         if block is not None:
             return block
     except QuotaExceeded:
@@ -425,7 +425,7 @@ def _build_venues(session: Session, client: CachedClient,
     """
     provider_ids: dict[tuple[str, str | None], int | None] = {}
     for league_id, _name, season in targets:
-        for fx in collect.fetch_fixtures(client, league_id, season):
+        for fx in fetch.fetch_fixtures(client, league_id, season):
             key = _venue_key(fx)
             if key is None:
                 continue
@@ -485,7 +485,7 @@ def _competition_metadata(client: CachedClient, league_id: int) -> dict:
     legitimately carries country "World" with a null code and flag.
     """
     try:
-        record = collect.fetch_league(client, league_id)
+        record = fetch.fetch_league(client, league_id)
     except QuotaExceeded:
         record = None
     if not record:
@@ -533,7 +533,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]], register: bool 
     with Session(engine) as session:
         venue_ids = _build_venues(session, client, targets, register)
         for league_id, _name, season in targets:
-            for fx in collect.fetch_fixtures(client, league_id, season):
+            for fx in fetch.fetch_fixtures(client, league_id, season):
                 fid = fx["fixture"]["id"]
                 if fid in seen_fixtures:
                     continue
@@ -551,7 +551,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]], register: bool 
                         if prev is None or season > prev[0]:
                             team_home_league[t["id"]] = (season, _lid)
                 try:
-                    fp = collect.fetch_fixture_players(client, fid)
+                    fp = fetch.fetch_fixture_players(client, fid)
                 except QuotaExceeded:
                     # No squad data cached for this fixture — a cup season without
                     # per-player stats coverage (ADR 0010), or a bio/stat backfill
@@ -559,7 +559,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]], register: bool 
                     # SquadEntry, like the guarded bio/career/event fetches below.
                     continue
                 seen_pids: set[int] = set()  # provider lists a few players twice per fixture
-                for team_id, pblock in collect.players_in_fixture(fp):
+                for team_id, pblock in fetch.players_in_fixture(fp):
                     pid = pblock["player"]["id"]
                     if not pid:  # unknown player (id 0/None) — no bio, no valid FK
                         continue
@@ -603,7 +603,7 @@ def _rebuild(db_path: Path, targets: list[tuple[int, str, int]], register: bool 
         career_teams: dict[int, str] = {}
         for i, pid in enumerate(sorted(player_season), 1):
             try:
-                response = collect.fetch_player_teams(client, pid)
+                response = fetch.fetch_player_teams(client, pid)
             except QuotaExceeded:
                 continue  # career history not cached yet (backfill in progress)
             for row in _parse_player_teams(pid, response):
@@ -683,7 +683,7 @@ def _build_team_profiles(session: Session, client: CachedClient,
     for tid, fallback_name in career_teams.items():
         name, code, country, founded, national, logo = fallback_name, None, None, None, None, None
         try:
-            record = collect.fetch_team(client, tid)
+            record = fetch.fetch_team(client, tid)
         except QuotaExceeded:
             record = None                     # not enriched yet — minimal row
         if record:
@@ -700,7 +700,7 @@ def _build_team_profiles(session: Session, client: CachedClient,
             league_country = cat[1] if cat else None
         else:                                 # out-of-scope: from leagues?team, if cached
             try:
-                rep = _representative_league(collect.fetch_team_leagues(client, tid), country)
+                rep = _representative_league(fetch.fetch_team_leagues(client, tid), country)
             except QuotaExceeded:
                 rep = None
             if rep:
@@ -742,13 +742,13 @@ def _build_events(session: Session, client: CachedClient, known_players: set[int
     batch: list[Event] = []
     seen: set[int] = set()  # a fixture under two targets would re-key (fid, event_index)
     for league_id, _name, season in targets:
-        for fx in collect.fetch_fixtures(client, league_id, season):
+        for fx in fetch.fetch_fixtures(client, league_id, season):
             fid = fx["fixture"]["id"]
             if fid in seen:
                 continue
             seen.add(fid)
             try:
-                raw_events = collect.fetch_fixture_events(client, fid)
+                raw_events = fetch.fetch_fixture_events(client, fid)
             except QuotaExceeded:
                 continue  # this fixture's events aren't backfilled yet
             for idx, ev in enumerate(raw_events):
@@ -788,13 +788,13 @@ def _build_team_stats(session: Session, client: CachedClient, known_teams: set[i
     batch: list[TeamMatchStat] = []
     seen: set[int] = set()
     for league_id, _name, season in targets:
-        for fx in collect.fetch_fixtures(client, league_id, season):
+        for fx in fetch.fetch_fixtures(client, league_id, season):
             fid = fx["fixture"]["id"]
             if fid in seen:
                 continue
             seen.add(fid)
             try:
-                entries = collect.fetch_fixture_statistics(client, fid)
+                entries = fetch.fetch_fixture_statistics(client, fid)
             except QuotaExceeded:
                 continue  # this fixture's team stats aren't backfilled yet
             for entry in entries:

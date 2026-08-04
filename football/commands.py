@@ -155,21 +155,11 @@ COMMANDS: list[Command] = [
             *_collect_flags(),
         ],
     ),
-    Command(
-        key="collect", group="Collect", title="Full backfill (fixtures → bios)",
-        module="football.collect",
-        summary="Sweep every configured competition's fixtures, squads, bios, careers.",
-        detail="The original full-sweep backfill into the raw cache for every "
-               "competition in competitions.json. Day-long, cache-first, resumable. "
-               "Writes the raw cache only — run a Build afterwards.",
-        example="Sweeps every tracked Competition and, per fixture, records who was named in "
-                "the squad and who actually played (Squad Entries → Appearances), then each "
-                "player's Bio (nationality, birth, height) and full Career Stint history. This "
-                "is the PEOPLE layer only — it does NOT collect the Event timeline or Team "
-                "Match Stats. Writes the raw cache, so run Rebuild football.db afterwards.",
-        scope="all competitions · people layer",
-        network=True, long_running=True,
-    ),
+    # The "Full backfill" command was retired by ADR 0031. It drove the full-sweep
+    # CLI in the old football/collect.py, which the per-league orchestrator superseded
+    # (ADR 0009) — it was neither Coverage-gated (ADR 0014) nor a collector of events
+    # (ADR 0007) or team stats (ADR 0010), and none of the registered competitions was
+    # collected through it. Its shared fetch helpers survive as football/fetch.py.
     Command(
         key="collect_events", group="Collect", title="Backfill event timeline",
         module="football.collect_events",
