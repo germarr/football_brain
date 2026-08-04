@@ -1,0 +1,25 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "482071"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    }
+  ]
+}

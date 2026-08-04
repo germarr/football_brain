@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "6233",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 6233,
+        "name": "N. Tenaglia",
+        "firstname": "Facundo Nahuel",
+        "lastname": "Tenaglia",
+        "age": 29,
+        "birth": {
+          "date": "1996-02-21",
+          "place": "Saladillo",
+          "country": "Argentina"
+        },
+        "nationality": "Argentina",
+        "height": "180",
+        "weight": "73",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/6233.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 34,
+            "lineups": 33,
+            "minutes": 2924,
+            "number": null,
+            "position": "Defender",
+            "rating": "7.141176",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 1,
+            "out": 3,
+            "bench": 2
+          },
+          "shots": {
+            "total": 23,
+            "on": 9
+          },
+          "goals": {
+            "total": 2,
+            "conceded": 0,
+            "assists": 1,
+            "saves": null
+          },
+          "passes": {
+            "total": 976,
+            "key": 19,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 96,
+            "blocks": 9,
+            "interceptions": 47
+          },
+          "duels": {
+            "total": 352,
+            "won": 201
+          },
+          "dribbles": {
+            "attempts": 29,
+            "success": 16,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 45,
+            "committed": 37
+          },
+          "cards": {
+            "yellow": 11,
+            "yellowred": 0,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 1,
+            "lineups": 1,
+            "minutes": 84,
+            "number": null,
+            "position": "Defender",
+            "rating": null,
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": 1,
+            "bench": 1
+          },
+          "shots": {
+            "total": null,
+            "on": null
+          },
+          "goals": {
+            "total": 0,
+            "conceded": null,
+            "assists": null,
+            "saves": null
+          },
+          "passes": {
+            "total": null,
+            "key": null,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": null,
+            "blocks": null,
+            "interceptions": null
+          },
+          "duels": {
+            "total": null,
+            "won": null
+          },
+          "dribbles": {
+            "attempts": null,
+            "success": null,
+            "past": null
+          },
+          "fouls": {
+            "drawn": null,
+            "committed": null
+          },
+          "cards": {
+            "yellow": 0,
+            "yellowred": 0,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": null,
+            "missed": null,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

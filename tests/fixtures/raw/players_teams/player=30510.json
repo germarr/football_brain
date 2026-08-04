@@ -1,0 +1,53 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "30510"
+  },
+  "errors": [],
+  "results": 3,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 503,
+        "name": "Torino",
+        "logo": "https://media.api-sports.io/football/teams/503.png"
+      },
+      "seasons": [
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 727,
+        "name": "Osasuna",
+        "logo": "https://media.api-sports.io/football/teams/727.png"
+      },
+      "seasons": [
+        2016,
+        2015,
+        2014
+      ]
+    }
+  ]
+}

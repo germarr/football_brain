@@ -1,0 +1,59 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "66491"
+  },
+  "errors": [],
+  "results": 4,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 3713,
+        "name": "Baník Ostrava",
+        "logo": "https://media.api-sports.io/football/teams/3713.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 3724,
+        "name": "Pardubice",
+        "logo": "https://media.api-sports.io/football/teams/3724.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 17947,
+        "name": "Czechia U17",
+        "logo": "https://media.api-sports.io/football/teams/17947.png"
+      },
+      "seasons": [
+        2016
+      ]
+    }
+  ]
+}

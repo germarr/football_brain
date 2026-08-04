@@ -1,0 +1,66 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "128985"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 539,
+        "name": "Levante",
+        "logo": "https://media.api-sports.io/football/teams/539.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 9409,
+        "name": "Racing Ferrol",
+        "logo": "https://media.api-sports.io/football/teams/9409.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020,
+        2018
+      ]
+    }
+  ]
+}

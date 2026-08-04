@@ -1,0 +1,82 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47258"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 7,
+        "name": "Uruguay",
+        "logo": "https://media.api-sports.io/football/teams/7.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 78,
+        "name": "Bordeaux",
+        "logo": "https://media.api-sports.io/football/teams/78.png"
+      },
+      "seasons": [
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 9252,
+        "name": "Bordeaux  II",
+        "logo": "https://media.api-sports.io/football/teams/9252.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 2350,
+        "name": "Defensor Sporting",
+        "logo": "https://media.api-sports.io/football/teams/2350.png"
+      },
+      "seasons": [
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 10307,
+        "name": "Uruguay U20",
+        "logo": "https://media.api-sports.io/football/teams/10307.png"
+      },
+      "seasons": [
+        2015
+      ]
+    }
+  ]
+}

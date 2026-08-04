@@ -1,0 +1,116 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "46740"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 544,
+        "name": "Deportivo La Coruna",
+        "logo": "https://media.api-sports.io/football/teams/544.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 715,
+        "name": "Granada CF",
+        "logo": "https://media.api-sports.io/football/teams/715.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9593,
+        "name": "Sabadell",
+        "logo": "https://media.api-sports.io/football/teams/9593.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 798,
+        "name": "Mallorca",
+        "logo": "https://media.api-sports.io/football/teams/798.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 711,
+        "name": "Alcorcon",
+        "logo": "https://media.api-sports.io/football/teams/711.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9596,
+        "name": "Linense",
+        "logo": "https://media.api-sports.io/football/teams/9596.png"
+      },
+      "seasons": [
+        2017,
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 10125,
+        "name": "Europa",
+        "logo": "https://media.api-sports.io/football/teams/10125.png"
+      },
+      "seasons": [
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 9384,
+        "name": "Cacereño",
+        "logo": "https://media.api-sports.io/football/teams/9384.png"
+      },
+      "seasons": [
+        2012
+      ]
+    }
+  ]
+}

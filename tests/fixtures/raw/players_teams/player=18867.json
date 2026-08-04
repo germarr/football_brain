@@ -1,0 +1,83 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "18867"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 35,
+        "name": "Bournemouth",
+        "logo": "https://media.api-sports.io/football/teams/35.png"
+      },
+      "seasons": [
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 537,
+        "name": "Leganes",
+        "logo": "https://media.api-sports.io/football/teams/537.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": [
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 9887,
+        "name": "Real Zaragoza II",
+        "logo": "https://media.api-sports.io/football/teams/9887.png"
+      },
+      "seasons": [
+        2012,
+        2011
+      ]
+    }
+  ]
+}

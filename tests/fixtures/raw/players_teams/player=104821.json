@@ -1,0 +1,72 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "104821"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 9585,
+        "name": "Real Sociedad II",
+        "logo": "https://media.api-sports.io/football/teams/9585.png"
+      },
+      "seasons": [
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 22374,
+        "name": "Real Sociedad U19",
+        "logo": "https://media.api-sports.io/football/teams/22374.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

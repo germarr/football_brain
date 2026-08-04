@@ -1,0 +1,122 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47320"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 724,
+        "name": "Cadiz",
+        "logo": "https://media.api-sports.io/football/teams/724.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10511,
+        "name": "Al Riyadh",
+        "logo": "https://media.api-sports.io/football/teams/10511.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 41,
+        "name": "Southampton",
+        "logo": "https://media.api-sports.io/football/teams/41.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 535,
+        "name": "Malaga",
+        "logo": "https://media.api-sports.io/football/teams/535.png"
+      },
+      "seasons": [
+        2014,
+        2013,
+        2012,
+        2011,
+        2010,
+        2009
+      ]
+    },
+    {
+      "team": {
+        "id": 4665,
+        "name": "Racing Santander",
+        "logo": "https://media.api-sports.io/football/teams/4665.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2012,
+        2011
+      ]
+    }
+  ]
+}

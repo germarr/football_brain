@@ -1,0 +1,75 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1700"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 533,
+        "name": "Villarreal",
+        "logo": "https://media.api-sports.io/football/teams/533.png"
+      },
+      "seasons": [
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9595,
+        "name": "Villarreal II",
+        "logo": "https://media.api-sports.io/football/teams/9595.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2016
+      ]
+    }
+  ]
+}

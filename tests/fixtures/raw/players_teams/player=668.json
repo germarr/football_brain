@@ -1,0 +1,89 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "668"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2871,
+        "name": "Al-Jazira",
+        "logo": "https://media.api-sports.io/football/teams/2871.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 2,
+        "name": "France",
+        "logo": "https://media.api-sports.io/football/teams/2.png"
+      },
+      "seasons": [
+        2020,
+        2018,
+        2017,
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 80,
+        "name": "Lyon",
+        "logo": "https://media.api-sports.io/football/teams/80.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 9256,
+        "name": "Olympique Lyonnais II",
+        "logo": "https://media.api-sports.io/football/teams/9256.png"
+      },
+      "seasons": [
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 8194,
+        "name": "France U21",
+        "logo": "https://media.api-sports.io/football/teams/8194.png"
+      },
+      "seasons": [
+        2015
+      ]
+    }
+  ]
+}

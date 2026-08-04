@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "47396",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 47396,
+        "name": "Kike García",
+        "firstname": "Enrique",
+        "lastname": "García Martínez",
+        "age": 36,
+        "birth": {
+          "date": "1989-11-25",
+          "place": "Motilla del Palancar",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "186",
+        "weight": "79",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/47396.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 37,
+            "lineups": 34,
+            "minutes": 2561,
+            "number": null,
+            "position": "Attacker",
+            "rating": "7.022857",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 3,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 53,
+            "on": 27
+          },
+          "goals": {
+            "total": 13,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 569,
+            "key": 13,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 19,
+            "blocks": 4,
+            "interceptions": 1
+          },
+          "duels": {
+            "total": 406,
+            "won": 199
+          },
+          "dribbles": {
+            "attempts": 33,
+            "success": 13,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 59,
+            "committed": 49
+          },
+          "cards": {
+            "yellow": 5,
+            "yellowred": null,
+            "red": 1
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 3,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 37,
+            "lineups": 20,
+            "minutes": 1009,
+            "number": null,
+            "position": "Attacker",
+            "rating": "6.652941",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 17,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 35,
+            "on": 12
+          },
+          "goals": {
+            "total": 2,
+            "conceded": 0,
+            "assists": null,
+            "saves": null
+          },
+          "passes": {
+            "total": 236,
+            "key": 13,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 6,
+            "blocks": 1,
+            "interceptions": 1
+          },
+          "duels": {
+            "total": 197,
+            "won": 88
+          },
+          "dribbles": {
+            "attempts": 18,
+            "success": 12,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 26,
+            "committed": 26
+          },
+          "cards": {
+            "yellow": 5,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 1,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

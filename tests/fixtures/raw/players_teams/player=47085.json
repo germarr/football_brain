@@ -1,0 +1,80 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47085"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 715,
+        "name": "Granada CF",
+        "logo": "https://media.api-sports.io/football/teams/715.png"
+      },
+      "seasons": [
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 719,
+        "name": "Tenerife",
+        "logo": "https://media.api-sports.io/football/teams/719.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 4906,
+        "name": "Fuenlabrada",
+        "logo": "https://media.api-sports.io/football/teams/4906.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 9388,
+        "name": "Guijuelo",
+        "logo": "https://media.api-sports.io/football/teams/9388.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 9715,
+        "name": "Rayo Vallecano II",
+        "logo": "https://media.api-sports.io/football/teams/9715.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

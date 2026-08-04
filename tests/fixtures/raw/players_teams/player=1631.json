@@ -1,0 +1,139 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1631"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 15,
+        "name": "Switzerland",
+        "logo": "https://media.api-sports.io/football/teams/15.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 503,
+        "name": "Torino",
+        "logo": "https://media.api-sports.io/football/teams/503.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 489,
+        "name": "AC Milan",
+        "logo": "https://media.api-sports.io/football/teams/489.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 197,
+        "name": "PSV Eindhoven",
+        "logo": "https://media.api-sports.io/football/teams/197.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 161,
+        "name": "VfL Wolfsburg",
+        "logo": "https://media.api-sports.io/football/teams/161.png"
+      },
+      "seasons": [
+        2016,
+        2015,
+        2014,
+        2013,
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 10183,
+        "name": "Switzerland U23",
+        "logo": "https://media.api-sports.io/football/teams/10183.png"
+      },
+      "seasons": [
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 783,
+        "name": "FC Zurich",
+        "logo": "https://media.api-sports.io/football/teams/783.png"
+      },
+      "seasons": [
+        2010,
+        2009
+      ]
+    },
+    {
+      "team": {
+        "id": 10350,
+        "name": "Switzerland U19",
+        "logo": "https://media.api-sports.io/football/teams/10350.png"
+      },
+      "seasons": [
+        2011,
+        2010
+      ]
+    },
+    {
+      "team": {
+        "id": 17981,
+        "name": "Switzerland U17",
+        "logo": "https://media.api-sports.io/football/teams/17981.png"
+      },
+      "seasons": [
+        2009
+      ]
+    }
+  ]
+}

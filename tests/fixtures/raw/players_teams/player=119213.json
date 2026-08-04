@@ -1,0 +1,102 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "119213"
+  },
+  "errors": [],
+  "results": 9,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 536,
+        "name": "Sevilla",
+        "logo": "https://media.api-sports.io/football/teams/536.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 533,
+        "name": "Villarreal",
+        "logo": "https://media.api-sports.io/football/teams/533.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2023,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 4665,
+        "name": "Racing Santander",
+        "logo": "https://media.api-sports.io/football/teams/4665.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 5275,
+        "name": "Real Murcia",
+        "logo": "https://media.api-sports.io/football/teams/5275.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9572,
+        "name": "Getafe II",
+        "logo": "https://media.api-sports.io/football/teams/9572.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9573,
+        "name": "Internacional de Madrid",
+        "logo": "https://media.api-sports.io/football/teams/9573.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 722,
+        "name": "Albacete",
+        "logo": "https://media.api-sports.io/football/teams/722.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "47445",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 47445,
+        "name": "Iago Aspas",
+        "firstname": "Iago",
+        "lastname": "Aspas Juncal",
+        "age": 38,
+        "birth": {
+          "date": "1987-08-01",
+          "place": "Moaña",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "176",
+        "weight": "67",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/47445.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 538,
+            "name": "Celta Vigo",
+            "logo": "https://media.api-sports.io/football/teams/538.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 30,
+            "lineups": 19,
+            "minutes": 1745,
+            "number": null,
+            "position": "Attacker",
+            "rating": "7.283333",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 11,
+            "out": 10,
+            "bench": 14
+          },
+          "shots": {
+            "total": 44,
+            "on": 24
+          },
+          "goals": {
+            "total": 10,
+            "conceded": 0,
+            "assists": 5,
+            "saves": null
+          },
+          "passes": {
+            "total": 843,
+            "key": 38,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 13,
+            "blocks": 1,
+            "interceptions": 8
+          },
+          "duels": {
+            "total": 130,
+            "won": 68
+          },
+          "dribbles": {
+            "attempts": 21,
+            "success": 14,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 34,
+            "committed": 16
+          },
+          "cards": {
+            "yellow": 5,
+            "yellowred": 1,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 5,
+            "missed": 1,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 538,
+            "name": "Celta Vigo",
+            "logo": "https://media.api-sports.io/football/teams/538.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 1,
+            "lineups": 1,
+            "minutes": 57,
+            "number": null,
+            "position": "Attacker",
+            "rating": "7.300000",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": 1,
+            "bench": 1
+          },
+          "shots": {
+            "total": 1,
+            "on": null
+          },
+          "goals": {
+            "total": 0,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 26,
+            "key": 3,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": null,
+            "blocks": null,
+            "interceptions": 1
+          },
+          "duels": {
+            "total": 3,
+            "won": 2
+          },
+          "dribbles": {
+            "attempts": null,
+            "success": null,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 2,
+            "committed": null
+          },
+          "cards": {
+            "yellow": 0,
+            "yellowred": 0,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

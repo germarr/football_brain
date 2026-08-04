@@ -1,0 +1,79 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47294"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 1504,
+        "name": "Ghana",
+        "logo": "https://media.api-sports.io/football/teams/1504.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "122471"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 1521,
+        "name": "Equatorial Guinea",
+        "logo": "https://media.api-sports.io/football/teams/1521.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2022,
+        2021,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 8157,
+        "name": "FC Andorra",
+        "logo": "https://media.api-sports.io/football/teams/8157.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9582,
+        "name": "Deportivo Alavés II",
+        "logo": "https://media.api-sports.io/football/teams/9582.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9663,
+        "name": "San Ignacio",
+        "logo": "https://media.api-sports.io/football/teams/9663.png"
+      },
+      "seasons": [
+        2020,
+        2019
+      ]
+    }
+  ]
+}

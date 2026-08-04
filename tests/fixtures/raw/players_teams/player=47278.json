@@ -1,0 +1,59 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47278"
+  },
+  "errors": [],
+  "results": 4,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": []
+    }
+  ]
+}

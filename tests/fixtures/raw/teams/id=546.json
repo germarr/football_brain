@@ -1,0 +1,34 @@
+{
+  "get": "teams",
+  "parameters": {
+    "id": "546"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "code": "GET",
+        "country": "Spain",
+        "founded": 1983,
+        "national": false,
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "venue": {
+        "id": 20422,
+        "name": "Estadio Coliseum",
+        "address": "Avenida de Teresa de Calcuta",
+        "city": "Getafe",
+        "capacity": 17393,
+        "surface": "grass",
+        "image": "https://media.api-sports.io/football/venues/20422.png"
+      }
+    }
+  ]
+}

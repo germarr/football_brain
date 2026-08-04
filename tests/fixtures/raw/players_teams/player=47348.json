@@ -1,0 +1,92 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47348"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2026,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 168,
+        "name": "Bayer Leverkusen",
+        "logo": "https://media.api-sports.io/football/teams/168.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 540,
+        "name": "Espanyol",
+        "logo": "https://media.api-sports.io/football/teams/540.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

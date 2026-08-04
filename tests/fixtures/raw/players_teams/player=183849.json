@@ -1,0 +1,80 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "183849"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9656,
+        "name": "Basconia",
+        "logo": "https://media.api-sports.io/football/teams/9656.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2019
+      ]
+    }
+  ]
+}

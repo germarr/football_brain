@@ -1,0 +1,46 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "320517"
+  },
+  "errors": [],
+  "results": 3,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 5256,
+        "name": "Compostela",
+        "logo": "https://media.api-sports.io/football/teams/5256.png"
+      },
+      "seasons": [
+        2021
+      ]
+    }
+  ]
+}

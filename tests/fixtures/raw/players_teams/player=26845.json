@@ -1,0 +1,105 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "26845"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 1117,
+        "name": "Greece",
+        "logo": "https://media.api-sports.io/football/teams/1117.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 895,
+        "name": "Como",
+        "logo": "https://media.api-sports.io/football/teams/895.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 207,
+        "name": "Utrecht",
+        "logo": "https://media.api-sports.io/football/teams/207.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 8198,
+        "name": "Greece U21",
+        "logo": "https://media.api-sports.io/football/teams/8198.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 2110,
+        "name": "Volos NFC",
+        "logo": "https://media.api-sports.io/football/teams/2110.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 955,
+        "name": "Asteras Tripolis",
+        "logo": "https://media.api-sports.io/football/teams/955.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 10364,
+        "name": "Greece U19",
+        "logo": "https://media.api-sports.io/football/teams/10364.png"
+      },
+      "seasons": [
+        2019,
+        2018
+      ]
+    }
+  ]
+}

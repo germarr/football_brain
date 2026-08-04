@@ -1,0 +1,51 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "6233"
+  },
+  "errors": [],
+  "results": 3,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 456,
+        "name": "Talleres Cordoba",
+        "logo": "https://media.api-sports.io/football/teams/456.png"
+      },
+      "seasons": [
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 1948,
+        "name": "Atlanta",
+        "logo": "https://media.api-sports.io/football/teams/1948.png"
+      },
+      "seasons": [
+        2016
+      ]
+    }
+  ]
+}

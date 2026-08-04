@@ -1,0 +1,98 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "181421"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 31,
+        "name": "Morocco",
+        "logo": "https://media.api-sports.io/football/teams/31.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 10179,
+        "name": "Morocco U23",
+        "logo": "https://media.api-sports.io/football/teams/10179.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 529,
+        "name": "Barcelona",
+        "logo": "https://media.api-sports.io/football/teams/529.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 727,
+        "name": "Osasuna",
+        "logo": "https://media.api-sports.io/football/teams/727.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 712,
+        "name": "Barcelona B",
+        "logo": "https://media.api-sports.io/football/teams/712.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9693,
+        "name": "Hércules II",
+        "logo": "https://media.api-sports.io/football/teams/9693.png"
+      },
+      "seasons": [
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 4666,
+        "name": "Hércules",
+        "logo": "https://media.api-sports.io/football/teams/4666.png"
+      },
+      "seasons": []
+    }
+  ]
+}

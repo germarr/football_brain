@@ -1,0 +1,83 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47511"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2314,
+        "name": "Atletico San Luis",
+        "logo": "https://media.api-sports.io/football/teams/2314.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 715,
+        "name": "Granada CF",
+        "logo": "https://media.api-sports.io/football/teams/715.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 720,
+        "name": "Valladolid",
+        "logo": "https://media.api-sports.io/football/teams/720.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 4665,
+        "name": "Racing Santander",
+        "logo": "https://media.api-sports.io/football/teams/4665.png"
+      },
+      "seasons": [
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 534,
+        "name": "Las Palmas",
+        "logo": "https://media.api-sports.io/football/teams/534.png"
+      },
+      "seasons": [
+        2012,
+        2011,
+        2010
+      ]
+    }
+  ]
+}

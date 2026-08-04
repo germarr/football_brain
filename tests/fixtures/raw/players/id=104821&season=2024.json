@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "104821",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 104821,
+        "name": "Jon Guridi",
+        "firstname": "Jon",
+        "lastname": "Guridi Aldalur",
+        "age": 30,
+        "birth": {
+          "date": "1995-02-28",
+          "place": "Azpeitia",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "179",
+        "weight": "64",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/104821.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 36,
+            "lineups": 31,
+            "minutes": 2097,
+            "number": null,
+            "position": "Midfielder",
+            "rating": "6.734375",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 5,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 21,
+            "on": 12
+          },
+          "goals": {
+            "total": 3,
+            "conceded": 0,
+            "assists": 1,
+            "saves": null
+          },
+          "passes": {
+            "total": 710,
+            "key": 17,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 39,
+            "blocks": 1,
+            "interceptions": 14
+          },
+          "duels": {
+            "total": 267,
+            "won": 109
+          },
+          "dribbles": {
+            "attempts": 24,
+            "success": 9,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 14,
+            "committed": 35
+          },
+          "cards": {
+            "yellow": 6,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 1,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 42,
+            "lineups": 39,
+            "minutes": 2977,
+            "number": null,
+            "position": "Midfielder",
+            "rating": "6.719512",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 3,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 21,
+            "on": 9
+          },
+          "goals": {
+            "total": 1,
+            "conceded": 0,
+            "assists": 1,
+            "saves": null
+          },
+          "passes": {
+            "total": 1063,
+            "key": 34,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 60,
+            "blocks": 6,
+            "interceptions": 20
+          },
+          "duels": {
+            "total": 381,
+            "won": 176
+          },
+          "dribbles": {
+            "attempts": 55,
+            "success": 27,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 31,
+            "committed": 43
+          },
+          "cards": {
+            "yellow": 5,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

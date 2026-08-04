@@ -1,0 +1,128 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "547"
+  },
+  "errors": [],
+  "results": 11,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 33,
+        "name": "Manchester United",
+        "logo": "https://media.api-sports.io/football/teams/33.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 169,
+        "name": "Eintracht Frankfurt",
+        "logo": "https://media.api-sports.io/football/teams/169.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 45,
+        "name": "Everton",
+        "logo": "https://media.api-sports.io/football/teams/45.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 1118,
+        "name": "Netherlands",
+        "logo": "https://media.api-sports.io/football/teams/1118.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 194,
+        "name": "Ajax",
+        "logo": "https://media.api-sports.io/football/teams/194.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 8211,
+        "name": "Netherlands U21",
+        "logo": "https://media.api-sports.io/football/teams/8211.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 10340,
+        "name": "Netherlands U19",
+        "logo": "https://media.api-sports.io/football/teams/10340.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 425,
+        "name": "Jong Ajax",
+        "logo": "https://media.api-sports.io/football/teams/425.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 7881,
+        "name": "Ajax U19",
+        "logo": "https://media.api-sports.io/football/teams/7881.png"
+      },
+      "seasons": [
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 12514,
+        "name": "Netherlands U17",
+        "logo": "https://media.api-sports.io/football/teams/12514.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

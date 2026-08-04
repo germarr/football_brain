@@ -1,0 +1,73 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "133185"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2384,
+        "name": "USA",
+        "logo": "https://media.api-sports.io/football/teams/2384.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 530,
+        "name": "Atletico Madrid",
+        "logo": "https://media.api-sports.io/football/teams/530.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 119,
+        "name": "Internacional",
+        "logo": "https://media.api-sports.io/football/teams/119.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 17883,
+        "name": "United States U23",
+        "logo": "https://media.api-sports.io/football/teams/17883.png"
+      },
+      "seasons": [
+        2020
+      ]
+    }
+  ]
+}

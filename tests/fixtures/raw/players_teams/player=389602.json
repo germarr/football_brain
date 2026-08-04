@@ -1,0 +1,52 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "389602"
+  },
+  "errors": [],
+  "results": 4,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2933,
+        "name": "Al-Qadisiyah FC",
+        "logo": "https://media.api-sports.io/football/teams/2933.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 608,
+        "name": "HNK Hajduk Split",
+        "logo": "https://media.api-sports.io/football/teams/608.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 15343,
+        "name": "Girona II",
+        "logo": "https://media.api-sports.io/football/teams/15343.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": []
+    }
+  ]
+}

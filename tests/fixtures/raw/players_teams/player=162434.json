@@ -1,0 +1,77 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "162434"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9887,
+        "name": "Real Zaragoza II",
+        "logo": "https://media.api-sports.io/football/teams/9887.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 7927,
+        "name": "Real Zaragoza U19",
+        "logo": "https://media.api-sports.io/football/teams/7927.png"
+      },
+      "seasons": []
+    }
+  ]
+}

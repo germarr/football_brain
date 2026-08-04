@@ -1,0 +1,70 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47492"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 720,
+        "name": "Valladolid",
+        "logo": "https://media.api-sports.io/football/teams/720.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 725,
+        "name": "Cultural Leonesa",
+        "logo": "https://media.api-sports.io/football/teams/725.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9587,
+        "name": "Real Valladolid II",
+        "logo": "https://media.api-sports.io/football/teams/9587.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "312468"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2286,
+        "name": "U.N.A.M. - Pumas",
+        "logo": "https://media.api-sports.io/football/teams/2286.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 16,
+        "name": "Mexico",
+        "logo": "https://media.api-sports.io/football/teams/16.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 10178,
+        "name": "Mexico U23",
+        "logo": "https://media.api-sports.io/football/teams/10178.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": [
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9656,
+        "name": "Basconia",
+        "logo": "https://media.api-sports.io/football/teams/9656.png"
+      },
+      "seasons": []
+    }
+  ]
+}

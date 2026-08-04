@@ -1,0 +1,86 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "157988"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 797,
+        "name": "Elche",
+        "logo": "https://media.api-sports.io/football/teams/797.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 533,
+        "name": "Villarreal",
+        "logo": "https://media.api-sports.io/football/teams/533.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9595,
+        "name": "Villarreal II",
+        "logo": "https://media.api-sports.io/football/teams/9595.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2018,
+        2017
+      ]
+    }
+  ]
+}

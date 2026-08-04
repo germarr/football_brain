@@ -1,0 +1,83 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "40419"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2737,
+        "name": "Tractor Sazi",
+        "logo": "https://media.api-sports.io/football/teams/2737.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 798,
+        "name": "Mallorca",
+        "logo": "https://media.api-sports.io/football/teams/798.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 349,
+        "name": "Piast Gliwice",
+        "logo": "https://media.api-sports.io/football/teams/349.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 14,
+        "name": "Serbia",
+        "logo": "https://media.api-sports.io/football/teams/14.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 2647,
+        "name": "Metalac GM",
+        "logo": "https://media.api-sports.io/football/teams/2647.png"
+      },
+      "seasons": [
+        2015,
+        2014,
+        2013,
+        2012
+      ]
+    }
+  ]
+}

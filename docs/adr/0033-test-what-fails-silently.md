@@ -81,6 +81,30 @@ That purpose supplies a stopping rule, which matters more than the tooling — w
   monkeypatched; making it injectable would be a refactor performed to serve tests, which is
   the wrong direction while the tree is about to move anyway.
 
+## Addendum — two claims above were wrong, found while implementing
+
+Written the same day, after building the suite. Left in place rather than edited away,
+because both errors are informative.
+
+- **A mis-resolved `RAW_DIR` does *not* quietly hollow the store out.** The decision
+  above justified `test_parse.py` on that basis. It is false: the parser's client is
+  `CachedClient(max_live_requests=0)`, so the first cache miss raises `QuotaExceeded`
+  rather than fetching, and the build dies at `_build_venues` before writing a row.
+  A wrong cache path is one of the few dangers here that is already loud. What
+  `test_parse.py` actually guards is narrower and still worth having: that the build
+  pipeline end-to-end still populates every table after the move, and — the genuinely
+  silent case — that a `register=False` build yields **zero venues with every
+  `venue_id` null**, succeeding and reporting success while producing a store that is
+  quietly wrong in one table. Both are pinned.
+
+- **The fixture slice is ~2.2 MB, not ~1 MB.** The estimate counted only the
+  per-fixture endpoints and forgot that a fixture drags in every player who appeared:
+  bios (`players`) and career directories (`players_teams`) are ~80% of the weight.
+  Measured: 6 fixtures → 4.5 MB / 580 files; 3 fixtures → 2.2 MB / 285 files; 2
+  fixtures → 1.5 MB / 186 files. Settled on **3 fixtures of La Liga 2024** — 6 teams,
+  131 players, 3 venues — which populates every table while keeping the slice small.
+  `scripts/carve_test_fixtures.py` re-cuts it.
+
 ## Considered Options
 
 - **Unit-cover the pure logic** (`venues`, `fixture_link`, `taxonomy`, `classify`, `scope`,

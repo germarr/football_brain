@@ -1,0 +1,55 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "286084"
+  },
+  "errors": [],
+  "results": 4,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9593,
+        "name": "Sabadell",
+        "logo": "https://media.api-sports.io/football/teams/9593.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9672,
+        "name": "Granollers",
+        "logo": "https://media.api-sports.io/football/teams/9672.png"
+      },
+      "seasons": [
+        2020
+      ]
+    }
+  ]
+}

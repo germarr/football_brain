@@ -1,0 +1,92 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "162712"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2024,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 529,
+        "name": "Barcelona",
+        "logo": "https://media.api-sports.io/football/teams/529.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 712,
+        "name": "Barcelona B",
+        "logo": "https://media.api-sports.io/football/teams/712.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10182,
+        "name": "Spain U23",
+        "logo": "https://media.api-sports.io/football/teams/10182.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 7885,
+        "name": "Barcelona U19",
+        "logo": "https://media.api-sports.io/football/teams/7885.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    }
+  ]
+}

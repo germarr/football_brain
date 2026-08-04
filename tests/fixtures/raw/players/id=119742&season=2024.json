@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "119742",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 119742,
+        "name": "Juan Iglesias",
+        "firstname": "Juan Antonio",
+        "lastname": "Iglesias Sánchez",
+        "age": 27,
+        "birth": {
+          "date": "1998-07-03",
+          "place": "Valladolid",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "187",
+        "weight": "77",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/119742.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 546,
+            "name": "Getafe",
+            "logo": "https://media.api-sports.io/football/teams/546.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 37,
+            "lineups": 32,
+            "minutes": 2890,
+            "number": null,
+            "position": "Defender",
+            "rating": "6.870270",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 5,
+            "out": 7,
+            "bench": 6
+          },
+          "shots": {
+            "total": 14,
+            "on": 3
+          },
+          "goals": {
+            "total": 0,
+            "conceded": 0,
+            "assists": 1,
+            "saves": null
+          },
+          "passes": {
+            "total": 787,
+            "key": 20,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 81,
+            "blocks": 8,
+            "interceptions": 48
+          },
+          "duels": {
+            "total": 324,
+            "won": 170
+          },
+          "dribbles": {
+            "attempts": 29,
+            "success": 13,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 41,
+            "committed": 45
+          },
+          "cards": {
+            "yellow": 4,
+            "yellowred": 0,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 546,
+            "name": "Getafe",
+            "logo": "https://media.api-sports.io/football/teams/546.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 5,
+            "lineups": 4,
+            "minutes": 407,
+            "number": null,
+            "position": "Defender",
+            "rating": "7.300000",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 1,
+            "out": 2,
+            "bench": 1
+          },
+          "shots": {
+            "total": 4,
+            "on": 1
+          },
+          "goals": {
+            "total": 0,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 72,
+            "key": 4,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 10,
+            "blocks": 1,
+            "interceptions": 6
+          },
+          "duels": {
+            "total": 34,
+            "won": 21
+          },
+          "dribbles": {
+            "attempts": 7,
+            "success": 4,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 4,
+            "committed": 2
+          },
+          "cards": {
+            "yellow": 0,
+            "yellowred": 0,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

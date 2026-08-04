@@ -1,0 +1,72 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "6085"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 453,
+        "name": "Independiente",
+        "logo": "https://media.api-sports.io/football/teams/453.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 10185,
+        "name": "Uruguay U23",
+        "logo": "https://media.api-sports.io/football/teams/10185.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 2350,
+        "name": "Defensor Sporting",
+        "logo": "https://media.api-sports.io/football/teams/2350.png"
+      },
+      "seasons": [
+        2017,
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 10307,
+        "name": "Uruguay U20",
+        "logo": "https://media.api-sports.io/football/teams/10307.png"
+      },
+      "seasons": [
+        2017
+      ]
+    }
+  ]
+}

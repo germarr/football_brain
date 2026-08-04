@@ -1,0 +1,109 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "162032"
+  },
+  "errors": [],
+  "results": 9,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 492,
+        "name": "Napoli",
+        "logo": "https://media.api-sports.io/football/teams/492.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 10182,
+        "name": "Spain U23",
+        "logo": "https://media.api-sports.io/football/teams/10182.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 541,
+        "name": "Real Madrid",
+        "logo": "https://media.api-sports.io/football/teams/541.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9575,
+        "name": "Real Madrid II",
+        "logo": "https://media.api-sports.io/football/teams/9575.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 7926,
+        "name": "Real Madrid U19",
+        "logo": "https://media.api-sports.io/football/teams/7926.png"
+      },
+      "seasons": [
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2018
+      ]
+    }
+  ]
+}

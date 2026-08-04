@@ -1,0 +1,62 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "295383"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9388,
+        "name": "Guijuelo",
+        "logo": "https://media.api-sports.io/football/teams/9388.png"
+      },
+      "seasons": [
+        2024,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9582,
+        "name": "Deportivo Alavés II",
+        "logo": "https://media.api-sports.io/football/teams/9582.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9733,
+        "name": "Mirandés II",
+        "logo": "https://media.api-sports.io/football/teams/9733.png"
+      },
+      "seasons": []
+    }
+  ]
+}

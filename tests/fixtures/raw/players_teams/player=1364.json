@@ -1,0 +1,87 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1364"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 1616,
+        "name": "Los Angeles FC",
+        "logo": "https://media.api-sports.io/football/teams/1616.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 121,
+        "name": "Palmeiras",
+        "logo": "https://media.api-sports.io/football/teams/121.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 831,
+        "name": "Dalian Aerbin",
+        "logo": "https://media.api-sports.io/football/teams/831.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 611,
+        "name": "Fenerbahçe",
+        "logo": "https://media.api-sports.io/football/teams/611.png"
+      },
+      "seasons": [
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 130,
+        "name": "Gremio",
+        "logo": "https://media.api-sports.io/football/teams/130.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 132,
+        "name": "Chapecoense-sc",
+        "logo": "https://media.api-sports.io/football/teams/132.png"
+      },
+      "seasons": [
+        2015
+      ]
+    }
+  ]
+}

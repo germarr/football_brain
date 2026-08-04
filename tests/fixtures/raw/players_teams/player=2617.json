@@ -1,0 +1,114 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "2617"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 7,
+        "name": "Uruguay",
+        "logo": "https://media.api-sports.io/football/teams/7.png"
+      },
+      "seasons": [
+        2022,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 70,
+        "name": "Middlesbrough",
+        "logo": "https://media.api-sports.io/football/teams/70.png"
+      },
+      "seasons": [
+        2016,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 540,
+        "name": "Espanyol",
+        "logo": "https://media.api-sports.io/football/teams/540.png"
+      },
+      "seasons": [
+        2014,
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 4665,
+        "name": "Racing Santander",
+        "logo": "https://media.api-sports.io/football/teams/4665.png"
+      },
+      "seasons": [
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 539,
+        "name": "Levante",
+        "logo": "https://media.api-sports.io/football/teams/539.png"
+      },
+      "seasons": [
+        2010
+      ]
+    },
+    {
+      "team": {
+        "id": 722,
+        "name": "Albacete",
+        "logo": "https://media.api-sports.io/football/teams/722.png"
+      },
+      "seasons": [
+        2009
+      ]
+    },
+    {
+      "team": {
+        "id": 1692,
+        "name": "Reggina",
+        "logo": "https://media.api-sports.io/football/teams/1692.png"
+      },
+      "seasons": [
+        2008,
+        2007
+      ]
+    }
+  ]
+}

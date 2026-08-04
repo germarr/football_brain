@@ -1,0 +1,143 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "2449"
+  },
+  "errors": [],
+  "results": 12,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2379,
+        "name": "Venezuela",
+        "logo": "https://media.api-sports.io/football/teams/2379.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2019,
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 50,
+        "name": "Manchester City",
+        "logo": "https://media.api-sports.io/football/teams/50.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 540,
+        "name": "Espanyol",
+        "logo": "https://media.api-sports.io/football/teams/540.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 715,
+        "name": "Granada CF",
+        "logo": "https://media.api-sports.io/football/teams/715.png"
+      },
+      "seasons": [
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 1604,
+        "name": "New York City FC",
+        "logo": "https://media.api-sports.io/football/teams/1604.png"
+      },
+      "seasons": [
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 726,
+        "name": "Huesca",
+        "logo": "https://media.api-sports.io/football/teams/726.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10314,
+        "name": "Venezuela U20",
+        "logo": "https://media.api-sports.io/football/teams/10314.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 2809,
+        "name": "Atletico Venezuela",
+        "logo": "https://media.api-sports.io/football/teams/2809.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 2811,
+        "name": "Monagas SC",
+        "logo": "https://media.api-sports.io/football/teams/2811.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 21213,
+        "name": "Venezuela U17",
+        "logo": "https://media.api-sports.io/football/teams/21213.png"
+      },
+      "seasons": [
+        2015
+      ]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47250"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 1534,
+        "name": "Togo",
+        "logo": "https://media.api-sports.io/football/teams/1534.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2022,
+        2018,
+        2017,
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 735,
+        "name": "St. Truiden",
+        "logo": "https://media.api-sports.io/football/teams/735.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 711,
+        "name": "Alcorcon",
+        "logo": "https://media.api-sports.io/football/teams/711.png"
+      },
+      "seasons": [
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 5401,
+        "name": "Cotonsport",
+        "logo": "https://media.api-sports.io/football/teams/5401.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

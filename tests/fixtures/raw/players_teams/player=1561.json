@@ -1,0 +1,119 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1561"
+  },
+  "errors": [],
+  "results": 9,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 998,
+        "name": "Trabzonspor",
+        "logo": "https://media.api-sports.io/football/teams/998.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 165,
+        "name": "Borussia Dortmund",
+        "logo": "https://media.api-sports.io/football/teams/165.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 529,
+        "name": "Barcelona",
+        "logo": "https://media.api-sports.io/football/teams/529.png"
+      },
+      "seasons": [
+        2015,
+        2014,
+        2013,
+        2012,
+        2011,
+        2010,
+        2009
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 26086,
+        "name": "Spain U20",
+        "logo": "https://media.api-sports.io/football/teams/26086.png"
+      },
+      "seasons": [
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 712,
+        "name": "Barcelona B",
+        "logo": "https://media.api-sports.io/football/teams/712.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2010
+      ]
+    }
+  ]
+}

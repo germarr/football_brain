@@ -1,0 +1,61 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47291"
+  },
+  "errors": [],
+  "results": 4,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 9380,
+        "name": "Amorebieta",
+        "logo": "https://media.api-sports.io/football/teams/9380.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9593,
+        "name": "Sabadell",
+        "logo": "https://media.api-sports.io/football/teams/9593.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": [
+        2017,
+        2016,
+        2015
+      ]
+    }
+  ]
+}

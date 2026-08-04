@@ -1,0 +1,148 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "2061"
+  },
+  "errors": [],
+  "results": 13,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 47,
+        "name": "Tottenham",
+        "logo": "https://media.api-sports.io/football/teams/47.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 536,
+        "name": "Sevilla",
+        "logo": "https://media.api-sports.io/football/teams/536.png"
+      },
+      "seasons": [
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 532,
+        "name": "Valencia",
+        "logo": "https://media.api-sports.io/football/teams/532.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10182,
+        "name": "Spain U23",
+        "logo": "https://media.api-sports.io/football/teams/10182.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 537,
+        "name": "Leganes",
+        "logo": "https://media.api-sports.io/football/teams/537.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 730,
+        "name": "Sevilla Atletico",
+        "logo": "https://media.api-sports.io/football/teams/730.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 7993,
+        "name": "Sevilla U19",
+        "logo": "https://media.api-sports.io/football/teams/7993.png"
+      },
+      "seasons": [
+        2017
+      ]
+    }
+  ]
+}

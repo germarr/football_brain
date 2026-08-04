@@ -1,0 +1,128 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1439"
+  },
+  "errors": [],
+  "results": 11,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 529,
+        "name": "Barcelona",
+        "logo": "https://media.api-sports.io/football/teams/529.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 228,
+        "name": "Sporting CP",
+        "logo": "https://media.api-sports.io/football/teams/228.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 42,
+        "name": "Arsenal",
+        "logo": "https://media.api-sports.io/football/teams/42.png"
+      },
+      "seasons": [
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 15631,
+        "name": "Arsenal U23",
+        "logo": "https://media.api-sports.io/football/teams/15631.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2020,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 38,
+        "name": "Watford",
+        "logo": "https://media.api-sports.io/football/teams/38.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 22371,
+        "name": "Arsenal U19",
+        "logo": "https://media.api-sports.io/football/teams/22371.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2012
+      ]
+    }
+  ]
+}

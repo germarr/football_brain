@@ -1,0 +1,64 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "286796"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 4665,
+        "name": "Racing Santander",
+        "logo": "https://media.api-sports.io/football/teams/4665.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2022,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 20255,
+        "name": "Celta de Vigo III",
+        "logo": "https://media.api-sports.io/football/teams/20255.png"
+      },
+      "seasons": []
+    }
+  ]
+}

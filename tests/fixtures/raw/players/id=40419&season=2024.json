@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "40419",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 40419,
+        "name": "A. Sedlar",
+        "firstname": "Aleksandar",
+        "lastname": "Sedlar",
+        "age": 34,
+        "birth": {
+          "date": "1991-12-13",
+          "place": "Novi Sad",
+          "country": "Serbia"
+        },
+        "nationality": "Serbia",
+        "height": "178",
+        "weight": "79",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/40419.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 34,
+            "lineups": 21,
+            "minutes": 600,
+            "number": null,
+            "position": "Defender",
+            "rating": "6.666666",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 13,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 1,
+            "on": null
+          },
+          "goals": {
+            "total": null,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 234,
+            "key": null,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 18,
+            "blocks": 1,
+            "interceptions": 10
+          },
+          "duels": {
+            "total": 50,
+            "won": 32
+          },
+          "dribbles": {
+            "attempts": 1,
+            "success": null,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 5,
+            "committed": 9
+          },
+          "cards": {
+            "yellow": 1,
+            "yellowred": null,
+            "red": 1
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 542,
+            "name": "Alaves",
+            "logo": "https://media.api-sports.io/football/teams/542.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 36,
+            "lineups": 36,
+            "minutes": 2723,
+            "number": null,
+            "position": "Defender",
+            "rating": "6.860606",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 8,
+            "on": 2
+          },
+          "goals": {
+            "total": null,
+            "conceded": 0,
+            "assists": null,
+            "saves": null
+          },
+          "passes": {
+            "total": 1233,
+            "key": 2,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 40,
+            "blocks": 23,
+            "interceptions": 35
+          },
+          "duels": {
+            "total": 254,
+            "won": 142
+          },
+          "dribbles": {
+            "attempts": 5,
+            "success": 4,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 17,
+            "committed": 44
+          },
+          "cards": {
+            "yellow": 7,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

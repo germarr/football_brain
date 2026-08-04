@@ -1,0 +1,120 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "46795"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 27,
+        "name": "Portugal",
+        "logo": "https://media.api-sports.io/football/teams/27.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 715,
+        "name": "Granada CF",
+        "logo": "https://media.api-sports.io/football/teams/715.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 544,
+        "name": "Deportivo La Coruna",
+        "logo": "https://media.api-sports.io/football/teams/544.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 223,
+        "name": "Chaves",
+        "logo": "https://media.api-sports.io/football/teams/223.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 221,
+        "name": "Belenenses",
+        "logo": "https://media.api-sports.io/football/teams/221.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 228,
+        "name": "Sporting CP",
+        "logo": "https://media.api-sports.io/football/teams/228.png"
+      },
+      "seasons": [
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 761,
+        "name": "Sporting CP B",
+        "logo": "https://media.api-sports.io/football/teams/761.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10299,
+        "name": "Portugal U20",
+        "logo": "https://media.api-sports.io/football/teams/10299.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 10343,
+        "name": "Portugal U19",
+        "logo": "https://media.api-sports.io/football/teams/10343.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

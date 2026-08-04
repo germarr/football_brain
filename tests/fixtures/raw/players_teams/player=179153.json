@@ -1,0 +1,92 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "179153"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 799,
+        "name": "Mirandes",
+        "logo": "https://media.api-sports.io/football/teams/799.png"
+      },
+      "seasons": [
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 722,
+        "name": "Albacete",
+        "logo": "https://media.api-sports.io/football/teams/722.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9585,
+        "name": "Real Sociedad II",
+        "logo": "https://media.api-sports.io/football/teams/9585.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9623,
+        "name": "Covadonga",
+        "logo": "https://media.api-sports.io/football/teams/9623.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9662,
+        "name": "Real Sociedad III",
+        "logo": "https://media.api-sports.io/football/teams/9662.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9406,
+        "name": "Peña Sport",
+        "logo": "https://media.api-sports.io/football/teams/9406.png"
+      },
+      "seasons": [
+        2018
+      ]
+    }
+  ]
+}

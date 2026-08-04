@@ -1,0 +1,332 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "162032",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 162032,
+        "name": "Miguel Gutiérrez",
+        "firstname": "Miguel",
+        "lastname": "Gutiérrez Ortega",
+        "age": 24,
+        "birth": {
+          "date": "2001-07-27",
+          "place": "Madrid",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "180",
+        "weight": "73",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/162032.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 547,
+            "name": "Girona",
+            "logo": "https://media.api-sports.io/football/teams/547.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 30,
+            "lineups": 30,
+            "minutes": 2464,
+            "number": null,
+            "position": "Defender",
+            "rating": "7.058620",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 21,
+            "on": 9
+          },
+          "goals": {
+            "total": 1,
+            "conceded": 0,
+            "assists": 5,
+            "saves": null
+          },
+          "passes": {
+            "total": 1145,
+            "key": 41,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 37,
+            "blocks": 7,
+            "interceptions": 17
+          },
+          "duels": {
+            "total": 218,
+            "won": 105
+          },
+          "dribbles": {
+            "attempts": 54,
+            "success": 30,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 34,
+            "committed": 29
+          },
+          "cards": {
+            "yellow": 4,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 547,
+            "name": "Girona",
+            "logo": "https://media.api-sports.io/football/teams/547.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 37,
+            "lineups": 34,
+            "minutes": 2397,
+            "number": null,
+            "position": "Defender",
+            "rating": "6.676470",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 3,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 12,
+            "on": 4
+          },
+          "goals": {
+            "total": 2,
+            "conceded": 0,
+            "assists": 3,
+            "saves": null
+          },
+          "passes": {
+            "total": 1065,
+            "key": 22,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 41,
+            "blocks": 5,
+            "interceptions": 18
+          },
+          "duels": {
+            "total": 217,
+            "won": 108
+          },
+          "dribbles": {
+            "attempts": 65,
+            "success": 34,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 24,
+            "committed": 23
+          },
+          "cards": {
+            "yellow": 6,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 547,
+            "name": "Girona",
+            "logo": "https://media.api-sports.io/football/teams/547.png"
+          },
+          "league": {
+            "id": 2,
+            "name": "UEFA Champions League",
+            "country": "World",
+            "logo": "https://media.api-sports.io/football/leagues/2.png",
+            "flag": null,
+            "season": 2024
+          },
+          "games": {
+            "appearences": 6,
+            "lineups": 6,
+            "minutes": 540,
+            "number": null,
+            "position": "Defender",
+            "rating": "7.100000",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 4,
+            "on": 3
+          },
+          "goals": {
+            "total": 1,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 268,
+            "key": 8,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 9,
+            "blocks": 2,
+            "interceptions": 4
+          },
+          "duels": {
+            "total": 50,
+            "won": 27
+          },
+          "dribbles": {
+            "attempts": 16,
+            "success": 8,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 9,
+            "committed": 3
+          },
+          "cards": {
+            "yellow": 0,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 10182,
+            "name": "Spain U23",
+            "logo": "https://media.api-sports.io/football/teams/10182.png"
+          },
+          "league": {
+            "id": 480,
+            "name": "Olympics Men",
+            "country": "World",
+            "logo": "https://media.api-sports.io/football/leagues/480.png",
+            "flag": null,
+            "season": 2024
+          },
+          "games": {
+            "appearences": 6,
+            "lineups": 6,
+            "minutes": 540,
+            "number": null,
+            "position": "Defender",
+            "rating": "7.100000",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 4,
+            "on": 3
+          },
+          "goals": {
+            "total": 1,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 268,
+            "key": 8,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 9,
+            "blocks": 2,
+            "interceptions": 4
+          },
+          "duels": {
+            "total": 50,
+            "won": 27
+          },
+          "dribbles": {
+            "attempts": 16,
+            "success": 8,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 9,
+            "committed": 3
+          },
+          "cards": {
+            "yellow": 0,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

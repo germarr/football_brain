@@ -1,0 +1,121 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "898"
+  },
+  "errors": [],
+  "results": 9,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 451,
+        "name": "Boca Juniors",
+        "logo": "https://media.api-sports.io/football/teams/451.png"
+      },
+      "seasons": [
+        2026,
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2013,
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 85,
+        "name": "Paris Saint Germain",
+        "logo": "https://media.api-sports.io/football/teams/85.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 33,
+        "name": "Manchester United",
+        "logo": "https://media.api-sports.io/football/teams/33.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 10182,
+        "name": "Spain U23",
+        "logo": "https://media.api-sports.io/football/teams/10182.png"
+      },
+      "seasons": [
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": [
+        2010,
+        2009,
+        2008,
+        2007
+      ]
+    },
+    {
+      "team": {
+        "id": 26086,
+        "name": "Spain U20",
+        "logo": "https://media.api-sports.io/football/teams/26086.png"
+      },
+      "seasons": [
+        2009
+      ]
+    }
+  ]
+}

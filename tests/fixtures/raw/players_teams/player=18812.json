@@ -1,0 +1,78 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "18812"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2012,
+        2011,
+        2008
+      ]
+    },
+    {
+      "team": {
+        "id": 40,
+        "name": "Liverpool",
+        "logo": "https://media.api-sports.io/football/teams/40.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2018,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 48,
+        "name": "West Ham",
+        "logo": "https://media.api-sports.io/football/teams/48.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016,
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 9765,
+        "name": "Real Betis II",
+        "logo": "https://media.api-sports.io/football/teams/9765.png"
+      },
+      "seasons": [
+        2010
+      ]
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "get": "players",
+  "parameters": {
+    "id": "403554",
+    "season": "2024"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "player": {
+        "id": 403554,
+        "name": "Christantus Uche",
+        "firstname": "Christantus Ugonna",
+        "lastname": "Uche",
+        "age": 22,
+        "birth": {
+          "date": "2003-05-19",
+          "place": "Owerri",
+          "country": "Spain"
+        },
+        "nationality": "Spain",
+        "height": "190",
+        "weight": "84",
+        "injured": false,
+        "photo": "https://media.api-sports.io/football/players/403554.png"
+      },
+      "statistics": [
+        {
+          "team": {
+            "id": 546,
+            "name": "Getafe",
+            "logo": "https://media.api-sports.io/football/teams/546.png"
+          },
+          "league": {
+            "id": 140,
+            "name": "La Liga",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/140.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 33,
+            "lineups": 32,
+            "minutes": 2501,
+            "number": null,
+            "position": "Midfielder",
+            "rating": "6.851515",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 1,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 35,
+            "on": 14
+          },
+          "goals": {
+            "total": 4,
+            "conceded": 0,
+            "assists": 6,
+            "saves": null
+          },
+          "passes": {
+            "total": 566,
+            "key": 29,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 35,
+            "blocks": 2,
+            "interceptions": 10
+          },
+          "duels": {
+            "total": 524,
+            "won": 224
+          },
+          "dribbles": {
+            "attempts": 79,
+            "success": 30,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 68,
+            "committed": 55
+          },
+          "cards": {
+            "yellow": 8,
+            "yellowred": null,
+            "red": 2
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        },
+        {
+          "team": {
+            "id": 546,
+            "name": "Getafe",
+            "logo": "https://media.api-sports.io/football/teams/546.png"
+          },
+          "league": {
+            "id": 143,
+            "name": "Copa del Rey",
+            "country": "Spain",
+            "logo": "https://media.api-sports.io/football/leagues/143.png",
+            "flag": "https://media.api-sports.io/flags/es.svg",
+            "season": 2024
+          },
+          "games": {
+            "appearences": 3,
+            "lineups": 3,
+            "minutes": 259,
+            "number": null,
+            "position": "Midfielder",
+            "rating": "7.300000",
+            "captain": false
+          },
+          "substitutes": {
+            "in": 0,
+            "out": null,
+            "bench": null
+          },
+          "shots": {
+            "total": 9,
+            "on": 1
+          },
+          "goals": {
+            "total": null,
+            "conceded": 0,
+            "assists": 0,
+            "saves": null
+          },
+          "passes": {
+            "total": 65,
+            "key": 3,
+            "accuracy": null
+          },
+          "tackles": {
+            "total": 4,
+            "blocks": 1,
+            "interceptions": 2
+          },
+          "duels": {
+            "total": 43,
+            "won": 25
+          },
+          "dribbles": {
+            "attempts": 7,
+            "success": 4,
+            "past": null
+          },
+          "fouls": {
+            "drawn": 5,
+            "committed": 4
+          },
+          "cards": {
+            "yellow": 1,
+            "yellowred": null,
+            "red": 0
+          },
+          "penalty": {
+            "won": null,
+            "commited": null,
+            "scored": 0,
+            "missed": 0,
+            "saved": null
+          }
+        }
+      ]
+    }
+  ]
+}

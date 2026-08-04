@@ -1,0 +1,81 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "400948"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 13,
+        "name": "Senegal",
+        "logo": "https://media.api-sports.io/football/teams/13.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 895,
+        "name": "Como",
+        "logo": "https://media.api-sports.io/football/teams/895.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        ""
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 9765,
+        "name": "Real Betis II",
+        "logo": "https://media.api-sports.io/football/teams/9765.png"
+      },
+      "seasons": [
+        2022,
+        ""
+      ]
+    }
+  ]
+}

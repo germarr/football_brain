@@ -22,3 +22,17 @@ dependencies = [
     "uvicorn>=0.50.2",
     "vl-convert-python>=1.9.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]
+
+# The suite is a refactoring harness, not a quality programme (ADR 0033): it covers
+# the invariants a wrong path violates *without raising*, and nothing else.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# rootdir on sys.path, so `from scripts import preflight` and `from football import …`
+# resolve the same way they do for `python -m …` from the repo root.
+pythonpath = ["."]
+addopts = "-q"

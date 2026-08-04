@@ -1,0 +1,88 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "269163"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 8225,
+        "name": "Sweden U21",
+        "logo": "https://media.api-sports.io/football/teams/8225.png"
+      },
+      "seasons": [
+        2025,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 10380,
+        "name": "Sweden U19",
+        "logo": "https://media.api-sports.io/football/teams/10380.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 5,
+        "name": "Sweden",
+        "logo": "https://media.api-sports.io/football/teams/5.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 363,
+        "name": "Hammarby FF",
+        "logo": "https://media.api-sports.io/football/teams/363.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 16596,
+        "name": "Hammarby Talang",
+        "logo": "https://media.api-sports.io/football/teams/16596.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 2164,
+        "name": "IK Frej",
+        "logo": "https://media.api-sports.io/football/teams/2164.png"
+      },
+      "seasons": [
+        2020
+      ]
+    }
+  ]
+}

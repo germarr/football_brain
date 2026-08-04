@@ -1,0 +1,72 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "403554"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 19,
+        "name": "Nigeria",
+        "logo": "https://media.api-sports.io/football/teams/19.png"
+      },
+      "seasons": [
+        2025,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 52,
+        "name": "Crystal Palace",
+        "logo": "https://media.api-sports.io/football/teams/52.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 17000,
+        "name": "Crystal Palace U21",
+        "logo": "https://media.api-sports.io/football/teams/17000.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 9836,
+        "name": "Moralo",
+        "logo": "https://media.api-sports.io/football/teams/9836.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 10139,
+        "name": "AD Ceuta FC",
+        "logo": "https://media.api-sports.io/football/teams/10139.png"
+      },
+      "seasons": []
+    }
+  ]
+}

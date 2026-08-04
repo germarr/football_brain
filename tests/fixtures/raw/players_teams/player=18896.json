@@ -1,0 +1,120 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "18896"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 34,
+        "name": "Newcastle",
+        "logo": "https://media.api-sports.io/football/teams/34.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2017,
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 746,
+        "name": "Sunderland",
+        "logo": "https://media.api-sports.io/football/teams/746.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 530,
+        "name": "Atletico Madrid",
+        "logo": "https://media.api-sports.io/football/teams/530.png"
+      },
+      "seasons": [
+        2014,
+        2013,
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 40,
+        "name": "Liverpool",
+        "logo": "https://media.api-sports.io/football/teams/40.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 81,
+        "name": "Marseille",
+        "logo": "https://media.api-sports.io/football/teams/81.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 26086,
+        "name": "Spain U20",
+        "logo": "https://media.api-sports.io/football/teams/26086.png"
+      },
+      "seasons": [
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 9570,
+        "name": "Atlético Madrid II",
+        "logo": "https://media.api-sports.io/football/teams/9570.png"
+      },
+      "seasons": []
+    }
+  ]
+}

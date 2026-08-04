@@ -1,0 +1,124 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "155"
+  },
+  "errors": [],
+  "results": 10,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2025,
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 10182,
+        "name": "Spain U23",
+        "logo": "https://media.api-sports.io/football/teams/10182.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 217,
+        "name": "SC Braga",
+        "logo": "https://media.api-sports.io/football/teams/217.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2023,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 529,
+        "name": "Barcelona",
+        "logo": "https://media.api-sports.io/football/teams/529.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 712,
+        "name": "Barcelona B",
+        "logo": "https://media.api-sports.io/football/teams/712.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 7885,
+        "name": "Barcelona U19",
+        "logo": "https://media.api-sports.io/football/teams/7885.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    }
+  ]
+}

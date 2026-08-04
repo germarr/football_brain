@@ -1,0 +1,84 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "187214"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 54,
+        "name": "Birmingham",
+        "logo": "https://media.api-sports.io/football/teams/54.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9409,
+        "name": "Racing Ferrol",
+        "logo": "https://media.api-sports.io/football/teams/9409.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9581,
+        "name": "Calahorra",
+        "logo": "https://media.api-sports.io/football/teams/9581.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9589,
+        "name": "Ejea",
+        "logo": "https://media.api-sports.io/football/teams/9589.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9677,
+        "name": "Pobla Mafumet",
+        "logo": "https://media.api-sports.io/football/teams/9677.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9887,
+        "name": "Real Zaragoza II",
+        "logo": "https://media.api-sports.io/football/teams/9887.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    }
+  ]
+}

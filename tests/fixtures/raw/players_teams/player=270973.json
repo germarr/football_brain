@@ -1,0 +1,84 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "270973"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 5254,
+        "name": "Castellón",
+        "logo": "https://media.api-sports.io/football/teams/5254.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 9765,
+        "name": "Real Betis II",
+        "logo": "https://media.api-sports.io/football/teams/9765.png"
+      },
+      "seasons": [
+        2023
+      ]
+    },
+    {
+      "team": {
+        "id": 5253,
+        "name": "CF Talavera",
+        "logo": "https://media.api-sports.io/football/teams/5253.png"
+      },
+      "seasons": [
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9575,
+        "name": "Real Madrid II",
+        "logo": "https://media.api-sports.io/football/teams/9575.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 9405,
+        "name": "Peña Deportiva",
+        "logo": "https://media.api-sports.io/football/teams/9405.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 7926,
+        "name": "Real Madrid U19",
+        "logo": "https://media.api-sports.io/football/teams/7926.png"
+      },
+      "seasons": [
+        2019
+      ]
+    }
+  ]
+}

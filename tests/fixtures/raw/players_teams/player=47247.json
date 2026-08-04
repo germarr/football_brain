@@ -1,0 +1,54 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47247"
+  },
+  "errors": [],
+  "results": 3,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 546,
+        "name": "Getafe",
+        "logo": "https://media.api-sports.io/football/teams/546.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 536,
+        "name": "Sevilla",
+        "logo": "https://media.api-sports.io/football/teams/536.png"
+      },
+      "seasons": [
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 730,
+        "name": "Sevilla Atletico",
+        "logo": "https://media.api-sports.io/football/teams/730.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

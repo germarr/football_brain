@@ -1,0 +1,96 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "66407"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 770,
+        "name": "Czechia",
+        "logo": "https://media.api-sports.io/football/teams/770.png"
+      },
+      "seasons": [
+        2026,
+        2025,
+        2024,
+        2023,
+        2022,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 39,
+        "name": "Wolves",
+        "logo": "https://media.api-sports.io/football/teams/39.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 628,
+        "name": "Sparta Praha",
+        "logo": "https://media.api-sports.io/football/teams/628.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 8188,
+        "name": "Czechia U21",
+        "logo": "https://media.api-sports.io/football/teams/8188.png"
+      },
+      "seasons": [
+        2023,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 10330,
+        "name": "Czechia U19",
+        "logo": "https://media.api-sports.io/football/teams/10330.png"
+      },
+      "seasons": [
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 3733,
+        "name": "Zbrojovka Brno",
+        "logo": "https://media.api-sports.io/football/teams/3733.png"
+      },
+      "seasons": [
+        2018,
+        2017,
+        2016
+      ]
+    }
+  ]
+}

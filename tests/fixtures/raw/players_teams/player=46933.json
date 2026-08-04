@@ -1,0 +1,81 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "46933"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 532,
+        "name": "Valencia",
+        "logo": "https://media.api-sports.io/football/teams/532.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 723,
+        "name": "Almeria",
+        "logo": "https://media.api-sports.io/football/teams/723.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 5267,
+        "name": "Marbella",
+        "logo": "https://media.api-sports.io/football/teams/5267.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": [
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 22142,
+        "name": "Real Madrid III",
+        "logo": "https://media.api-sports.io/football/teams/22142.png"
+      },
+      "seasons": [
+        2013
+      ]
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "1580"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 2292,
+        "name": "CF Pachuca",
+        "logo": "https://media.api-sports.io/football/teams/2292.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 27,
+        "name": "Portugal",
+        "logo": "https://media.api-sports.io/football/teams/27.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020,
+        2018,
+        2017,
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 228,
+        "name": "Sporting CP",
+        "logo": "https://media.api-sports.io/football/teams/228.png"
+      },
+      "seasons": [
+        2017,
+        2016,
+        2015,
+        2014,
+        2013,
+        2010
+      ]
+    },
+    {
+      "team": {
+        "id": 8216,
+        "name": "Portugal U21",
+        "logo": "https://media.api-sports.io/football/teams/8216.png"
+      },
+      "seasons": [
+        2017,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 741,
+        "name": "Cercle Brugge",
+        "logo": "https://media.api-sports.io/football/teams/741.png"
+      },
+      "seasons": [
+        2012,
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 10343,
+        "name": "Portugal U19",
+        "logo": "https://media.api-sports.io/football/teams/10343.png"
+      },
+      "seasons": [
+        2011
+      ]
+    },
+    {
+      "team": {
+        "id": 4746,
+        "name": "Fátima",
+        "logo": "https://media.api-sports.io/football/teams/4746.png"
+      },
+      "seasons": []
+    }
+  ]
+}

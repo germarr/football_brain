@@ -1,0 +1,73 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "288525"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": [
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 9579,
+        "name": "Athletic Club II",
+        "logo": "https://media.api-sports.io/football/teams/9579.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9656,
+        "name": "Basconia",
+        "logo": "https://media.api-sports.io/football/teams/9656.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9665,
+        "name": "Santutxu",
+        "logo": "https://media.api-sports.io/football/teams/9665.png"
+      },
+      "seasons": [
+        2020
+      ]
+    }
+  ]
+}

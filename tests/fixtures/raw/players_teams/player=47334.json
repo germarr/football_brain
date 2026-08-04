@@ -1,0 +1,75 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47334"
+  },
+  "errors": [],
+  "results": 5,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 540,
+        "name": "Espanyol",
+        "logo": "https://media.api-sports.io/football/teams/540.png"
+      },
+      "seasons": [
+        2021,
+        2020,
+        2019,
+        2018,
+        2017,
+        2016,
+        2014,
+        2013,
+        2010
+      ]
+    },
+    {
+      "team": {
+        "id": 492,
+        "name": "Napoli",
+        "logo": "https://media.api-sports.io/football/teams/492.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 726,
+        "name": "Huesca",
+        "logo": "https://media.api-sports.io/football/teams/726.png"
+      },
+      "seasons": [
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 537,
+        "name": "Leganes",
+        "logo": "https://media.api-sports.io/football/teams/537.png"
+      },
+      "seasons": [
+        2011
+      ]
+    }
+  ]
+}

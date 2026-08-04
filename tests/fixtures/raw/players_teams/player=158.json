@@ -1,0 +1,102 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "158"
+  },
+  "errors": [],
+  "results": 8,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 547,
+        "name": "Girona",
+        "logo": "https://media.api-sports.io/football/teams/547.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 36,
+        "name": "Fulham",
+        "logo": "https://media.api-sports.io/football/teams/36.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 797,
+        "name": "Elche",
+        "logo": "https://media.api-sports.io/football/teams/797.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 47,
+        "name": "Tottenham",
+        "logo": "https://media.api-sports.io/football/teams/47.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 26,
+        "name": "Argentina",
+        "logo": "https://media.api-sports.io/football/teams/26.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 41,
+        "name": "Southampton",
+        "logo": "https://media.api-sports.io/football/teams/41.png"
+      },
+      "seasons": [
+        2015,
+        2014,
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 728,
+        "name": "Rayo Vallecano",
+        "logo": "https://media.api-sports.io/football/teams/728.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 1347,
+        "name": "Gillingham",
+        "logo": "https://media.api-sports.io/football/teams/1347.png"
+      },
+      "seasons": [
+        2011
+      ]
+    }
+  ]
+}

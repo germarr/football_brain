@@ -1,0 +1,86 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47119"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 537,
+        "name": "Leganes",
+        "logo": "https://media.api-sports.io/football/teams/537.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 861,
+        "name": "Rayo Majadahonda",
+        "logo": "https://media.api-sports.io/football/teams/861.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 5262,
+        "name": "FC Cartagena",
+        "logo": "https://media.api-sports.io/football/teams/5262.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9765,
+        "name": "Real Betis II",
+        "logo": "https://media.api-sports.io/football/teams/9765.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 9392,
+        "name": "L'Hospitalet",
+        "logo": "https://media.api-sports.io/football/teams/9392.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 5258,
+        "name": "Cornellà",
+        "logo": "https://media.api-sports.io/football/teams/5258.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

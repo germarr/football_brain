@@ -1,0 +1,90 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47353"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 8224,
+        "name": "Spain U21",
+        "logo": "https://media.api-sports.io/football/teams/8224.png"
+      },
+      "seasons": [
+        2021,
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 723,
+        "name": "Almeria",
+        "logo": "https://media.api-sports.io/football/teams/723.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9594,
+        "name": "Valencia II",
+        "logo": "https://media.api-sports.io/football/teams/9594.png"
+      },
+      "seasons": [
+        2016,
+        2015,
+        2014,
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 7938,
+        "name": "Valencia U19",
+        "logo": "https://media.api-sports.io/football/teams/7938.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10349,
+        "name": "Spain U19",
+        "logo": "https://media.api-sports.io/football/teams/10349.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 532,
+        "name": "Valencia",
+        "logo": "https://media.api-sports.io/football/teams/532.png"
+      },
+      "seasons": []
+    }
+  ]
+}

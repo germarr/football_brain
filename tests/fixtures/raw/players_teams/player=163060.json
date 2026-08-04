@@ -1,0 +1,75 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "163060"
+  },
+  "errors": [],
+  "results": 6,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 732,
+        "name": "Zaragoza",
+        "logo": "https://media.api-sports.io/football/teams/732.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9582,
+        "name": "Deportivo Alavés II",
+        "logo": "https://media.api-sports.io/football/teams/9582.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 722,
+        "name": "Albacete",
+        "logo": "https://media.api-sports.io/football/teams/722.png"
+      },
+      "seasons": [
+        2019
+      ]
+    },
+    {
+      "team": {
+        "id": 9895,
+        "name": "Albacete II",
+        "logo": "https://media.api-sports.io/football/teams/9895.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 7926,
+        "name": "Real Madrid U19",
+        "logo": "https://media.api-sports.io/football/teams/7926.png"
+      },
+      "seasons": [
+        2018
+      ]
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "20600"
+  },
+  "errors": [],
+  "results": 11,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 79,
+        "name": "Lille",
+        "logo": "https://media.api-sports.io/football/teams/79.png"
+      },
+      "seasons": [
+        2025
+      ]
+    },
+    {
+      "team": {
+        "id": 84,
+        "name": "Nice",
+        "logo": "https://media.api-sports.io/football/teams/84.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2019,
+        2018,
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 41,
+        "name": "Southampton",
+        "logo": "https://media.api-sports.io/football/teams/41.png"
+      },
+      "seasons": [
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 106,
+        "name": "Stade Brestois 29",
+        "logo": "https://media.api-sports.io/football/teams/106.png"
+      },
+      "seasons": [
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 114,
+        "name": "Paris FC",
+        "logo": "https://media.api-sports.io/football/teams/114.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 10287,
+        "name": "France U20",
+        "logo": "https://media.api-sports.io/football/teams/10287.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 9259,
+        "name": "Nice II",
+        "logo": "https://media.api-sports.io/football/teams/9259.png"
+      },
+      "seasons": [
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 10334,
+        "name": "France U19",
+        "logo": "https://media.api-sports.io/football/teams/10334.png"
+      },
+      "seasons": [
+        2017,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 12507,
+        "name": "France U17",
+        "logo": "https://media.api-sports.io/football/teams/12507.png"
+      },
+      "seasons": [
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 26053,
+        "name": "France U17\tW",
+        "logo": "https://media.api-sports.io/football/teams/26053.png"
+      },
+      "seasons": [
+        2014
+      ]
+    }
+  ]
+}

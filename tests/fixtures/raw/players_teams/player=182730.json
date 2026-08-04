@@ -1,0 +1,104 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "182730"
+  },
+  "errors": [],
+  "results": 9,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 538,
+        "name": "Celta Vigo",
+        "logo": "https://media.api-sports.io/football/teams/538.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 9571,
+        "name": "Celta de Vigo II",
+        "logo": "https://media.api-sports.io/football/teams/9571.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 8157,
+        "name": "FC Andorra",
+        "logo": "https://media.api-sports.io/football/teams/8157.png"
+      },
+      "seasons": [
+        2023,
+        2022
+      ]
+    },
+    {
+      "team": {
+        "id": 712,
+        "name": "Barcelona B",
+        "logo": "https://media.api-sports.io/football/teams/712.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9765,
+        "name": "Real Betis II",
+        "logo": "https://media.api-sports.io/football/teams/9765.png"
+      },
+      "seasons": [
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 9595,
+        "name": "Villarreal II",
+        "logo": "https://media.api-sports.io/football/teams/9595.png"
+      },
+      "seasons": [
+        2020,
+        2019,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 9702,
+        "name": "Villarreal III",
+        "logo": "https://media.api-sports.io/football/teams/9702.png"
+      },
+      "seasons": [
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 12520,
+        "name": "Spain U17",
+        "logo": "https://media.api-sports.io/football/teams/12520.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 17702,
+        "name": "Villarreal U19",
+        "logo": "https://media.api-sports.io/football/teams/17702.png"
+      },
+      "seasons": [
+        2015
+      ]
+    }
+  ]
+}

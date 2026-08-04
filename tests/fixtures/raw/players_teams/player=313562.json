@@ -1,0 +1,37 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "313562"
+  },
+  "errors": [],
+  "results": 2,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 9582,
+        "name": "Deportivo Alavés II",
+        "logo": "https://media.api-sports.io/football/teams/9582.png"
+      },
+      "seasons": [
+        2024,
+        2023,
+        2022,
+        2021
+      ]
+    },
+    {
+      "team": {
+        "id": 542,
+        "name": "Alaves",
+        "logo": "https://media.api-sports.io/football/teams/542.png"
+      },
+      "seasons": [
+        2020
+      ]
+    }
+  ]
+}

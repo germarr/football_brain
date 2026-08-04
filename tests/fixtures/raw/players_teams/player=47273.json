@@ -1,0 +1,94 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47273"
+  },
+  "errors": [],
+  "results": 7,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 531,
+        "name": "Athletic Club",
+        "logo": "https://media.api-sports.io/football/teams/531.png"
+      },
+      "seasons": [
+        2025,
+        2024,
+        2023,
+        2022,
+        2021,
+        2020,
+        2019,
+        2018
+      ]
+    },
+    {
+      "team": {
+        "id": 85,
+        "name": "Paris Saint Germain",
+        "logo": "https://media.api-sports.io/football/teams/85.png"
+      },
+      "seasons": [
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2016,
+        2015,
+        2014
+      ]
+    },
+    {
+      "team": {
+        "id": 545,
+        "name": "Eibar",
+        "logo": "https://media.api-sports.io/football/teams/545.png"
+      },
+      "seasons": [
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 9586,
+        "name": "Real Unión",
+        "logo": "https://media.api-sports.io/football/teams/9586.png"
+      },
+      "seasons": [
+        2011,
+        2010,
+        2009
+      ]
+    },
+    {
+      "team": {
+        "id": 720,
+        "name": "Valladolid",
+        "logo": "https://media.api-sports.io/football/teams/720.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 1372,
+        "name": "Cheltenham",
+        "logo": "https://media.api-sports.io/football/teams/1372.png"
+      },
+      "seasons": [
+        2008
+      ]
+    }
+  ]
+}

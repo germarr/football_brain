@@ -1,0 +1,138 @@
+{
+  "get": "players/teams",
+  "parameters": {
+    "player": "47302"
+  },
+  "errors": [],
+  "results": 12,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "team": {
+        "id": 543,
+        "name": "Real Betis",
+        "logo": "https://media.api-sports.io/football/teams/543.png"
+      },
+      "seasons": [
+        2025,
+        2024
+      ]
+    },
+    {
+      "team": {
+        "id": 63,
+        "name": "Leeds",
+        "logo": "https://media.api-sports.io/football/teams/63.png"
+      },
+      "seasons": [
+        2023,
+        2022,
+        2021,
+        2020
+      ]
+    },
+    {
+      "team": {
+        "id": 497,
+        "name": "AS Roma",
+        "logo": "https://media.api-sports.io/football/teams/497.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 9,
+        "name": "Spain",
+        "logo": "https://media.api-sports.io/football/teams/9.png"
+      },
+      "seasons": [
+        2022,
+        2021,
+        2020,
+        2018,
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 15635,
+        "name": "Leeds United U23",
+        "logo": "https://media.api-sports.io/football/teams/15635.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 548,
+        "name": "Real Sociedad",
+        "logo": "https://media.api-sports.io/football/teams/548.png"
+      },
+      "seasons": [
+        2019,
+        2018,
+        2017
+      ]
+    },
+    {
+      "team": {
+        "id": 535,
+        "name": "Malaga",
+        "logo": "https://media.api-sports.io/football/teams/535.png"
+      },
+      "seasons": [
+        2016
+      ]
+    },
+    {
+      "team": {
+        "id": 728,
+        "name": "Rayo Vallecano",
+        "logo": "https://media.api-sports.io/football/teams/728.png"
+      },
+      "seasons": [
+        2015
+      ]
+    },
+    {
+      "team": {
+        "id": 541,
+        "name": "Real Madrid",
+        "logo": "https://media.api-sports.io/football/teams/541.png"
+      },
+      "seasons": [
+        2014,
+        2013,
+        2012
+      ]
+    },
+    {
+      "team": {
+        "id": 9575,
+        "name": "Real Madrid II",
+        "logo": "https://media.api-sports.io/football/teams/9575.png"
+      },
+      "seasons": []
+    },
+    {
+      "team": {
+        "id": 26086,
+        "name": "Spain U20",
+        "logo": "https://media.api-sports.io/football/teams/26086.png"
+      },
+      "seasons": [
+        2013
+      ]
+    },
+    {
+      "team": {
+        "id": 22142,
+        "name": "Real Madrid III",
+        "logo": "https://media.api-sports.io/football/teams/22142.png"
+      },
+      "seasons": []
+    }
+  ]
+}
