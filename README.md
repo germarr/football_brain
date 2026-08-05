@@ -128,15 +128,22 @@ and shows the tracked competitions plus this week's fixtures in NYC time
 ([ADR-0021](docs/adr/0021-operator-dashboard-command-registry.md)):
 
 ```bash
-uv run python -m console           # then open http://127.0.0.1:8000
-uv run python -m surfaces          # the Viewer at :8001/ and the Desk at :8001/desk
+uv run python -m surfaces          # then open http://127.0.0.1:8001
 ```
 
-The Console keeps its own port because it writes `football.db` — the coupling
-[ADR-0023](docs/adr/0023-split-viewer-app-and-serving-db.md) split apart. The Viewer and
-the Desk share neither store nor rebuild window, so since
-[ADR-0035](docs/adr/0035-one-port-two-surfaces.md) they answer on one port under one
-header, composed by `surfaces/` without either package importing the other.
+| | | |
+|---|---|---|
+| **Viewer** | `/` | read the data — this week, standings, match tracker |
+| **Desk** | `/desk` | write about it — Drafting Candidates, the prompt, the pipeline |
+| **Console** | `/console` | build it — onboard, backfill, rebuild, publish |
+
+All three answer on one port under one header since
+[ADR-0035](docs/adr/0035-one-port-three-surfaces.md), composed by `surfaces/` without any
+of the three packages importing another. None of them holds a `football.db` handle — the
+coupling [ADR-0023](docs/adr/0023-split-viewer-app-and-serving-db.md) split apart — so
+there is nothing left for separate processes to protect. Each still boots alone
+(`python -m web`, `python -m console`, `python -m football_blog.desk`) as a debug
+entrypoint.
 
 Bound to `127.0.0.1` only — it spawns subprocesses and spends API quota, so it is
 never network-exposed. Every trigger runs the **exact** `python -m …` command you
@@ -160,7 +167,7 @@ alone collects, builds and publishes ([ADR-0031](docs/adr/0031-package-by-contex
 | **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
 | **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/`, `football_blog/candidates.py` |
 | **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `web/publish.py`, `football/publish/`, `football_blog/` |
-| **Control** | Fire the pipeline. Populates nothing — the Console *renders* the registry, so it has no entry in it; the composed surfaces are a separate process and do have one. | `console/`, `surfaces/`, `football_blog/desk/` |
+| **Control** | Fire the pipeline. Populates nothing — one entry, `surfaces`, which launches all three local apps at once. | `surfaces/`, `console/`, `football_blog/desk/` |
 
 Onboard and Backfill were one group until ADR 0031. They split because they fail
 differently: a backfill cut short resumes for free, while an entity that was never
@@ -181,9 +188,9 @@ football/            the pipeline package — one package, one store (ADR 0011)
   collect/           backfill events, team stats, team profiles  (network)
   build/             parse / scope / venues — cache to SQLite  (offline)
   publish/           pg (wholesale) + delta — the Postgres Published Store
-console/         local FastAPI + Jinja Operator Console, :8000  (ADR 0021/0023)
-surfaces/        mounts the Viewer at / and the Desk at /desk, :8001  (ADR 0035)
-web/             the reader-facing Viewer, over its own serve.db  (ADR 0023)
+surfaces/        mounts all three local apps on :8001  (ADR 0035)
+console/         local FastAPI + Jinja Operator Console, at /console  (ADR 0021/0023)
+web/             the reader-facing Viewer, at /, over its own serve.db  (ADR 0023)
 commentary/      ESPN Commentary Store  (ADR 0026)
 live/            provisional Live Mirror during a match  (ADR 0020)
 refresh/         nightly frontier Refresh  (ADR 0018)

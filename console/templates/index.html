@@ -212,9 +212,10 @@
 <body>
 <header>
   <h1>⚽ Football 2.0</h1>
+  {% include "_nav.html" ignore missing %}
   <span class="badge">Operator Console</span>
   <span class="badge local">● 127.0.0.1 — local only</span>
-  <span class="badge">builds football.db · Viewer runs separately on :8001</span>
+  <span class="badge">builds football.db · the Viewer reads its own serve.db</span>
 </header>
 
 <main>
@@ -289,6 +290,9 @@
 <div id="toast"></div>
 
 <script>
+// This app's mount prefix — "" standalone, "/console" under `surfaces` (ADR 0035).
+const BASE = {{ base_url(request) | tojson }};
+
 function copyCmd(btn, cmd){
   const done = ()=>{ btn.classList.add('copied');
     const h = btn.querySelector('.copyhint'); const prev = h.textContent; h.textContent='copied';
@@ -317,7 +321,7 @@ async function runCmd(key, form){
   });
   let res, data;
   try{
-    res = await fetch('/run', {method:'POST', headers:{'Content-Type':'application/json'},
+    res = await fetch(BASE+'/run', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({key, values})});
     data = await res.json();
   }catch(e){ toast('Request failed: '+e); return; }
@@ -340,11 +344,11 @@ function openJob(jobId, title){
   const statusEl = card.querySelector('.job-status');
   const log = card.querySelector('.job-log');
   const stopBtn = card.querySelector('.stop');
-  stopBtn.onclick = ()=> fetch('/jobs/'+jobId+'/stop', {method:'POST'});
+  stopBtn.onclick = ()=> fetch(BASE+'/jobs/'+jobId+'/stop', {method:'POST'});
   list.prepend(card);
 
   let done = false;
-  const es = new EventSource('/jobs/'+jobId+'/stream');
+  const es = new EventSource(BASE+'/jobs/'+jobId+'/stream');
   es.onmessage = (e)=>{ const d = JSON.parse(e.data);
     log.textContent += d.line + '\n'; log.scrollTop = log.scrollHeight; };
   es.addEventListener('end', (e)=>{ const d = JSON.parse(e.data);

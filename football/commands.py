@@ -27,11 +27,14 @@ from dataclasses import dataclass, field
 # remote Postgres Published Store (ADR 0027) — the latter is the one command here that
 # never touches football.db, deriving from the raw cache instead.
 #
-# Control is the surfaces you drive the pipeline from. The Operator Console itself has
-# NO entry below — it renders this registry, so it cannot invoke itself — but the other
-# two surfaces are separate processes it can launch, and since ADR 0035 they are one
-# process: `python -m surfaces` (Viewer at /, Desk at /desk). The Live Poll launcher
-# moved to the Viewer's Match Tracker page (ADR 0023).
+# Control is the surfaces you drive the pipeline from. Since ADR 0035 all three are one
+# process — `python -m surfaces`, Viewer at /, Desk at /desk, Console at /console — and
+# its single entry below is the only Control command. The old "the Console cannot invoke
+# itself" no longer holds literally: the Console is *inside* what that entry launches, so
+# running it from the Console starts a second copy of all three on another port. It is
+# marked long_running (a server, not a job) and defaults to :8001, so the usual outcome
+# is an "address already in use" in the log rather than a surprise. The Live Poll
+# launcher moved to the Viewer's Match Tracker page (ADR 0023).
 GROUPS = ["Onboard", "Backfill", "Build", "Refresh", "Publish", "Control"]
 
 
@@ -377,20 +380,23 @@ COMMANDS: list[Command] = [
 
     # --- Control (open a surface; populates no store) ------------------------
     Command(
-        key="surfaces", group="Control", title="Open the Viewer + the Desk",
+        key="surfaces", group="Control", title="Open the local surfaces",
         module="surfaces",
-        summary="Serve both local surfaces on one port: the Viewer at /, the Desk at /desk.",
+        summary="Serve all three surfaces on one port: Viewer at /, Desk at /desk, "
+                "Console at /console.",
         detail="Starts the composed app (ADR 0035) — a long-running server, not a job "
                "that finishes, so it stays 'running' until you Stop it. Populates no "
-               "store itself: the Viewer reads serve.db + live.db, and the Desk reads "
-               "the Editorial and Published Stores. The Console cannot launch itself, "
-               "which is why it has no entry here and this does.",
+               "store itself: the Viewer reads serve.db + live.db, the Desk reads the "
+               "Editorial and Published Stores, and the Console reads nothing at all. "
+               "Note that this Console is *inside* what this launches: running it from "
+               "here starts a second copy of all three, which on the default port will "
+               "just fail with 'address already in use'.",
         example="Start it, then open http://127.0.0.1:8001 for this week's fixtures and "
-                "the tracked Competitions, or http://127.0.0.1:8001/desk to see tonight's "
-                "Drafting Candidates and fire the match-report pipeline. One process, one "
-                "port; the header switches between them. Bound to 127.0.0.1 — between "
-                "them these surfaces spend API-Football quota and Anthropic tokens and "
-                "write to the Editorial Store.",
+                "the tracked Competitions, /desk to see tonight's Drafting Candidates and "
+                "fire the match-report pipeline, /console for these triggers. One process, "
+                "one port; the header switches between them. Bound to 127.0.0.1 — between "
+                "them these surfaces spend API-Football quota and Anthropic tokens, write "
+                "to the Editorial Store, and can rebuild football.db.",
         scope="local web surfaces · no store written",
         long_running=True,   # a server: runs until stopped
         params=[

@@ -1,18 +1,21 @@
-"""Launch the composed surfaces on 127.0.0.1 (ADR 0035).
+"""Launch all three local surfaces on 127.0.0.1 (ADR 0035).
 
     uv run python -m surfaces [--port 8001]
 
 `:8001` is the Viewer's old port, kept deliberately: the Viewer still answers at `/`,
-so every bookmark you already have survives in path *and* port. The Desk is at `/desk`;
-its old `:8002` is retired.
+so every bookmark you already have survives in path *and* port. The Desk is at `/desk`
+and the Console at `/console`; their old `:8002` and `:8000` are retired.
 
-Bound to localhost only, and this process carries **both** surfaces' reasons at once:
-`live.poll` and the pipeline spend API-Football quota, the Desk queries ESPN and spends
-Anthropic tokens, and it writes to the **Editorial Store**, the only store here with no
-rebuild path. It must never be network-exposed.
+Bound to localhost only, and this process carries every surface's reason at once:
+`live.poll`, the pipeline and the Console's collectors spend API-Football quota, the
+Desk queries ESPN and spends Anthropic tokens and writes to the **Editorial Store**
+(the only store here with no rebuild path), and the Console can drop and rebuild
+`football.db` or replace the Postgres Published Store wholesale. It must never be
+network-exposed.
 
-The Operator Console stays a separate process on :8000 — it writes `football.db`, which
-is the coupling ADR 0023 split apart and this does not undo.
+One process now holds all three job registries, so restarting it drops every streaming
+log at once. The subprocesses themselves survive — orphaned but running — you just lose
+the log and the Stop button. That is the cost this arrangement pays.
 """
 from __future__ import annotations
 
@@ -27,8 +30,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--host", default="127.0.0.1",
                     help="bind host (default 127.0.0.1 — do not expose)")
     args = ap.parse_args(argv)
-    print(f"Viewer → http://{args.host}:{args.port}/")
-    print(f"the Desk → http://{args.host}:{args.port}/desk")
+    print(f"Viewer  → http://{args.host}:{args.port}/")
+    print(f"Desk    → http://{args.host}:{args.port}/desk")
+    print(f"Console → http://{args.host}:{args.port}/console")
     uvicorn.run("surfaces.app:app", host=args.host, port=args.port, log_level="info")
 
 

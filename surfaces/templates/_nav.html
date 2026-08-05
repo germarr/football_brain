@@ -28,9 +28,13 @@
 </style>
 {% set _mount = request.scope.get('root_path', '') -%}
 <nav class="surfnav">
-  <a href="/"{% if not _mount.startswith('/desk') %} class="on"{% endif %}>Viewer</a>
-  {#- `/desk/` with the slash: a Mount matches only below its prefix, so the bare
-      `/desk` costs a redirect hop. Linked directly here; the redirect exists in
-      surfaces/app.py for the URL typed by hand. -#}
+  {#- Trailing slashes are load-bearing: a Mount matches only *below* its prefix, so a
+      bare `/desk` or `/console` costs a redirect hop. Linked directly here; the
+      redirects exist in surfaces/app.py for the URLs typed by hand.
+
+      Order is read → write → build. The Console is last because it is the one you
+      visit on purpose; the other two are a loop. -#}
+  <a href="/"{% if not _mount %} class="on"{% endif %}>Viewer</a>
   <a href="/desk/"{% if _mount.startswith('/desk') %} class="on"{% endif %}>Desk</a>
+  <a href="/console/"{% if _mount.startswith('/console') %} class="on"{% endif %}>Console</a>
 </nav>

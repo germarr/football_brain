@@ -44,6 +44,19 @@ app = FastAPI(title="Football 2.0 — Operator Console")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
 
 
+def _base_url(request: Request) -> str:
+    """This app's mount prefix: `""` standalone, `"/console"` under `surfaces` (ADR 0035).
+
+    Same device as the Desk's. Every endpoint the page calls is built from it, so one
+    set of templates serves both modes and a hardcoded prefix cannot 404 in whichever
+    mode nobody tested.
+    """
+    return request.scope.get("root_path", "")
+
+
+templates.env.globals["base_url"] = _base_url
+
+
 # --------------------------------------------------------------------------- #
 # Jobs
 # --------------------------------------------------------------------------- #

@@ -1,10 +1,14 @@
-"""Launch the Operator Console on 127.0.0.1 (ADR 0021, ADR 0023).
+"""Launch the Console alone on 127.0.0.1 — a debug entrypoint since ADR 0035.
 
     uv run python -m console [--port 8000]
 
+The normal way in is `python -m surfaces`, which serves this app at `/console`
+alongside the Viewer and the Desk on :8001. This entrypoint stays for debugging;
+booting alone renders the header without the surfaces nav (the include is
+`ignore missing`).
+
 Bound to localhost only: this app spawns subprocesses and spends paid API quota,
-so it must never be network-exposed. It builds football.db; the reader-facing
-Viewer is a separate app — `python -m web` on :8001 (ADR 0023).
+so it must never be network-exposed.
 """
 from __future__ import annotations
 
