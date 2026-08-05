@@ -6,29 +6,71 @@
 {% endblock %}
 
 {% block content %}
+{% set qs_days = '?days=' ~ days %}
+{% set qs_league = ('&league_id=' ~ league_id) if league_id is not none else '' %}
 <section>
-  <h2>The board · last {{ days }} days</h2>
+  <h2>The board · last {{ days }} days{% if selected %} · {{ selected.name }}{% endif %}</h2>
+
+  {# The filter's range is every Publication's Competition, so a Competition with
+     nothing in this window is still selectable — and says so when you pick it. #}
+  <p class="muted filters">
+    <span class="lbl">Competition</span>
+    {% if league_id is none %}<b class="chipf sel">All</b>
+    {% else %}<a class="chipf" href="{{ base_url(request) }}/{{ qs_days }}">All</a>{% endif %}<span
+      class="n">{{ n_all }}</span>
+    {%- for c in competitions %}
+      {% if c.league_id == league_id %}
+        <b class="chipf sel" style="border-bottom-color:{{ c.brand_color or 'var(--accent)' }}">{{ c.name }}</b>
+      {% else %}
+        <a class="chipf" href="{{ base_url(request) }}/{{ qs_days }}&amp;league_id={{ c.league_id }}">{{ c.name }}</a>
+      {% endif %}<span class="n">{{ counts.get(c.league_id, 0) }}</span>
+    {%- endfor %}
+  </p>
 
   {% if not rows %}
     <div class="panel">
-      <p style="margin:0 0 10px">Nothing on the board.</p>
-      <p class="muted" style="margin:0;font-size:13px">
-        Either no Publication covers a Competition with a recent Final, or the window is
-        too narrow — try <a href="/?days=30">30 days</a>. If a match finished tonight it
-        will not be here until the frontier is refreshed: the Published Store learns of a
-        new Final at 04:00, or when <b>Refresh Candidates</b> runs.
-      </p>
+      {% if selected %}
+        <p style="margin:0 0 10px">
+          No {{ selected.name }} Final in the last {{ days }} days.
+        </p>
+        <p class="muted" style="margin:0;font-size:13px">
+          {% if n_all %}
+            The window holds <b>{{ n_all }}</b> Final{{ '' if n_all == 1 else 's' }} in
+            other Competitions — <a href="{{ base_url(request) }}/{{ qs_days }}">show them all</a>.
+          {% endif %}
+          Or widen the window and keep this filter:
+          <a href="{{ base_url(request) }}/?days=90&amp;league_id={{ selected.league_id }}">90 days</a>.
+          A Competition out of season simply has no Final to write about.
+        </p>
+      {% elif league_id is not none %}
+        {# A hand-edited or stale URL. Say what is actually wrong rather than letting it
+           read as "nothing has finished lately". #}
+        <p style="margin:0 0 10px">No Publication covers Competition {{ league_id }}.</p>
+        <p class="muted" style="margin:0;font-size:13px">
+          The board only lists Competitions we have decided to cover — pick one above, or
+          <a href="{{ base_url(request) }}/{{ qs_days }}">show them all</a>.
+        </p>
+      {% else %}
+        <p style="margin:0 0 10px">Nothing on the board.</p>
+        <p class="muted" style="margin:0;font-size:13px">
+          Either no Publication covers a Competition with a recent Final, or the window is
+          too narrow — try <a href="{{ base_url(request) }}/?days=30">30 days</a>. If a match finished tonight it
+          will not be here until the frontier is refreshed: the Published Store learns of a
+          new Final at 04:00, or when <b>Refresh Candidates</b> runs.
+        </p>
+      {% endif %}
     </div>
   {% else %}
     <p class="muted" style="margin:0 0 12px;font-size:13px">
-      <b>{{ rows | length }}</b> Final{{ '' if rows|length == 1 else 's' }} ·
+      <b>{{ rows | length }}</b> Final{{ '' if rows|length == 1 else 's' }}{% if selected %}
+      in {{ selected.name }}{% endif %} ·
       <b>{{ n_candidates }}</b> Drafting Candidate{{ '' if n_candidates == 1 else 's' }}.
       A match that finished tonight is not here until <b>Refresh Candidates</b> runs —
       the store only learns of new Finals at 04:00 otherwise.
       Window:
       {% for w in [7, 14, 30, 90] %}
         {%- if w == days %}<b class="win sel">{{ w }}</b>
-        {%- else %}<a class="win" href="/?days={{ w }}">{{ w }}</a>
+        {%- else %}<a class="win" href="{{ base_url(request) }}/?days={{ w }}{{ qs_league }}">{{ w }}</a>
         {%- endif %}{% if not loop.last %} · {% endif %}
       {%- endfor %} days{% if days not in [7, 14, 30, 90] %} — showing <b>{{ days }}</b>{% endif %}.
     </p>
@@ -39,7 +81,7 @@
           <tr>
             <th>Kickoff</th>
             <th>Match</th>
-            <th>Competition</th>
+            {% if not selected %}<th>Competition</th>{% endif %}
             <th class="sig" title="Events · Squad Entries · Team Match Stats · Commentary Lines">Signals</th>
             <th>Match Post</th>
             <th></th>
@@ -53,7 +95,9 @@
               {{ r.scoreline }}
               <span class="fid">{{ r.fixture_id }}</span>
             </td>
-            <td class="muted comp">{{ r.league_name }}</td>
+            {# Dropped when a Competition is selected: the same value in every row is
+               noise, and the heading already says which one you are looking at. #}
+            {% if not selected %}<td class="muted comp">{{ r.league_name }}</td>{% endif %}
             <td class="sig">
               <span class="{{ 'on' if r.n_events else 'off' }}" title="{{ r.n_events }} Events">EV</span>
               <span class="{{ 'on' if r.n_squad else 'off' }}" title="{{ r.n_squad }} Squad Entries">SQ</span>
@@ -71,9 +115,9 @@
             </td>
             <td class="act">
               {% if r.is_candidate %}
-                <a href="/candidate/{{ r.fixture_id }}">Draft →</a>
+                <a href="{{ base_url(request) }}/candidate/{{ r.fixture_id }}">Draft →</a>
               {% else %}
-                <a href="/candidate/{{ r.fixture_id }}" class="muted">Open</a>
+                <a href="{{ base_url(request) }}/candidate/{{ r.fixture_id }}" class="muted">Open</a>
               {% endif %}
             </td>
           </tr>
@@ -119,5 +163,14 @@
   td.act a{text-decoration:none;font-weight:640;font-size:13px}
   .win{font-variant-numeric:tabular-nums;text-decoration:none;padding:0 3px}
   .win.sel{color:var(--ink);border-bottom:2px solid var(--accent)}
+  p.filters{margin:0 0 10px;font-size:13px;display:flex;align-items:baseline;
+    gap:3px;flex-wrap:wrap}
+  p.filters .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    font-weight:700;margin-right:5px}
+  .chipf{text-decoration:none;padding:2px 7px;border-radius:7px;background:var(--chip);
+    border-bottom:2px solid transparent}
+  .chipf.sel{color:var(--ink);background:var(--ex-bg);border-bottom:2px solid var(--accent)}
+  p.filters .n{font-size:10.5px;font-variant-numeric:tabular-nums;opacity:.65;
+    margin:0 8px 0 3px}
 </style>
 {% endblock %}

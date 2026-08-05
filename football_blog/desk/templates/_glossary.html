@@ -5,7 +5,7 @@
    including template — the window only exists on the board, not on one Candidate. #}
 <section>
   <details class="gloss">
-    <summary>Glossary — the signals{% if show_windows %}, the window{% endif %} and the terms</summary>
+    <summary>Glossary — the signals{% if show_windows %}, the window, the filter{% endif %} and the terms</summary>
 
     <div class="panel gloss-body">
 
@@ -83,6 +83,21 @@
         <code>/candidate/&lt;fixture id&gt;</code>, which ignores the window entirely.
         Any number works, not just the four links: <code>?days=365</code> is a season.
         <b>Refresh Candidates</b> uses whichever window you are on.
+      </p>
+
+      <h3>The Competition filter</h3>
+      <p class="muted lead">
+        Narrows the board to one Competition — its range is every Competition a
+        <b>Publication</b> covers, so one that is out of season stays selectable and
+        tells you it is empty rather than going missing. The count beside each is how
+        many Finals it has <i>in the current window</i>, so the numbers move when the
+        window does.
+      </p>
+      <p class="muted lead">
+        Like the window, it is a <b>display</b> choice: it changes what you are looking
+        at and nothing about what is draftable. <b>Refresh Candidates</b> ignores it and
+        always refreshes every Publication's Competition — the frontier is not
+        per-Competition work you would want to half-do.
       </p>
       {% endif %}
 

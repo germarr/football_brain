@@ -13,6 +13,9 @@ Match Tracker — reading **only** its own stores, never `data/football.db`:
 `football.db` is written by the pipeline (the `console` Operator Console) and read by exactly
 one thing, `web.publish`. No web UI reads it live.
 
-Launch the Viewer: `uv run python -m web`  (then open http://127.0.0.1:8001)
+Launch the Viewer: `uv run python -m surfaces`  (then open http://127.0.0.1:8001)
+                   — serves this app at `/` and the Desk at `/desk` (ADR 0035).
+                   `python -m web` still boots it alone, as a debug entrypoint and
+                   because ADR 0023's deferred public read-only Viewer needs one.
 Publish the store: `uv run python -m web.publish`
 """

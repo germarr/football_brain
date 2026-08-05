@@ -1,6 +1,12 @@
-"""Launch the Desk on 127.0.0.1 (ADR 0034).
+"""Launch the Desk alone on 127.0.0.1 (ADR 0034) — a debug entrypoint since ADR 0035.
 
     uv run python -m football_blog.desk [--port 8002]
+
+The normal way in is `python -m surfaces`, which serves the Desk at `/desk` alongside
+the Viewer on :8001. This entrypoint stays for debugging; note that a stale process left
+here is a genuine confusion, since the Desk then answers on two addresses. Every path in
+the templates is built from `base_url(request)`, so both modes work — and this is the
+one mode where a hardcoded `/desk` would have looked fine and 404'd under the mount.
 
 Bound to localhost only, and this one has three reasons rather than the usual one: it
 spawns the pipeline (API-Football quota), it queries ESPN, and it spends Anthropic

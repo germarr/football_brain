@@ -2,7 +2,7 @@
 {% block title %}{{ row.scoreline }} — the Desk{% endblock %}
 
 {% block headeractions %}
-  <a href="/" class="muted" style="font-size:13px;text-decoration:none">← the board</a>
+  <a href="{{ base_url(request) }}/" class="muted" style="font-size:13px;text-decoration:none">← the board</a>
 {% endblock %}
 
 {% block content %}
@@ -198,7 +198,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 /* ---- the prompt: one assembler, server-side ---- */
 async function loadPrompt(){
   const q = encodeURIComponent(document.getElementById('instruction').value || '');
-  const res = await fetch(`/api/candidate/${FIXTURE_ID}/prompt?instruction=${q}`);
+  const res = await fetch(`${BASE}/api/candidate/${FIXTURE_ID}/prompt?instruction=${q}`);
   const d = await res.json();
   if(!res.ok){ document.getElementById('pre-user').textContent = d.error || 'Failed.'; return; }
   PUBLICATION_ID = d.publication_id; LANGUAGE = d.language;
@@ -218,13 +218,13 @@ function schedulePreview(){ clearTimeout(_pt); _pt = setTimeout(()=>{ loadPrompt
 
 async function saveSystem(){
   const text = document.getElementById('ta-system').value;
-  const {ok, data} = await postJSON('/api/prompt/system', {language: LANGUAGE, text});
+  const {ok, data} = await postJSON(BASE+'/api/prompt/system', {language: LANGUAGE, text});
   toast(ok ? `Saved ${data.path} (${data.chars} chars) — uncommitted.` : (data.error || 'Save failed'));
 }
 async function saveOverrides(){
   if(!PUBLICATION_ID){ toast('Publication not loaded yet.'); return; }
   const text = document.getElementById('ta-overrides').value;
-  const {ok, data} = await postJSON('/api/prompt/publication', {publication_id: PUBLICATION_ID, text});
+  const {ok, data} = await postJSON(BASE+'/api/prompt/publication', {publication_id: PUBLICATION_ID, text});
   toast(ok ? `Saved to the Editorial Store (${data.chars} chars).` : (data.error || 'Save failed'));
 }
 
@@ -232,7 +232,7 @@ async function saveOverrides(){
 async function loadEspn(){
   const el = document.getElementById('espn');
   let res, d;
-  try{ res = await fetch(`/api/candidate/${FIXTURE_ID}/espn`); d = await res.json(); }
+  try{ res = await fetch(`${BASE}/api/candidate/${FIXTURE_ID}/espn`); d = await res.json(); }
   catch(e){ el.innerHTML = '<b>ESPN unreachable</b> — enter the game id manually below.'; return; }
 
   if(res.status === 503 || d.unavailable){
@@ -301,7 +301,7 @@ async function runPipeline(){
   if(btn){ btn.disabled = true; btn.textContent = 'Running…'; }
 
   const body = currentBody();
-  const {ok, data} = await postJSON('/run', body);
+  const {ok, data} = await postJSON(BASE+'/run', body);
   if(!ok){ release(); toast(data.error || 'Could not start'); return; }
 
   // dry_run travels with the job: it exits 0 having written no Match Post, and the

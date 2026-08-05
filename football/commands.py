@@ -27,10 +27,11 @@ from dataclasses import dataclass, field
 # remote Postgres Published Store (ADR 0027) — the latter is the one command here that
 # never touches football.db, deriving from the raw cache instead.
 #
-# Control is the Operator Console, and it is the one group with NO entry below: the
-# Console renders this registry, so it cannot invoke itself. It is named so the role
-# table is complete and the Console is not mistaken for something that populates a
-# store. The Live Poll launcher moved to the Viewer's Match Tracker page (ADR 0023).
+# Control is the surfaces you drive the pipeline from. The Operator Console itself has
+# NO entry below — it renders this registry, so it cannot invoke itself — but the other
+# two surfaces are separate processes it can launch, and since ADR 0035 they are one
+# process: `python -m surfaces` (Viewer at /, Desk at /desk). The Live Poll launcher
+# moved to the Viewer's Match Tracker page (ADR 0023).
 GROUPS = ["Onboard", "Backfill", "Build", "Refresh", "Publish", "Control"]
 
 
@@ -329,6 +330,33 @@ COMMANDS: list[Command] = [
                        "Select none for the default pair (Liga MX + Major League Soccer). "
                        "Does not scope the commentary tables: those are always published in "
                        "full, so a narration may name a Fixture no longer in the store."),
+        ],
+    ),
+
+    # --- Control (open a surface; populates no store) ------------------------
+    Command(
+        key="surfaces", group="Control", title="Open the Viewer + the Desk",
+        module="surfaces",
+        summary="Serve both local surfaces on one port: the Viewer at /, the Desk at /desk.",
+        detail="Starts the composed app (ADR 0035) — a long-running server, not a job "
+               "that finishes, so it stays 'running' until you Stop it. Populates no "
+               "store itself: the Viewer reads serve.db + live.db, and the Desk reads "
+               "the Editorial and Published Stores. The Console cannot launch itself, "
+               "which is why it has no entry here and this does.",
+        example="Start it, then open http://127.0.0.1:8001 for this week's fixtures and "
+                "the tracked Competitions, or http://127.0.0.1:8001/desk to see tonight's "
+                "Drafting Candidates and fire the match-report pipeline. One process, one "
+                "port; the header switches between them. Bound to 127.0.0.1 — between "
+                "them these surfaces spend API-Football quota and Anthropic tokens and "
+                "write to the Editorial Store.",
+        scope="local web surfaces · no store written",
+        long_running=True,   # a server: runs until stopped
+        params=[
+            Param("port", "Port", "int", "--port", default=8001, placeholder="8001",
+                  advanced=True,
+                  help="Port to bind on 127.0.0.1. Default 8001 — the Viewer's old port, "
+                       "kept so existing bookmarks survive. The Desk's former :8002 is "
+                       "retired."),
         ],
     ),
 ]

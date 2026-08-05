@@ -46,7 +46,7 @@ from fastapi.templating import Jinja2Templates
 from football import config as football_config
 
 from .. import espn_lookup
-from ..candidates import DEFAULT_DAYS, BoardRow, list_board
+from ..candidates import DEFAULT_DAYS, BoardRow, list_board, list_competitions
 from ..loader import load_post_bundles
 from ..pocketbase import PocketBaseClient
 from ..prompts import assemble_prompt, load_system_prompt, system_prompt_path
@@ -59,6 +59,20 @@ POCKETBASE_ADMIN = "http://127.0.0.1:8090/_/#/collections?collection=match_post"
 
 app = FastAPI(title="La Cancha — the Desk")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
+
+
+def _base_url(request: Request) -> str:
+    """This app's mount prefix: `""` standalone, `"/desk"` under `surfaces` (ADR 0035).
+
+    Every absolute path in the Desk's templates is written against this rather than
+    hardcoded, so the same templates serve both `python -m football_blog.desk` and the
+    composed surfaces. Hardcoding `/desk` would have worked when mounted and 404'd
+    standalone — leaving the debug entrypoint as the one place the bug hides.
+    """
+    return request.scope.get("root_path", "")
+
+
+templates.env.globals["base_url"] = _base_url
 
 
 # --------------------------------------------------------------------------- #
@@ -186,11 +200,31 @@ def _row(fixture_id: int) -> Optional[BoardRow]:
 # Routes — reads                                                               #
 # --------------------------------------------------------------------------- #
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, days: int = DEFAULT_DAYS):
-    rows = _board(days)
+def index(request: Request, days: int = DEFAULT_DAYS, league_id: Optional[int] = None):
+    # The window's whole board is fetched even when a Competition is selected, and the
+    # narrowing happens here rather than in SQL. The chips carry counts, and a count
+    # per Competition needs the unfiltered set anyway — so this is one pass, not a
+    # query per chip. `list_board(league_id=…)` stays for the CLI, which prints no
+    # counts and can afford the narrower query.
+    all_rows = _board(days)
+    rows = [r for r in all_rows if league_id is None or r.league_id == league_id]
+
+    pb = PocketBaseClient()
+    try:
+        competitions = list_competitions(pb)
+    finally:
+        pb.close()
+    counts = {c.league_id: sum(1 for r in all_rows if r.league_id == c.league_id)
+              for c in competitions}
+
     return templates.TemplateResponse(request, "index.html", {
         "rows": rows,
         "days": days,
+        "competitions": competitions,
+        "counts": counts,
+        "league_id": league_id,
+        "n_all": len(all_rows),
+        "selected": next((c for c in competitions if c.league_id == league_id), None),
         # The glossary names the default rather than hardcoding 14 in prose — the
         # window is a display choice, and the one place it is decided is candidates.py.
         "default_days": DEFAULT_DAYS,

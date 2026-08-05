@@ -90,7 +90,8 @@
 </head>
 <body>
 <header>
-  <h1><a href="/">the Desk</a></h1>
+  <h1><a href="{{ base_url(request) }}/">the Desk</a></h1>
+  {% include "_nav.html" ignore missing %}
   <span class="badge local">127.0.0.1</span>
   <span class="badge">La Cancha · Editorial Store</span>
   <span class="spacer"></span>
@@ -114,6 +115,9 @@
 
 <script>
 const PB_ADMIN = {{ pocketbase_admin | tojson }};
+// This app's mount prefix — "" standalone, "/desk" under `surfaces` (ADR 0035). Every
+// endpoint below is built from it, so one set of templates serves both.
+const BASE = {{ base_url(request) | tojson }};
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -175,7 +179,7 @@ function openJob(jobId, title, opts){
   const statusEl = card.querySelector('.job-status');
   const foot = card.querySelector('.job-foot');
   const stopBtn = card.querySelector('.stop');
-  stopBtn.onclick = ()=> fetch('/jobs/'+jobId+'/stop', {method:'POST'});
+  stopBtn.onclick = ()=> fetch(BASE+'/jobs/'+jobId+'/stop', {method:'POST'});
   list.prepend(card);
 
   let done = false;
@@ -185,7 +189,7 @@ function openJob(jobId, title, opts){
     if(opts.onEnd) opts.onEnd(status);
   };
 
-  const es = new EventSource('/jobs/'+jobId+'/stream');
+  const es = new EventSource(BASE+'/jobs/'+jobId+'/stream');
   es.onmessage = (e)=>{ const d = JSON.parse(e.data);
     log.textContent += d.line + '\n'; log.scrollTop = log.scrollHeight; };
   es.addEventListener('end', (e)=>{
@@ -219,7 +223,7 @@ async function refreshCandidates(days){
   const release = ()=>{ if(btn){ btn.disabled = false; btn.textContent = label; } };
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
 
-  const {ok, data} = await postJSON('/refresh-candidates', {days: days});
+  const {ok, data} = await postJSON(BASE+'/refresh-candidates', {days: days});
   if(!ok){ release(); toast(data.error || 'Could not start the refresh'); return; }
 
   openJob(data.job_id, data.title, {kind: 'refresh', onEnd: release});

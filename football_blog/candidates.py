@@ -123,6 +123,49 @@ def _publications_by_competition(pb: PocketBaseClient) -> dict[int, dict]:
     }
 
 
+@dataclass
+class BoardCompetition:
+    """One Competition the board can be narrowed to, and how to label it."""
+    league_id: int
+    name: str                 # the Competition's own name — what the board's column shows
+    publication_slug: str
+    publication_display_name: str   # how the blog renders it, which may be another language
+    brand_color: str
+
+
+def list_competitions(pb: PocketBaseClient) -> list[BoardCompetition]:
+    """Every Competition a Publication covers — the filter's full range.
+
+    Built from the **Publications**, not from the rows currently on the board: a
+    Competition with no Final in the window has to stay selectable, or the filter would
+    hide the very case you want to check ("nothing in the World Cup this week?") behind
+    a missing chip. Names come from the Competition, not the Publication's
+    `display_name`, so the filter reads in the same words as the board's column.
+    """
+    publications = _publications_by_competition(pb)
+    if not publications:
+        return []
+
+    with get_conn().cursor() as cur:
+        cur.execute("SELECT id, name FROM competition WHERE id = ANY(%s)",
+                    (list(publications),))
+        names = {int(cid): name for cid, name in cur.fetchall()}
+
+    out = [
+        BoardCompetition(
+            league_id=cid,
+            # A Publication can exist before its Competition has been published to the
+            # store; fall back to its display name rather than showing a bare id.
+            name=names.get(cid) or pub.get("display_name") or str(cid),
+            publication_slug=pub["slug"],
+            publication_display_name=pub.get("display_name") or pub["slug"],
+            brand_color=pub.get("brand_color") or "",
+        )
+        for cid, pub in publications.items()
+    ]
+    return sorted(out, key=lambda c: c.name)
+
+
 def _signal_counts(fixture_ids: list[int]) -> dict[int, dict[str, int]]:
     """Per-Fixture row counts for the four things that thin a Narrative.
 

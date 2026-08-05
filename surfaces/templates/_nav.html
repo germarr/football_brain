@@ -1,0 +1,36 @@
+{#- The header nav shared by the Viewer and the Desk (ADR 0035).
+
+    Reachable from either app only because `surfaces.app` lends this directory to their
+    Jinja loaders at mount time — neither package imports the other, or this one. Both
+    include it `ignore missing`, so `python -m web` and `python -m football_blog.desk`
+    still render their headers standalone, minus the nav.
+
+    That `ignore missing` is a deliberate silent failure and the thing to watch: rename
+    this file, or break the loader injection, and every page renders a header with no
+    nav and no error anywhere (ADR 0033).
+
+    The labels are the glossary's words. "This Week" was rejected — it names the
+    Viewer's first <section>, not the app, and it would be the active item on
+    /league/262 and on every Match Tracker page.
+
+    The active pill takes `var(--accent)` rather than a colour of its own, so it renders
+    Viewer blue on one side and editorial teal on the other. That is the affordance the
+    Desk's _base.html set out to give the browser tab — "a glance says which app you are
+    in" — moved to where it still works now that there is only one tab.
+-#}
+<style>
+  .surfnav{display:flex;gap:2px;align-items:center;align-self:center;
+    background:var(--chip);border-radius:999px;padding:3px}
+  .surfnav a{display:block;padding:4px 13px;border-radius:999px;font-size:12.5px;
+    font-weight:640;text-decoration:none;color:var(--muted);line-height:1.5}
+  .surfnav a:hover{color:var(--ink)}
+  .surfnav a.on{background:var(--accent);color:var(--accent-ink,#fff)}
+</style>
+{% set _mount = request.scope.get('root_path', '') -%}
+<nav class="surfnav">
+  <a href="/"{% if not _mount.startswith('/desk') %} class="on"{% endif %}>Viewer</a>
+  {#- `/desk/` with the slash: a Mount matches only below its prefix, so the bare
+      `/desk` costs a redirect hop. Linked directly here; the redirect exists in
+      surfaces/app.py for the URL typed by hand. -#}
+  <a href="/desk/"{% if _mount.startswith('/desk') %} class="on"{% endif %}>Desk</a>
+</nav>
