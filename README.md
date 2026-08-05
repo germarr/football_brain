@@ -158,7 +158,7 @@ alone collects, builds and publishes ([ADR-0031](docs/adr/0031-package-by-contex
 | **Onboard** | Admit an entity to a **Registry** so every later recurring job covers it. One-time, idempotent, forward-acting. | `football/onboard/`, `football_blog/onboard.py` |
 | **Backfill** | Bulk-fetch Seasons into the raw cache. Resumable, quota-bound, admits nothing. | `football/collect/` |
 | **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
-| **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/` |
+| **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/`, `football_blog/candidates.py` |
 | **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `web/publish.py`, `football/publish/`, `football_blog/` |
 | **Control** | Fire the pipeline. Populates nothing — the Console *renders* the registry, so it has no entry in it; the composed surfaces are a separate process and do have one. | `console/`, `surfaces/`, `football_blog/desk/` |
 

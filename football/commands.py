@@ -277,6 +277,48 @@ COMMANDS: list[Command] = [
         ],
     ),
 
+    Command(
+        key="candidates", group="Refresh", title="Refresh Candidates",
+        module="football_blog.candidates",
+        summary="Pull every Publication's Competition frontier, then list what can be drafted.",
+        detail="The Desk's Refresh Candidates, as a command (ADR 0034). Refreshes the "
+               "frontier for the Competitions a Publication covers and delta-publishes "
+               "them to the Postgres Published Store, then prints the board: every "
+               "Fixture that is Final, covered by a Publication, and not already a "
+               "published Match Post. Runs `refresh --no-rebuild`, so football.db and "
+               "serve.db are untouched. Exists because a match that finished two hours "
+               "ago — the one most worth writing about — is in no store until 04:00, "
+               "and you cannot trigger a per-Fixture run from a list it is not on. A "
+               "partial run (hit quota) thins the board rather than emptying it.",
+        example="Run it after tonight's games: it force-refreshes the current-season "
+                "frontier for Liga MX, MLS and the World Cup, collects whatever went "
+                "Final, delta-publishes those rows, and prints the Drafting Candidates "
+                "with their EV/SQ/TS/CM signals. Then draft one from the Desk at "
+                "http://127.0.0.1:8001/desk. Tick Skip the refresh to just re-read the "
+                "store — no network, no quota.",
+        scope="every Publication's competition · current season only",
+        network=True, long_running=True,
+        params=[
+            # No `default` on purpose: leaving the field blank emits no --days, so the
+            # window's default stays decided in candidates.py (DEFAULT_DAYS) rather than
+            # being copied here where the two could drift apart silently.
+            Param("days", "Window (days)", "int", "--days", placeholder="14 (default)",
+                  help="How far back to look for Finals. Affects the printed board only "
+                       "— the refresh always covers every Publication's Competition, "
+                       "because a half-refreshed frontier is not worth having."),
+            Param("league_id", "Restrict to one Competition", "competition", "--league-id",
+                  advanced=True,
+                  help="Narrows the printed board to one Competition. Does NOT narrow the "
+                       "refresh, which still covers them all."),
+            Param("no_refresh", "Skip the refresh (list only)", "bool", "--no-refresh",
+                  advanced=True,
+                  help="Prints the board from the Published Store as it stands — fast, no "
+                       "network, no quota, and no delta publish. Use it to re-read the "
+                       "board without paying for it; anything that went Final since the "
+                       "last refresh will be missing."),
+        ],
+    ),
+
     # --- Publish (rebuild a derived read store; offline, no API quota) ------
     Command(
         key="publish", group="Publish", title="Publish serve.db (for the Viewer)",
