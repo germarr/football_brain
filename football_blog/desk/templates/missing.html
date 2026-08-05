@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% block title %}Fixture {{ fixture_id }} — not on the board{% endblock %}
+
+{% block content %}
+<section>
+  <h2>Fixture {{ fixture_id }}</h2>
+  <div class="panel">
+    <p style="margin:0 0 10px">This Fixture is not on the board.</p>
+    <p class="muted" style="margin:0;font-size:13px">
+      One of three things is true: it is not <b>Final</b>; its Competition has no
+      <b>Publication</b>, so the pipeline would refuse it anyway; or the
+      <b>Published Store</b> has not learned about it yet — which is the usual answer for
+      a match that finished tonight. Run <b>Refresh Candidates</b> from
+      <a href="/">the board</a> and look again.
+    </p>
+  </div>
+</section>
+{% endblock %}

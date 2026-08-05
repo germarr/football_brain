@@ -46,6 +46,14 @@ http://127.0.0.1:8090/_/, fix whatever the model got wrong, then flip it.
   --skip-publish      skip stage 3 (draft from Postgres as it is).
   --force-link        waive ESPN-vs-ours *team name* disagreement in stage 2. The
                       kickoff is still checked. See commentary/fixture_link.py.
+  --instruction TEXT  a one-off editorial steer for this report ("lead with the
+                      comeback"). It joins the *user* prompt after the facts, not
+                      the system prompt: it is about this match, not this
+                      Publication's voice. It shapes emphasis and angle only — the
+                      prompt says so in words, because rule 1 is "never invent data"
+                      and a steer is the obvious way to erode it. Recorded on the
+                      Match Post, since a Narrative cannot be regenerated and an
+                      unrecorded input is one nothing can recover (ADR 0034).
   --reclassify        re-ingest an ESPN match already stored. Costs model calls
                       and will not reproduce the old labels exactly.
   --redraft           overwrite an already-published match_post. See below.
@@ -78,16 +86,12 @@ from commentary import ingest as commentary_ingest
 from football.publish import pg as publish_pg
 from football.config import DB_PATH as FOOTBALL_DB
 
-from . import draft
+from . import FINAL_STATUSES, draft
 from .config import require_env
 from .pocketbase import PocketBaseClient
 from .postgres import get_conn
 
 log = logging.getLogger(__name__)
-
-# The statuses that mean "this match is over and its data is immutable" — the
-# same set the Refresh ledger and draft's sweep use.
-FINAL_STATUSES = ("FT", "AET", "PEN")
 
 
 class PipelineError(RuntimeError):
@@ -321,6 +325,7 @@ def run(
     force_link: bool = False,
     reclassify: bool = False,
     redraft: bool = False,
+    instruction: Optional[str] = None,
 ) -> Optional[dict]:
     """Run the whole pipeline. Returns the PocketBase record, or None on dry-run."""
     t0 = time.monotonic()
@@ -354,7 +359,10 @@ def run(
         status = assert_final(fixture_id)
 
         _banner(4, total, f"Drafting the narrative ({status})")
-        post = draft.draft_fixture(fixture_id, pb, dry_run=dry_run)
+        if instruction:
+            print(f"  editorial direction: {instruction}")
+        post = draft.draft_fixture(fixture_id, pb, dry_run=dry_run,
+                                   instruction=instruction)
         if post is None and not dry_run:
             raise PipelineError(
                 f"The drafter returned nothing for fixture {fixture_id} — see the error "
@@ -393,6 +401,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="waive the ESPN-vs-ours team-name check; kickoff still verified.")
     ap.add_argument("--reclassify", action="store_true",
                     help="re-ingest an ESPN match already stored (costs model calls).")
+    ap.add_argument("--instruction", type=str,
+                    help="one-off editorial steer for this report, e.g. 'lead with the "
+                         "comeback'. Shapes emphasis and angle only — it cannot license "
+                         "a fact the material does not carry. Recorded on the Match Post.")
     ap.add_argument("--redraft", action="store_true",
                     help="overwrite an already-PUBLISHED match_post. Destroys the "
                          "hand-edited Narrative; nothing can regenerate it.")
@@ -418,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
             force_link=args.force_link,
             reclassify=args.reclassify,
             redraft=args.redraft,
+            instruction=args.instruction,
         )
     except PipelineError as e:
         sys.stdout.flush()  # keep the refusal below the stage that raised it

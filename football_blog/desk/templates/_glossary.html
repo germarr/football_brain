@@ -1,0 +1,168 @@
+{# The board's own vocabulary, in the words CONTEXT.md uses.
+
+   Collapsed by default: the Desk is a work list, and a glossary that pushes the work
+   list down the page is a glossary that gets in the way. Set `show_windows` in the
+   including template — the window only exists on the board, not on one Candidate. #}
+<section>
+  <details class="gloss">
+    <summary>Glossary — the signals{% if show_windows %}, the window{% endif %} and the terms</summary>
+
+    <div class="panel gloss-body">
+
+      <h3>The signals — <code>EV</code> <code>SQ</code> <code>TS</code> <code>CM</code></h3>
+      <p class="muted lead">
+        How many rows the <b>Published Store</b> holds for this Fixture, in four kinds.
+        They are <b>signals, not gates</b>: none of them decides whether a Fixture can be
+        drafted. A Fixture with all four missing still drafts — the prompt says what is
+        absent in words rather than failing, and the <b>Narrative</b> comes out thinner.
+        A Coverage-light Competition (ADR 0014) yields a timeline-only report, which is
+        still worth writing, so nothing is ever withheld from this board for being thin.
+      </p>
+
+      <table class="gloss-t">
+        <tbody>
+          <tr>
+            <td><span class="sigk on">EV</span></td>
+            <td><b>Events</b></td>
+            <td>
+              The <b>timeline</b> — one row per time-stamped moment of play: goals, cards,
+              substitutions, VAR, each with its minute, Team and Player. Distinct from the
+              per-match totals on a Squad Entry, which say <i>how many</i> but not
+              <i>when</i>. Shootout kicks are not Events (ADR 0013) — the shootout is a
+              Fixture-level fact.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="sigk on">SQ</span></td>
+            <td><b>Squad Entries</b></td>
+            <td>
+              The matchday squads — one row per named player (~22 a side), tagged
+              <code>started</code>, <code>came_on</code> or <code>unused_sub</code>. Feeds
+              the lineups and the standout players. A Season without player <b>Coverage</b>
+              carries none at all, which is the Season's shape, not missing data.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="sigk on">TS</span></td>
+            <td><b>Team Match Stats</b></td>
+            <td>
+              Possession, shots, xG, corners, fouls and cards — the Team-level line.
+              <b>Two rows is complete</b>, one per Team, so <code>2</code> is the only
+              healthy value. The prompt needs <i>both</i> sides to tabulate them: with one
+              row it writes <code>(team match stats not available)</code>, exactly as it
+              does with none.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="sigk on">CM</span></td>
+            <td><b>Commentary Lines</b></td>
+            <td>
+              ESPN's narration of the match, reached through the optional and
+              hand-supplied Fixture link. Given to the model for colour and specific
+              detail, never to quote. <b>Absent on most Fixtures</b> until you supply an
+              ESPN game id — so <code>CM</code> is the honest answer to “have I linked
+              ESPN for this one yet?”. With none, the commentary section is left out of
+              the prompt entirely rather than flagged.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {% if show_windows %}
+      <h3>The window — <code>7</code> <code>14</code> <code>30</code> <code>90</code> days</h3>
+      <p class="muted lead">
+        How far back the board looks, counted from each Fixture's <b>kickoff</b>, newest
+        first. The default is <b>{{ default_days }} days</b> — long enough to catch a
+        weekend you did not get to, short enough that the page stays a work list rather
+        than an archive.
+      </p>
+      <p class="muted lead">
+        The window is a <b>display</b> choice and nothing more. It is not part of what a
+        Drafting Candidate is: a Fixture that falls off the window is still Final, still
+        has a Publication, still has no Match Post — and is still reachable directly at
+        <code>/candidate/&lt;fixture id&gt;</code>, which ignores the window entirely.
+        Any number works, not just the four links: <code>?days=365</code> is a season.
+        <b>Refresh Candidates</b> uses whichever window you are on.
+      </p>
+      {% endif %}
+
+      <h3>The terms</h3>
+      <dl class="gloss-d">
+        <dt>Drafting Candidate</dt>
+        <dd>
+          A Fixture ready to be written about: it is <b>Final</b>, its Competition has a
+          <b>Publication</b>, and its <b>Match Post</b> is either absent or still a
+          <code>draft</code>. Those are exactly the two conditions the pipeline refuses
+          on, and no more — data completeness is never part of it. Not a queue with an
+          order: it is a set, and which one to write is an editorial choice.
+        </dd>
+
+        <dt>Final</dt>
+        <dd>
+          A Fixture played to completion — <code>FT</code>, <code>AET</code> or
+          <code>PEN</code>. Only a Final has per-fixture data to collect, which is why
+          nothing else appears on the board.
+        </dd>
+
+        <dt>Publication</dt>
+        <dd>
+          Our editorial decision to cover a Competition, with the language and display
+          timezone that decides which system prompt the model gets and how each kickoff
+          is printed. A Competition without one never reaches this board. Its own
+          <code>published</code> gate governs the public site alone — a Publication can be
+          drafted against long before anything about it is public.
+        </dd>
+
+        <dt>Match Post</dt>
+        <dd>
+          The blog's unit of work: exactly one per Fixture, identified by that Fixture's
+          id. Status <code>draft</code> or <code>published</code>. The drafter only ever
+          writes <code>draft</code>.
+          <span class="tag draft">draft</span> can be overwritten by running again — that
+          is what a draft is for.
+          <span class="tag pub">published</span> was edited by hand and moved by a human;
+          it stops being a Candidate and shows here struck through, because “have I
+          written this one?” is a question answered badly by omission.
+        </dd>
+      </dl>
+
+      <p class="muted foot">
+        These are the definitions in <code>CONTEXT.md</code>; the Desk is described in
+        <code>docs/adr/0034-the-desk.md</code>.
+      </p>
+    </div>
+  </details>
+</section>
+
+<style>
+  details.gloss{margin-top:6px}
+  details.gloss>summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;
+    gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    font-weight:700;padding:4px 0}
+  details.gloss>summary::-webkit-details-marker{display:none}
+  details.gloss>summary::before{content:"▸";font-size:11px;transition:transform .15s}
+  details.gloss[open]>summary::before{transform:rotate(90deg)}
+  details.gloss>summary:hover{color:var(--accent)}
+  .gloss-body{margin-top:10px;font-size:13.5px}
+  .gloss-body h3{font-size:12.5px;margin:20px 0 8px;font-weight:700;letter-spacing:.01em}
+  .gloss-body h3:first-child{margin-top:0}
+  .gloss-body h3 code{font-size:11px;font-weight:700;background:var(--chip);
+    padding:1px 5px;border-radius:4px;margin-left:2px}
+  .gloss-body p.lead{margin:0 0 10px;font-size:13px;line-height:1.6;max-width:78ch}
+  .gloss-body p.foot{margin:18px 0 0;font-size:12px;padding-top:12px;
+    border-top:1px solid var(--line)}
+  .gloss-body code{font-size:11.5px;background:var(--chip);padding:1px 4px;border-radius:4px}
+  table.gloss-t{width:100%;border-collapse:collapse}
+  table.gloss-t td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);
+    vertical-align:top;font-size:13px;line-height:1.55}
+  table.gloss-t tr:last-child td{border-bottom:none}
+  table.gloss-t td:first-child{width:38px;padding-right:0}
+  table.gloss-t td:nth-child(2){white-space:nowrap;width:1%;padding-right:14px}
+  .sigk{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:1px 4px;
+    border-radius:4px;background:var(--ex-bg);color:var(--ex-label)}
+  dl.gloss-d{margin:0}
+  dl.gloss-d dt{font-weight:650;font-size:13px;margin-top:12px}
+  dl.gloss-d dt:first-child{margin-top:0}
+  dl.gloss-d dd{margin:3px 0 0;color:var(--muted);font-size:13px;line-height:1.6;
+    max-width:78ch}
+</style>

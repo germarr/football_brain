@@ -1,0 +1,319 @@
+{% extends "_base.html" %}
+{% block title %}{{ row.scoreline }} — the Desk{% endblock %}
+
+{% block headeractions %}
+  <a href="/" class="muted" style="font-size:13px;text-decoration:none">← the board</a>
+{% endblock %}
+
+{% block content %}
+<section>
+  <h2>{{ row.league_name }} · {{ row.status }}</h2>
+  <div class="panel">
+    <div class="hd">
+      <div>
+        <div class="score">{{ row.scoreline }}</div>
+        <div class="muted sub">
+          {{ row.kickoff.strftime('%A %d %B %Y, %H:%M') }} UTC ·
+          fixture <code>{{ row.fixture_id }}</code> ·
+          publication <code>{{ row.publication_slug }}</code>
+          ({{ row.publication_language }}, {{ row.publication_timezone }})
+        </div>
+      </div>
+      <div class="sigs">
+        <span class="{{ 'on' if row.n_events else 'off' }}">{{ row.n_events }} events</span>
+        <span class="{{ 'on' if row.n_squad else 'off' }}">{{ row.n_squad }} squad</span>
+        <span class="{{ 'on' if row.n_team_stats else 'off' }}">{{ row.n_team_stats }} team stats</span>
+        <span class="{{ 'on' if row.n_commentary else 'off' }}">{{ row.n_commentary }} commentary</span>
+      </div>
+    </div>
+
+    {% if row.post_status == 'published' %}
+      <div class="note" style="border-left-color:var(--fail);margin-top:14px">
+        <b>This Match Post is published.</b> Its Narrative has been edited by hand and
+        nothing here can regenerate it — the Editorial Store has no rebuild path. The Desk
+        does not offer a redraft, deliberately (ADR 0034). If you genuinely mean to
+        overwrite it, run this yourself:
+        <pre style="margin-top:8px">{{ redraft_command }}</pre>
+      </div>
+    {% elif row.post_status == 'draft' %}
+      <div class="note" style="margin-top:14px">
+        <b>A draft already exists.</b> Running again overwrites it — that is what a draft
+        is for. <a href="{{ pocketbase_admin }}" target="_blank" rel="noopener">Open it in
+        the PocketBase admin →</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if row.post_status != 'published' %}
+<section>
+  <h2>1 · The ESPN game</h2>
+  <div class="panel">
+    <p class="muted" style="margin:0 0 12px;font-size:13px">
+      Proposed from ESPN's scoreboard, filtered by <b>kickoff within 15 minutes</b> — never
+      by team name, because the names are exactly what disagree. Nothing here is waived:
+      <code>commentary/fixture_link.py</code> runs its own check at ingest against whichever
+      id you pick.
+    </p>
+    <div id="espn" class="muted" style="font-size:13px">Asking ESPN…</div>
+    <div class="field" style="margin-top:12px">
+      <label class="lbl">ESPN game id <span class="muted">(or paste the commentary URL; leave empty to skip the ESPN stage)</span></label>
+      <input type="text" id="espn_id" placeholder="401877021">
+    </div>
+    <label class="chk"><input type="checkbox" id="force_link"> <span>
+      <b>--force-link</b> — waive the team-name check. The kickoff is still verified.
+    </span></label>
+    <label class="chk"><input type="checkbox" id="reclassify"> <span>
+      <b>--reclassify</b> — re-ingest a match already stored. Costs model calls and will not
+      reproduce the old Categories exactly.
+    </span></label>
+  </div>
+</section>
+
+<section>
+  <h2>2 · The prompt</h2>
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="system">1 · Voice <span class="muted">(system_{{ row.publication_language }}.md)</span></button>
+      <button class="tab" data-tab="overrides">2 · Publication style</button>
+      <button class="tab" data-tab="user">3 · Match facts <span class="muted">(derived)</span></button>
+    </div>
+
+    <div class="tabpane" id="pane-system">
+      <p class="muted hint">A git file, shared by every <code>{{ row.publication_language }}</code>
+        Publication — editing it changes every Narrative written in that language. Saved to
+        the working tree; never committed, so <code>git diff</code> shows it like any change.</p>
+      <textarea id="ta-system" rows="16"></textarea>
+      <div class="row">
+        <span class="muted path" id="system-path"></span>
+        <span class="spacer"></span>
+        <button class="btn ghost" onclick="saveSystem()">Save voice</button>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-overrides" hidden>
+      <p class="muted hint">This Publication's standing style guidance, appended to the voice.
+        Held in the Editorial Store, and it applies to every future report for
+        <code>{{ row.publication_slug }}</code>.</p>
+      <textarea id="ta-overrides" rows="12"></textarea>
+      <div class="row">
+        <span class="spacer"></span>
+        <button class="btn ghost" onclick="saveOverrides()">Save publication style</button>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-user" hidden>
+      <p class="muted hint">
+        <b>Read-only, and deliberately so.</b> This block is derived from the Published Store.
+        A Narrative already cannot be regenerated; that is survivable only because its input
+        can be. Hand-edit the facts and the input becomes unrecorded too — a report built
+        from a prompt nobody can reconstruct, asserting facts that may be in no store
+        (ADR 0034). To change what is here, fix the data.
+      </p>
+      <pre id="pre-user" style="max-height:460px">…</pre>
+    </div>
+
+    <div class="field" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+      <label class="lbl">Editorial direction for this report <span class="muted">(optional, this run only)</span></label>
+      <input type="text" id="instruction" placeholder="lead with the comeback — Chivas were down two"
+             oninput="schedulePreview()">
+      <p class="muted hint" style="margin:6px 0 0">
+        Joins the match facts, after the evidence. It shapes emphasis and angle only — the
+        prompt says so in words, because rule 1 is "never invent data". Recorded on the
+        Match Post, since an input nobody wrote down is one nothing can recover.
+      </p>
+    </div>
+
+    <p class="muted" style="margin:12px 0 0;font-size:12px" id="counts"></p>
+  </div>
+</section>
+
+<section>
+  <h2>3 · Run it</h2>
+  <div class="panel">
+    <pre id="argv-preview">…</pre>
+    <div class="row" style="margin-top:12px">
+      <label class="chk" style="margin:0"><input type="checkbox" id="dry_run" onchange="renderArgv()"> <span>
+        <b>--dry-run</b> — print the prompt, call no model, write nothing. Stages 1–3 still run.
+      </span></label>
+      <span class="spacer"></span>
+      <button class="btn" id="runbtn" onclick="runPipeline()">Draft it</button>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% set show_windows = false %}
+{% include "_glossary.html" %}
+
+<style>
+  .hd{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .score{font-size:21px;font-weight:660;letter-spacing:-.015em}
+  .sub{font-size:12.5px;margin-top:4px}
+  .sub code{font-size:11.5px}
+  .sigs{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .sigs span{font-size:11px;font-weight:650;padding:2px 8px;border-radius:999px}
+  .sigs span.on{background:var(--ex-bg);color:var(--ex-label)}
+  .sigs span.off{color:var(--muted);border:1px dashed var(--line)}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .lbl{font-size:12px;color:var(--muted);font-weight:600}
+  .hint{font-size:12px;line-height:1.5;margin:0 0 8px}
+  .chk{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12.5px;line-height:1.45}
+  .chk input{margin-top:2px}
+  .row{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .spacer{margin-left:auto}
+  .path{font-family:var(--mono);font-size:11px}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .tab{background:transparent;color:var(--muted);padding:8px 10px;font-size:12.5px;
+    border-bottom:2px solid transparent;border-radius:0}
+  .tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+  .tab .muted{font-family:var(--mono);font-size:11px}
+  #espn .prop{display:flex;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);
+    border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13px}
+  #espn .prop:hover{border-color:var(--accent)}
+  #espn .prop.sel{border-color:var(--accent);background:var(--ex-bg)}
+  #espn .gid{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  #espn .names{font-weight:600}
+  #espn .vs{color:var(--muted);font-weight:400;margin:0 4px}
+  #espn .meta{margin-left:auto;font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
+  #espn .disagree{color:var(--warn);font-weight:650}
+  #espn .agree{color:var(--ok);font-weight:650}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{% if row.post_status != 'published' %}
+<script>
+const FIXTURE_ID = {{ row.fixture_id }};
+const OURS = {home: {{ row.home_team_name | tojson }}, away: {{ row.away_team_name | tojson }}};
+let PUBLICATION_ID = null, LANGUAGE = {{ row.publication_language | tojson }};
+
+/* ---- tabs ---- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+  ['system','overrides','user'].forEach(n =>
+    document.getElementById('pane-'+n).hidden = (n !== t.dataset.tab));
+});
+
+/* ---- the prompt: one assembler, server-side ---- */
+async function loadPrompt(){
+  const q = encodeURIComponent(document.getElementById('instruction').value || '');
+  const res = await fetch(`/api/candidate/${FIXTURE_ID}/prompt?instruction=${q}`);
+  const d = await res.json();
+  if(!res.ok){ document.getElementById('pre-user').textContent = d.error || 'Failed.'; return; }
+  PUBLICATION_ID = d.publication_id; LANGUAGE = d.language;
+  // Only fill the editable panes on first load, so a save-in-progress is not clobbered
+  // by the debounced re-preview that an instruction keystroke triggers.
+  const ts = document.getElementById('ta-system');
+  if(!ts.value) ts.value = d.system_base;
+  const to = document.getElementById('ta-overrides');
+  if(!to.dataset.loaded){ to.value = d.publication_overrides || ''; to.dataset.loaded = '1'; }
+  document.getElementById('system-path').textContent = d.system_path;
+  document.getElementById('pre-user').textContent = d.user_prompt;
+  document.getElementById('counts').textContent =
+    `system ${d.chars_system.toLocaleString()} chars · match facts ${d.chars_user.toLocaleString()} chars`;
+}
+let _pt;
+function schedulePreview(){ clearTimeout(_pt); _pt = setTimeout(()=>{ loadPrompt(); renderArgv(); }, 350); }
+
+async function saveSystem(){
+  const text = document.getElementById('ta-system').value;
+  const {ok, data} = await postJSON('/api/prompt/system', {language: LANGUAGE, text});
+  toast(ok ? `Saved ${data.path} (${data.chars} chars) — uncommitted.` : (data.error || 'Save failed'));
+}
+async function saveOverrides(){
+  if(!PUBLICATION_ID){ toast('Publication not loaded yet.'); return; }
+  const text = document.getElementById('ta-overrides').value;
+  const {ok, data} = await postJSON('/api/prompt/publication', {publication_id: PUBLICATION_ID, text});
+  toast(ok ? `Saved to the Editorial Store (${data.chars} chars).` : (data.error || 'Save failed'));
+}
+
+/* ---- ESPN proposals ---- */
+async function loadEspn(){
+  const el = document.getElementById('espn');
+  let res, d;
+  try{ res = await fetch(`/api/candidate/${FIXTURE_ID}/espn`); d = await res.json(); }
+  catch(e){ el.innerHTML = '<b>ESPN unreachable</b> — enter the game id manually below.'; return; }
+
+  if(res.status === 503 || d.unavailable){
+    el.innerHTML = '<b>ESPN could not be reached</b> — enter the game id manually below. '
+      + '<span class="muted">('+ (d.error||'') +')</span>';
+    return;
+  }
+  if(!d.proposals || !d.proposals.length){
+    el.innerHTML = 'ESPN was asked and had no match kicking off within 15 minutes of ours. '
+      + 'That is a real answer, not a failure — enter an id manually if you have one.';
+    return;
+  }
+  el.innerHTML = d.proposals.map(p => `
+    <div class="prop" data-gid="${p.game_id}">
+      <span class="gid">${p.game_id}</span>
+      <span class="names">${p.home}<span class="vs">v</span>${p.away}</span>
+      <span class="meta">
+        ${p.drift_minutes === 0 ? 'exact kickoff' : (p.drift_minutes > 0 ? '+' : '') + p.drift_minutes + ' min'}
+        · ${p.detail || ''}<br>
+        <span class="${p.names_agree ? 'agree' : 'disagree'}">
+          ${p.names_agree ? 'names agree' : 'names differ — needs --force-link'}</span>
+      </span>
+    </div>`).join('')
+    + `<p class="muted" style="font-size:12px;margin:8px 0 0">Ours: <b>${OURS.home}</b> v <b>${OURS.away}</b>.
+       Compare the names yourself — that judgment is the point.</p>`;
+
+  el.querySelectorAll('.prop').forEach(p => p.onclick = () => {
+    el.querySelectorAll('.prop').forEach(x => x.classList.remove('sel'));
+    p.classList.add('sel');
+    document.getElementById('espn_id').value = p.dataset.gid;
+    const prop = d.proposals.find(x => x.game_id === p.dataset.gid);
+    document.getElementById('force_link').checked = !prop.names_agree;
+    renderArgv();
+  });
+}
+
+/* ---- argv preview + run ---- */
+function currentBody(){
+  return {
+    fixture_id: FIXTURE_ID,
+    espn_id: document.getElementById('espn_id').value.trim() || null,
+    force_link: document.getElementById('force_link').checked,
+    reclassify: document.getElementById('reclassify').checked,
+    instruction: document.getElementById('instruction').value.trim() || null,
+    dry_run: document.getElementById('dry_run').checked,
+  };
+}
+function renderArgv(){
+  const b = currentBody();
+  let s = `uv run python -m football_blog.pipeline --fixture-id ${b.fixture_id}`;
+  if(b.espn_id) s += ` --espn-id ${b.espn_id}`;
+  if(b.force_link) s += ' --force-link';
+  if(b.reclassify) s += ' --reclassify';
+  if(b.instruction) s += ` --instruction ${JSON.stringify(b.instruction)}`;
+  if(b.dry_run) s += ' --dry-run';
+  document.getElementById('argv-preview').textContent = s;
+}
+async function runPipeline(){
+  // Held for the life of the job, like Refresh Candidates. Two concurrent runs on one
+  // Fixture is the worse version of that bug: two model calls billed, and two
+  // `upsert_post` writes racing for the same Match Post — last writer wins, and which
+  // one that is nobody can tell afterwards.
+  const btn = document.getElementById('runbtn');
+  const label = btn ? btn.textContent : null;
+  const release = ()=>{ if(btn){ btn.disabled = false; btn.textContent = label; } };
+  if(btn){ btn.disabled = true; btn.textContent = 'Running…'; }
+
+  const body = currentBody();
+  const {ok, data} = await postJSON('/run', body);
+  if(!ok){ release(); toast(data.error || 'Could not start'); return; }
+
+  // dry_run travels with the job: it exits 0 having written no Match Post, and the
+  // drawer must not claim otherwise.
+  openJob(data.job_id, data.title, {kind: 'draft', fixtureId: FIXTURE_ID,
+                                    dryRun: !!body.dry_run, onEnd: release});
+}
+
+['espn_id','force_link','reclassify'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderArgv));
+
+loadPrompt(); loadEspn(); renderArgv();
+</script>
+{% endif %}
+{% endblock %}

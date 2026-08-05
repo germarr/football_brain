@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Callable, Literal, Optional
 
+from . import FINAL_STATUSES
 from .loader import load_post_bundles
 from .pocketbase import PocketBaseClient
 from .postgres import get_conn
@@ -56,7 +57,7 @@ def check_finished_coverage(competition_id: int, days: int = 180) -> CheckResult
             """
             WITH finished AS (
               SELECT id FROM fixture
-              WHERE league_id = %s AND date >= %s AND status IN ('FT','AET','PEN')
+              WHERE league_id = %s AND date >= %s AND status = ANY(%s)
             )
             SELECT
               (SELECT COUNT(*) FROM finished) AS total,
@@ -64,7 +65,7 @@ def check_finished_coverage(competition_id: int, days: int = 180) -> CheckResult
               (SELECT COUNT(DISTINCT fixture_id) FROM squadentry WHERE fixture_id IN (SELECT id FROM finished)) AS with_squad,
               (SELECT COUNT(DISTINCT fixture_id) FROM teammatchstat WHERE fixture_id IN (SELECT id FROM finished)) AS with_stats
             """,
-            (competition_id, since),
+            (competition_id, since, list(FINAL_STATUSES)),
         )
         total, with_events, with_squad, with_stats = cur.fetchone()
     if total == 0:
@@ -140,10 +141,10 @@ def check_sample_draft(competition_id: int, pb: PocketBaseClient) -> CheckResult
         cur.execute(
             """
             SELECT id FROM fixture
-            WHERE league_id = %s AND status IN ('FT','AET','PEN')
+            WHERE league_id = %s AND status = ANY(%s)
             ORDER BY date DESC LIMIT 1
             """,
-            (competition_id,),
+            (competition_id, list(FINAL_STATUSES)),
         )
         row = cur.fetchone()
     if not row:

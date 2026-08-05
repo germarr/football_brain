@@ -52,6 +52,11 @@ web/serve.db
 web/serve.db.tmp
 web/logs/
 
+# Desk runtime logs (ADR 0034): per-run subprocess output, same stance as the
+# Console's. The football_blog/desk/ code and templates are tracked; only the
+# captured job logs are ignored. The directory is recreated on import.
+football_blog/desk/logs/
+
 # Venue registry write lock (ADR 0028) — transient; the registry itself
 # (football/registry/venues.json) is committed. Path moved by ADR 0031.
 football/registry/venues.json.lock

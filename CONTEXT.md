@@ -573,6 +573,37 @@ prevent); competition (that is the upstream thing a Publication points at); read
 its `published` flag as saying anything about collection or about the **Published
 Store** (it gates the public site alone).
 
+**Desk**:
+The local surface for writing: it lists **Drafting Candidates**, shows the prompt the
+model will be given, and fires the pipeline that turns one Candidate into a **Match
+Post**. It is the third of three local applications and the only one that reaches the
+**Editorial Store** — the Console runs the jobs that build the stores, the Viewer reads
+the serving copy, and the Desk is where a human decides what to write about.
+It is a **launcher, not an editor**: it stops at the run's log and links out. Reviewing
+a **Narrative**, editing it, and publishing it stay in PocketBase, because moving a
+Match Post to `published` is a separate deliberate act and the separation is what makes
+it one (ADR 0034).
+_Avoid_: newsroom, editor, CMS (it never edits a Narrative); **Console** (that fires the
+jobs that populate stores and reads none of them); dashboard (it lists work to do, not
+metrics); treating it as the only way to draft — every action on it is a flag on
+`football_blog.pipeline`, and the terminal remains the first front door.
+
+**Drafting Candidate**:
+A **Fixture** that is ready to be written about: it is **Final**, its Competition has a
+**Publication**, and its **Match Post** is either absent or still a `draft`. It is what the **Desk** lists, and
+it is *not* a Match Post: a Candidate usually has no Match Post at all, and stops being
+a Candidate the moment its Match Post is published.
+The two conditions are exactly the two the pipeline **refuses** on, and no more.
+Everything else about a Fixture is a **signal**, not a condition: absent Team Match
+Stats, Squad Entries, ratings or **Commentary Lines** all make for a thinner
+**Narrative**, and the prompt says so in words rather than failing — a Coverage-light
+Competition yields a timeline-only report, which is still worth writing. So a Candidate
+is never withheld for being thin; the Desk shows what it has and lets a human judge.
+_Avoid_: draft (that is a Match Post **status**, and a Candidate may have no Match Post
+to have a status); eligible/publishable fixture (publishing is a separate manual act on
+the Match Post); reading it as a queue with an order — it is a set, and which one to
+write is an editorial choice; treating data completeness as part of the definition.
+
 **Match Post**:
 The blog's unit of work: exactly one per **Fixture**, identified by that Fixture's id
 and by nothing else. It carries the **Narrative**, a URL slug composed from both teams

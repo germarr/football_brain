@@ -153,7 +153,7 @@ alone collects, builds and publishes ([ADR-0031](docs/adr/0031-package-by-contex
 | **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
 | **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/` |
 | **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `web/publish.py`, `football/publish/`, `football_blog/` |
-| **Control** | Fire the pipeline. Populates nothing — the Console *renders* the registry, so it has no entry in it. | `console/` |
+| **Control** | Fire the pipeline. Populates nothing — the Console *renders* the registry, so it has no entry in it; the Desk is a separate process and does have one. | `console/`, `football_blog/desk/` |
 
 Onboard and Backfill were one group until ADR 0031. They split because they fail
 differently: a backfill cut short resumes for free, while an entity that was never
@@ -180,6 +180,7 @@ commentary/      ESPN Commentary Store  (ADR 0026)
 live/            provisional Live Mirror during a match  (ADR 0020)
 refresh/         nightly frontier Refresh  (ADR 0018)
 football_blog/   Editorial Store + match-report pipeline  (ADR 0029)
+  desk/          the Desk — Drafting Candidates + prompt, :8002  (ADR 0034)
 notebooks/       marimo exploration notebooks (explore, ligamx, worldcup, …)
 scripts/         nightly.sh (the cron's one entrypoint) + preflight  (ADR 0032/0033)
 tests/           the silent-failure guards + a committed cache slice  (ADR 0033)

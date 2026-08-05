@@ -7,11 +7,13 @@
    ESPN commentary (key-moment lines from commentary_line/narrated_match).
 2. Look up the League row in PocketBase (by postgres_competition_id) to get
    `default_language`, `display_timezone`, and any `llm_prompt_overrides`.
-3. Build the user prompt (prompts/builder.py): match facts, timeline,
-   stats, lineups — structured, not prose, so the model pattern-matches on
-   facts rather than paraphrasing our text.
-4. Call Claude (Opus 4.7) with system_es.md / system_en.md + publication override
-   + user prompt. No temperature/thinking/budget_tokens per Opus 4.7 rules.
+3. Assemble the prompt (prompts.assemble_prompt): system_{lang}.md + the
+   Publication's override + the derived facts block from prompts/builder.py —
+   structured, not prose, so the model pattern-matches on facts rather than
+   paraphrasing our text. That function is the *only* assembler; the Desk's
+   preview calls it too, so what is shown is what is sent (ADR 0034).
+4. Call Claude (Opus 4.7) with the assembled prompt. No temperature/thinking/
+   budget_tokens per Opus 4.7 rules.
 5. Upsert a Post record in PocketBase with `status='draft'`,
    `ai_drafted=true`, `published_at=null`. Also self-heals `team_slug`
    records for both teams (bootstraps their URL-friendly names).
@@ -78,30 +80,23 @@ would silently no-op. If the system prompt ever grows past 4096 tokens, add
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
 
 from anthropic import Anthropic
 
+from . import FINAL_STATUSES
 from .config import require_env
 from .loader import load_post_bundles
 from .pocketbase import PocketBaseClient
-from .prompts.builder import build_user_prompt
+from .prompts import assemble_prompt
 from .slugs import team_name_to_slug, fixture_slug
 from .types import FullFixture
 
 log = logging.getLogger(__name__)
 
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
 MODEL = "claude-opus-4-7"
-
-
-def _load_system_prompt(lang: str) -> str:
-    path = _PROMPTS_DIR / f"system_{lang}.md"
-    if not path.exists():
-        raise ValueError(f"No system prompt for language: {lang}")
-    return path.read_text()
 
 
 def draft_narrative(
@@ -112,13 +107,13 @@ def draft_narrative(
     *,
     dry_run: bool = False,
     client: Optional[Anthropic] = None,
+    instruction: Optional[str] = None,
 ) -> tuple[str, dict]:
     """Returns (markdown_narrative, telemetry_dict). If dry_run=True, returns the
     prompt as the narrative and a telemetry dict of {mode: "dry_run"}."""
-    system_prompt = _load_system_prompt(lang)
-    if extra_style:
-        system_prompt = f"{system_prompt}\n\nAdditional style guidance for this publication:\n{extra_style}"
-    user_prompt = build_user_prompt(bundle, display_timezone)
+    # One assembler, shared with the Desk's preview — see prompts/__init__.py.
+    system_prompt, user_prompt = assemble_prompt(
+        bundle, lang, display_timezone, extra_style, instruction)
 
     if dry_run:
         return user_prompt, {"mode": "dry_run", "chars_system": len(system_prompt), "chars_user": len(user_prompt)}
@@ -153,10 +148,18 @@ def draft_fixture(
     pb: PocketBaseClient,
     *,
     dry_run: bool = False,
+    instruction: Optional[str] = None,
 ) -> Optional[dict]:
     """End-to-end: load fixture from Postgres, fetch its League from PocketBase,
     prompt Claude, upsert draft Post. Returns the created/updated Post record
-    (or None on dry-run)."""
+    (or None on dry-run).
+
+    `instruction` is the operator's one-off steer for this draft ("lead with the
+    comeback"). It goes into the prompt *and* onto the Match Post: a Narrative cannot
+    be regenerated, so an input that is not written down is an input nothing can
+    recover (ADR 0034). Those two must not drift apart — what was recorded is the
+    claim that what was sent.
+    """
     bundles = load_post_bundles([fixture_id])
     bundle = bundles.get(fixture_id)
     if not bundle:
@@ -171,7 +174,8 @@ def draft_fixture(
     tz = publication["display_timezone"]
     extra_style = publication.get("llm_prompt_overrides") or None
 
-    narrative, telemetry = draft_narrative(bundle, lang, tz, extra_style, dry_run=dry_run)
+    narrative, telemetry = draft_narrative(
+        bundle, lang, tz, extra_style, dry_run=dry_run, instruction=instruction)
     log.info("draft_fixture %s: %s", fixture_id, telemetry)
     if dry_run:
         print(f"\n===== DRY RUN: fixture {fixture_id} =====\n")
@@ -194,6 +198,11 @@ def draft_fixture(
         "slug": post_slug,
         "status": "draft",
         "narrative_md": narrative,
+        # Written on every draft, null when none was given, so null means exactly one
+        # thing. The Desk's per-run steer lands here from ADR 0034's --instruction;
+        # until that flag exists this is always None, and that is the point — the
+        # column predates the first instructed draft rather than trailing it.
+        "draft_instruction": instruction,
         "ai_drafted": True,
         "possibly_stale": False,
         "hero_image_override": None,
@@ -245,11 +254,11 @@ def find_undrafted_fixtures(
             """
             SELECT id FROM fixture
             WHERE league_id = ANY(%s)
-              AND status IN ('FT', 'AET', 'PEN')
+              AND status = ANY(%s)
               AND date >= %s
             ORDER BY date DESC
             """,
-            (competition_ids, since_naive),
+            (competition_ids, list(FINAL_STATUSES), since_naive),
         )
         candidate_ids = [row[0] for row in cur.fetchall()]
 
@@ -267,6 +276,10 @@ def main() -> int:
     parser.add_argument("--league-id", type=int, help="Sweep only this competition id (overrides published gate).")
     parser.add_argument("--since", type=str, help="ISO date; sweep fixtures on/after this date. Default: 30 days ago.")
     parser.add_argument("--limit", type=int, default=3, help="Max drafts per run (default: 3).")
+    parser.add_argument("--instruction", type=str,
+                        help="One-off editorial steer for this draft, e.g. 'lead with "
+                             "the comeback'. Shapes emphasis only — it cannot license a "
+                             "fact the data does not carry. Recorded on the Match Post.")
     parser.add_argument("--dry-run", action="store_true", help="Print prompts, do not call LLM or write to PocketBase.")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
@@ -275,6 +288,15 @@ def main() -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+
+    # An instruction is about one match. Applied to a sweep it would steer every
+    # unrelated Fixture in the batch the same way, and be recorded on each of them as
+    # if it had been meant — a provenance lie, which is the one thing the field exists
+    # to prevent (ADR 0034).
+    if args.instruction and args.fixture_id is None:
+        print("--instruction applies to one match; use it with --fixture-id.",
+              file=sys.stderr)
+        return 2
 
     pb = PocketBaseClient()
 
@@ -293,7 +315,8 @@ def main() -> int:
     exit_code = 0
     for fid in fixture_ids:
         try:
-            post = draft_fixture(fid, pb, dry_run=args.dry_run)
+            post = draft_fixture(fid, pb, dry_run=args.dry_run,
+                                 instruction=args.instruction)
             if post is not None:
                 print(f"  ✓ fixture {fid} → post id={post['id']} slug={post['slug']} status={post['status']}")
         except Exception as e:

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}the Desk{% endblock %}</title>
+<style>
+  /* Palette lifted from console/templates/index.html — three local surfaces that
+     look like one tool. The accent differs (editorial green, not pipeline blue) so a
+     glance at a tab says which app you are in. */
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
+    --accent:#0f766e; --accent-ink:#fff; --chip:#eef1f5;
+    --code-bg:#eef1f5; --code-ink:#334155;
+    --ex-bg:#eefaf7; --ex-line:#0f766e; --ex-label:#0f766e;
+    --net:#b45309; --ok:#15803d; --fail:#b91c1c; --run:#2563eb; --warn:#b45309;
+    --retired:#8b93a1;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#9aa4b2; --line:#283040;
+      --accent:#2dd4bf; --accent-ink:#06251f; --chip:#1e2531;
+      --code-bg:#0d1117; --code-ink:#9fb2cc;
+      --ex-bg:#0f2320; --ex-line:#2dd4bf; --ex-label:#5eead4;
+      --net:#f59e0b; --ok:#4ade80; --fail:#f87171; --run:#60a5fa; --warn:#fbbf24;
+      --retired:#6b7280;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.45;font-size:15px}
+  a{color:var(--accent)}
+  header{padding:18px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+  header h1 a{color:inherit;text-decoration:none}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);
+    color:var(--muted);font-weight:600}
+  .badge.local{color:var(--ok)}
+  .spacer{margin-left:auto}
+  main{max-width:1180px;margin:0 auto;padding:22px 28px 140px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    margin:30px 0 12px;font-weight:700}
+  main>section:first-of-type h2{margin-top:4px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .muted{color:var(--muted)}
+  .note{background:var(--ex-bg);border:1px solid var(--line);border-left:3px solid var(--ex-line);
+    border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.55}
+  .note b{color:var(--ex-label)}
+  code,pre{font-family:var(--mono)}
+  pre{background:var(--code-bg);color:var(--code-ink);border:1px solid var(--line);
+    border-radius:8px;padding:11px;overflow:auto;font-size:12px;line-height:1.5;margin:0}
+  button{font-family:var(--sans);font-weight:640;cursor:pointer;border:none;border-radius:8px}
+  .btn{background:var(--accent);color:var(--accent-ink);padding:8px 16px;font-size:13.5px}
+  .btn.ghost{background:var(--chip);color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  input[type=text],textarea,select{padding:7px 9px;border:1px solid var(--line);
+    border-radius:8px;background:var(--bg);color:var(--ink);font-size:13.5px;
+    font-family:var(--sans);width:100%}
+  textarea{font-family:var(--mono);font-size:12px;line-height:1.5;resize:vertical}
+  .tag{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--chip);
+    color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:inline-block}
+  .tag.ok{color:var(--ok)} .tag.warn{color:var(--warn)} .tag.fail{color:var(--fail)}
+  .tag.draft{color:var(--run)} .tag.pub{color:var(--retired)}
+
+  /* job drawer */
+  #jobs{position:fixed;left:0;right:0;bottom:0;background:var(--panel);
+    border-top:1px solid var(--line);max-height:56vh;overflow:auto;transform:translateY(101%);
+    transition:transform .18s;z-index:20}
+  #jobs.open{transform:none}
+  .jobs-head{display:flex;align-items:center;gap:10px;padding:10px 20px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+  .jobs-head strong{font-size:13px}
+  .jobs-list{padding:12px 20px 20px;display:flex;flex-direction:column;gap:12px}
+  .job{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .job-head{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--chip)}
+  .job-head .t{font-size:13px;font-weight:640}
+  .job-status{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .job-status.running{color:var(--run)} .job-status.done{color:var(--ok)}
+  .job-status.failed{color:var(--fail)} .job-status.stopped{color:var(--muted)}
+  .job pre{border:none;border-radius:0;max-height:34vh}
+  .job-foot{padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);
+    color:var(--bg);padding:9px 15px;border-radius:9px;font-size:13px;opacity:0;
+    transition:opacity .18s;pointer-events:none;z-index:40;max-width:80vw}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="/">the Desk</a></h1>
+  <span class="badge local">127.0.0.1</span>
+  <span class="badge">La Cancha · Editorial Store</span>
+  <span class="spacer"></span>
+  {% block headeractions %}{% endblock %}
+</header>
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<div id="jobs">
+  <div class="jobs-head">
+    <strong>Runs</strong>
+    <span class="muted" style="font-size:12px">the exact command the terminal would run</span>
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="document.getElementById('jobs').classList.remove('open')">Hide</button>
+  </div>
+  <div class="jobs-list"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+const PB_ADMIN = {{ pocketbase_admin | tojson }};
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 4200);
+}
+
+async function postJSON(url, body){
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body || {})});
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  return {ok: res.ok, data};
+}
+
+// What to say when a job exits 0. The caller states what the job was for — this is
+// never inferred, because a job that exited cleanly and a job that wrote something are
+// different facts, and the drawer used to conflate them (it told a refresh that a draft
+// had been written).
+function doneFooter(opts){
+  if(opts.kind === 'refresh'){
+    return 'Board refreshed. The page above still shows what was on it before the run — '
+      + '<a href="#" onclick="location.reload();return false">reload the board →</a>';
+  }
+  if(opts.kind === 'draft'){
+    if(opts.dryRun){
+      return 'Dry run finished — <b>no model was called and no Match Post was written</b>. '
+        + 'Stages 1–3 did run, so the Published Store may have new rows. The prompt that '
+        + 'would have been sent is in the log above.';
+    }
+    return 'Draft written. <a href="' + PB_ADMIN + '" target="_blank" rel="noopener">'
+      + 'Review and publish it in the PocketBase admin →</a>';
+  }
+  return 'Finished.';
+}
+
+// opts: {kind: 'draft'|'refresh', fixtureId?, dryRun?, onEnd?}
+// onEnd(status) fires exactly once, however the job stops — done, failed, stopped, or
+// the stream dropping. Anything that gates on a job running must be released by it, so
+// a lost EventSource cannot leave a control disabled forever.
+function openJob(jobId, title, opts){
+  opts = opts || {};
+  const drawer = document.getElementById('jobs');
+  drawer.classList.add('open');
+  const list = drawer.querySelector('.jobs-list');
+
+  const card = document.createElement('div');
+  card.className = 'job';
+  card.innerHTML = `<div class="job-head">
+      <span class="t"></span>
+      <span class="job-status running">running</span>
+      <span class="spacer"></span>
+      <button class="btn ghost stop">Stop</button>
+    </div>
+    <pre></pre>
+    <div class="job-foot" hidden></div>`;
+  card.querySelector('.t').textContent = title;
+  const log = card.querySelector('pre');
+  const statusEl = card.querySelector('.job-status');
+  const foot = card.querySelector('.job-foot');
+  const stopBtn = card.querySelector('.stop');
+  stopBtn.onclick = ()=> fetch('/jobs/'+jobId+'/stop', {method:'POST'});
+  list.prepend(card);
+
+  let done = false;
+  const finish = (status)=>{
+    if(done) return;
+    done = true; stopBtn.disabled = true; es.close();
+    if(opts.onEnd) opts.onEnd(status);
+  };
+
+  const es = new EventSource('/jobs/'+jobId+'/stream');
+  es.onmessage = (e)=>{ const d = JSON.parse(e.data);
+    log.textContent += d.line + '\n'; log.scrollTop = log.scrollHeight; };
+  es.addEventListener('end', (e)=>{
+    const d = JSON.parse(e.data);
+    statusEl.textContent = d.status; statusEl.className = 'job-status '+d.status;
+    // The Desk stops here: it links out rather than rendering the Narrative, because
+    // the place you read it is the place you edit it (ADR 0034).
+    if(d.status === 'done'){
+      foot.hidden = false;
+      foot.innerHTML = doneFooter(opts);
+    }
+    finish(d.status);
+  });
+  es.onerror = ()=>{ if(done){ es.close(); return; }
+    statusEl.textContent='disconnected'; statusEl.className='job-status stopped';
+    // The subprocess is still running — only our view of it died. Say so, and release
+    // whatever was waiting on it rather than stranding the page.
+    foot.hidden = false;
+    foot.innerHTML = 'Lost the stream. The run itself carries on — it is logged to '
+      + '<code>football_blog/desk/logs/</code>.';
+    finish('disconnected'); };
+}
+
+async function refreshCandidates(days){
+  // The button stays disabled for the life of the *job*, not the life of the POST.
+  // Releasing it on the response invited a second refresh over the top of the first:
+  // two `python -m football_blog.candidates` runs collecting the same frontier and
+  // delta-publishing the same Finals concurrently.
+  const btn = document.getElementById('refreshbtn');
+  const label = btn ? btn.textContent : null;
+  const release = ()=>{ if(btn){ btn.disabled = false; btn.textContent = label; } };
+  if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
+
+  const {ok, data} = await postJSON('/refresh-candidates', {days: days});
+  if(!ok){ release(); toast(data.error || 'Could not start the refresh'); return; }
+
+  openJob(data.job_id, data.title, {kind: 'refresh', onEnd: release});
+  toast('Refreshing — reload the board when it finishes.');
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

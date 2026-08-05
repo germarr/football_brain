@@ -1,0 +1,123 @@
+{% extends "_base.html" %}
+{% block title %}the Desk — {{ n_candidates }} Drafting Candidates{% endblock %}
+
+{% block headeractions %}
+  <button class="btn" id="refreshbtn" onclick="refreshCandidates({{ days }})">Refresh Candidates</button>
+{% endblock %}
+
+{% block content %}
+<section>
+  <h2>The board · last {{ days }} days</h2>
+
+  {% if not rows %}
+    <div class="panel">
+      <p style="margin:0 0 10px">Nothing on the board.</p>
+      <p class="muted" style="margin:0;font-size:13px">
+        Either no Publication covers a Competition with a recent Final, or the window is
+        too narrow — try <a href="/?days=30">30 days</a>. If a match finished tonight it
+        will not be here until the frontier is refreshed: the Published Store learns of a
+        new Final at 04:00, or when <b>Refresh Candidates</b> runs.
+      </p>
+    </div>
+  {% else %}
+    <p class="muted" style="margin:0 0 12px;font-size:13px">
+      <b>{{ rows | length }}</b> Final{{ '' if rows|length == 1 else 's' }} ·
+      <b>{{ n_candidates }}</b> Drafting Candidate{{ '' if n_candidates == 1 else 's' }}.
+      A match that finished tonight is not here until <b>Refresh Candidates</b> runs —
+      the store only learns of new Finals at 04:00 otherwise.
+      Window:
+      {% for w in [7, 14, 30, 90] %}
+        {%- if w == days %}<b class="win sel">{{ w }}</b>
+        {%- else %}<a class="win" href="/?days={{ w }}">{{ w }}</a>
+        {%- endif %}{% if not loop.last %} · {% endif %}
+      {%- endfor %} days{% if days not in [7, 14, 30, 90] %} — showing <b>{{ days }}</b>{% endif %}.
+    </p>
+
+    <div class="panel" style="padding:0;overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Kickoff</th>
+            <th>Match</th>
+            <th>Competition</th>
+            <th class="sig" title="Events · Squad Entries · Team Match Stats · Commentary Lines">Signals</th>
+            <th>Match Post</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr class="{{ 'retired' if not r.is_candidate }}">
+            <td class="k">{{ r.kickoff.strftime('%a %d %b · %H:%M') }}<span class="utc">UTC</span></td>
+            <td class="m">
+              {{ r.scoreline }}
+              <span class="fid">{{ r.fixture_id }}</span>
+            </td>
+            <td class="muted comp">{{ r.league_name }}</td>
+            <td class="sig">
+              <span class="{{ 'on' if r.n_events else 'off' }}" title="{{ r.n_events }} Events">EV</span>
+              <span class="{{ 'on' if r.n_squad else 'off' }}" title="{{ r.n_squad }} Squad Entries">SQ</span>
+              <span class="{{ 'on' if r.n_team_stats else 'off' }}" title="{{ r.n_team_stats }} Team Match Stats">TS</span>
+              <span class="{{ 'on' if r.n_commentary else 'off' }}" title="{{ r.n_commentary }} Commentary Lines">CM</span>
+            </td>
+            <td>
+              {% if r.post_status == 'published' %}
+                <span class="tag pub">published</span>
+              {% elif r.post_status == 'draft' %}
+                <span class="tag draft">draft</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+            <td class="act">
+              {% if r.is_candidate %}
+                <a href="/candidate/{{ r.fixture_id }}">Draft →</a>
+              {% else %}
+                <a href="/candidate/{{ r.fixture_id }}" class="muted">Open</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted" style="margin:12px 0 0;font-size:12.5px">
+      <b>EV / SQ / TS / CM</b> are signals, not gates. A Fixture with none of them still
+      drafts — the prompt says what is missing and the report comes out thinner. Nothing
+      is hidden from this board for being thin.
+      A <b>published</b> Match Post is no longer a Candidate: its Narrative was edited by
+      hand and nothing can regenerate it.
+    </p>
+  {% endif %}
+</section>
+
+{% set show_windows = true %}
+{% include "_glossary.html" %}
+
+<style>
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);
+    white-space:nowrap}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--chip)}
+  tr.retired td{color:var(--retired)}
+  tr.retired .m{text-decoration:line-through;text-decoration-color:var(--line)}
+  td.k{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+  td.k .utc{font-size:9.5px;margin-left:5px;opacity:.6}
+  td.m{font-weight:560}
+  td.m .fid{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:8px}
+  td.comp{font-size:12.5px;white-space:nowrap}
+  td.sig span{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:1px 4px;
+    border-radius:4px;margin-right:2px}
+  td.sig span.on{background:var(--ex-bg);color:var(--ex-label)}
+  td.sig span.off{background:transparent;color:var(--line);border:1px dashed var(--line)}
+  th.sig{white-space:nowrap}
+  td.act{text-align:right;white-space:nowrap}
+  td.act a{text-decoration:none;font-weight:640;font-size:13px}
+  .win{font-variant-numeric:tabular-nums;text-decoration:none;padding:0 3px}
+  .win.sel{color:var(--ink);border-bottom:2px solid var(--accent)}
+</style>
+{% endblock %}

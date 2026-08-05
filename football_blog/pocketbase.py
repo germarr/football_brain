@@ -111,18 +111,34 @@ class PocketBaseClient:
         r.raise_for_status()
         return r.json()
 
+    #: Fixture ids per request. The filter is a `||` chain in the query string, and
+    #: PocketBase answers 400 once it grows too long — at ~87 ids in practice, which is
+    #: an ordinary two-week board. Found when the Desk first rendered (ADR 0034); the
+    #: sweep in `draft.find_undrafted_fixtures` passes every candidate id too, so it was
+    #: reachable from the CLI as well. 80 keeps the chain near 3 KB.
+    _FIXTURE_FILTER_CHUNK = 80
+
     def list_posts_by_fixture_ids(self, fixture_ids: list[int]) -> dict[int, dict[str, Any]]:
-        """Batched lookup — returns Map<fixture_id, post record>."""
+        """Batched lookup — returns Map<fixture_id, post record>.
+
+        Chunked because the filter travels in the URL. `perPage` is set to the chunk
+        size, so a chunk cannot silently return a partial page: a Fixture missing from
+        the result must mean "no Match Post", never "page two".
+        """
         if not fixture_ids:
             return {}
-        filter_expr = " || ".join(f"postgres_fixture_id = {fid}" for fid in fixture_ids)
-        r = self._client.get(
-            f"{self.base_url}/api/collections/{POST_COLLECTION}/records",
-            headers=self._headers(),
-            params={"filter": filter_expr, "perPage": 500},
-        )
-        r.raise_for_status()
-        return {p["postgres_fixture_id"]: p for p in r.json()["items"]}
+        found: dict[int, dict[str, Any]] = {}
+        for i in range(0, len(fixture_ids), self._FIXTURE_FILTER_CHUNK):
+            chunk = fixture_ids[i:i + self._FIXTURE_FILTER_CHUNK]
+            filter_expr = " || ".join(f"postgres_fixture_id = {fid}" for fid in chunk)
+            r = self._client.get(
+                f"{self.base_url}/api/collections/{POST_COLLECTION}/records",
+                headers=self._headers(),
+                params={"filter": filter_expr, "perPage": len(chunk)},
+            )
+            r.raise_for_status()
+            found.update({p["postgres_fixture_id"]: p for p in r.json()["items"]})
+        return found
 
     # --- team_slug ---
     def upsert_team_slug(self, postgres_team_id: int, slug: str, display_name: str) -> dict[str, Any]:

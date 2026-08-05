@@ -174,7 +174,37 @@ def _standouts_block(fx: FullFixture, team_id: int, team_name: str) -> str:
     return "\n".join(lines)
 
 
-def build_user_prompt(fx: FullFixture, display_timezone: str) -> str:
+def _instruction_block(instruction: str | None) -> str:
+    """The operator's one-off steer for this report (ADR 0034).
+
+    It sits in the *user* prompt, not the system prompt, and the distinction is not
+    cosmetic: the system prompt carries the Publication's standing voice, while this
+    is about one match and must not outlive it.
+
+    The framing matters more than the placement. Rule 1 of `system_es.md` is "Nunca
+    inventes datos", and an instruction is the obvious way to erode it — "say they
+    were unlucky" invites a claim no Event supports. So the block says in the prompt
+    itself that direction governs emphasis and shape only, and never licenses a fact
+    absent from the material above. It is placed after the facts for the same reason:
+    the model reads the evidence first and the steer second.
+    """
+    if not instruction or not instruction.strip():
+        return ""
+    return f"""
+EDITORIAL DIRECTION FOR THIS REPORT (from the editor):
+  {instruction.strip()}
+
+  This direction governs emphasis, angle and structure only. It does not license any
+  claim that is not supported by the facts above — if it asks for something the data
+  does not show, follow the facts and ignore the direction on that point.
+"""
+
+
+def build_user_prompt(
+    fx: FullFixture,
+    display_timezone: str,
+    instruction: str | None = None,
+) -> str:
     f = fx.fixture
     local_kickoff = f.date.astimezone(ZoneInfo(display_timezone))
     venue_str = fx.venue.name if fx.venue else "unknown venue"
@@ -211,6 +241,6 @@ STARTING LINEUPS + SUBS:
 STANDOUT PERFORMERS (name these players by name in the narrative — do not write abstractly when you have individual stats):
 {_standouts_block(fx, f.home_team_id, f.home_team_name)}
 {_standouts_block(fx, f.away_team_id, f.away_team_name)}
-{_commentary_block(fx)}
+{_commentary_block(fx)}{_instruction_block(instruction)}
 Write the match report now. Do not include a title or a headline — start straight into the first paragraph.
 """
