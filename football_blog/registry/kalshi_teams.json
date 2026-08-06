@@ -1,0 +1,251 @@
+{
+  "_comment": "Kalshi team registry (ADR 0041). Kalshi soccer_team UUID -> our team id. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each kalshi_name and our_name name the same club.",
+  "series": {
+    "KXLEAGUESCUPGAME": 772,
+    "KXLIGAMXGAME": 262,
+    "KXMLSGAME": 253
+  },
+  "draw_uuid": "111193d4-9b1f-4bd8-ab7c-9de252737f05",
+  "teams": {
+    "b53e877f-6781-4417-b884-e08d340a8d14": {
+      "team_id": 2287,
+      "kalshi_name": "America",
+      "our_name": "Club America"
+    },
+    "067b4757-7229-4966-9878-7fb386b90b86": {
+      "team_id": 1608,
+      "kalshi_name": "Atlanta",
+      "our_name": "Atlanta United FC"
+    },
+    "4cf1cf82-72e0-4963-a861-3b2d4a7b3505": {
+      "team_id": 2312,
+      "kalshi_name": "Atlante",
+      "our_name": "Atlante FC"
+    },
+    "bcd69de5-6d9d-494b-b85c-167286d4bc60": {
+      "team_id": 2283,
+      "kalshi_name": "Atlas",
+      "our_name": "Atlas"
+    },
+    "a24c84e6-5d57-4cc9-a8ef-d7ea2f6a3750": {
+      "team_id": 16489,
+      "kalshi_name": "Austin",
+      "our_name": "Austin"
+    },
+    "a0d8250b-a13f-4849-9844-4106ae45671f": {
+      "team_id": 18310,
+      "kalshi_name": "Charlotte",
+      "our_name": "Charlotte"
+    },
+    "a6f918b2-1142-4bd5-93b5-241aeb00c0d1": {
+      "team_id": 1607,
+      "kalshi_name": "Chicago Fire",
+      "our_name": "Chicago Fire"
+    },
+    "0d8decc6-c81f-407a-aeaf-3877020182ce": {
+      "team_id": 2242,
+      "kalshi_name": "Cincinnati",
+      "our_name": "FC Cincinnati"
+    },
+    "2b8aba82-9e12-484d-bf31-e74951e7630c": {
+      "team_id": 1610,
+      "kalshi_name": "Colorado",
+      "our_name": "Colorado Rapids"
+    },
+    "a88c1376-454e-46d0-a974-1d9639dd6a18": {
+      "team_id": 1613,
+      "kalshi_name": "Columbus",
+      "our_name": "Columbus Crew"
+    },
+    "024a51df-df92-443c-b264-8c9759179650": {
+      "team_id": 2295,
+      "kalshi_name": "Cruz Azul",
+      "our_name": "Cruz Azul"
+    },
+    "889fe1d4-492d-42a2-8b3e-d9cbffc4d405": {
+      "team_id": 1615,
+      "kalshi_name": "DC United",
+      "our_name": "DC United"
+    },
+    "310d308b-19f3-4f87-8cf1-bf8a1d3cc1db": {
+      "team_id": 1597,
+      "kalshi_name": "Dallas",
+      "our_name": "FC Dallas"
+    },
+    "2664b66b-b998-47d2-b1e6-d19295e11802": {
+      "team_id": 2278,
+      "kalshi_name": "Guadalajara",
+      "our_name": "Guadalajara Chivas"
+    },
+    "0b2b1d69-571a-4130-95e6-683864e57c09": {
+      "team_id": 1600,
+      "kalshi_name": "Houston",
+      "our_name": "Houston Dynamo"
+    },
+    "db036857-8a77-473f-83c8-7805cb772d57": {
+      "team_id": 2298,
+      "kalshi_name": "Juarez",
+      "our_name": "FC Juarez"
+    },
+    "699450d2-1880-4f9d-bf7e-0ee9e83560dd": {
+      "team_id": 1611,
+      "kalshi_name": "Kansas City",
+      "our_name": "Sporting Kansas City"
+    },
+    "c685350f-fc0d-474d-b88c-d208d3eba973": {
+      "team_id": 2289,
+      "kalshi_name": "Leon",
+      "our_name": "Leon"
+    },
+    "9600f0ab-7854-4067-8692-77a3ee22128a": {
+      "team_id": 1616,
+      "kalshi_name": "Los Angeles F",
+      "our_name": "Los Angeles FC"
+    },
+    "a6ffe9ab-8773-4003-b3e6-e5b2a85f3922": {
+      "team_id": 1605,
+      "kalshi_name": "Los Angeles G",
+      "our_name": "Los Angeles Galaxy"
+    },
+    "7e243b87-074f-4c80-8e50-5981c78a79a9": {
+      "team_id": 9568,
+      "kalshi_name": "Miami",
+      "our_name": "Inter Miami"
+    },
+    "9c798f74-bee5-48d2-989b-5017f0b41d20": {
+      "team_id": 1612,
+      "kalshi_name": "Minnesota",
+      "our_name": "Minnesota United FC"
+    },
+    "af0bb21e-4530-41a8-871b-484d5bb18a8e": {
+      "team_id": 2282,
+      "kalshi_name": "Monterrey",
+      "our_name": "Monterrey"
+    },
+    "3289f95d-da76-4de5-a8e8-c2c9c6cc1ed2": {
+      "team_id": 1614,
+      "kalshi_name": "Montreal",
+      "our_name": "CF Montreal"
+    },
+    "670bb865-5dea-407a-8735-e47df87367ae": {
+      "team_id": 9569,
+      "kalshi_name": "Nashville",
+      "our_name": "Nashville SC"
+    },
+    "8beb4fbf-a817-4807-9974-de8f08506044": {
+      "team_id": 2288,
+      "kalshi_name": "Necaxa",
+      "our_name": "Necaxa"
+    },
+    "5e1c3590-b0c1-415c-b127-d6a30676836b": {
+      "team_id": 1609,
+      "kalshi_name": "New England",
+      "our_name": "New England Revolution"
+    },
+    "c436f255-8d48-46b0-bc14-9807270b57ee": {
+      "team_id": 1604,
+      "kalshi_name": "New York City",
+      "our_name": "New York City FC"
+    },
+    "81c226ef-e71a-41bd-ab9f-28d0ba555f71": {
+      "team_id": 1602,
+      "kalshi_name": "New York RB",
+      "our_name": "New York Red Bulls"
+    },
+    "4fd53484-2aa9-4431-91b4-59ab6172fa1c": {
+      "team_id": 1598,
+      "kalshi_name": "Orlando",
+      "our_name": "Orlando City SC"
+    },
+    "649e847f-571e-48ab-96f2-d3c0b45dfe7a": {
+      "team_id": 2292,
+      "kalshi_name": "Pachuca",
+      "our_name": "CF Pachuca"
+    },
+    "974e0cbb-3dd1-43fe-ab90-065438c293d6": {
+      "team_id": 1599,
+      "kalshi_name": "Philadelphia",
+      "our_name": "Philadelphia Union"
+    },
+    "6c3994b0-7002-442c-b86e-9e95b3d48826": {
+      "team_id": 1617,
+      "kalshi_name": "Portland",
+      "our_name": "Portland Timbers"
+    },
+    "d5b477fc-a61b-4633-bd61-ea6ed8fe5515": {
+      "team_id": 2291,
+      "kalshi_name": "Puebla",
+      "our_name": "Puebla"
+    },
+    "2a420c5b-2bf1-45c4-ae20-0178579e9884": {
+      "team_id": 2286,
+      "kalshi_name": "Pumas UNAM",
+      "our_name": "U.N.A.M. - Pumas"
+    },
+    "4170acf9-905f-48d3-8c0e-c3fd909f1216": {
+      "team_id": 2290,
+      "kalshi_name": "Queretaro",
+      "our_name": "Club Queretaro"
+    },
+    "26c2c786-7e85-4e51-ae96-8ccfa3c3f0b7": {
+      "team_id": 20787,
+      "kalshi_name": "Saint Louis",
+      "our_name": "St. Louis City"
+    },
+    "f5d060a5-b503-4780-b6c6-af86b461de3a": {
+      "team_id": 1606,
+      "kalshi_name": "Salt Lake",
+      "our_name": "Real Salt Lake"
+    },
+    "b1edeac7-1e58-4473-b9ec-19bb827c10bf": {
+      "team_id": 25484,
+      "kalshi_name": "San Diego FC",
+      "our_name": "San Diego"
+    },
+    "2f088540-9c53-49d5-b38b-c75321c3e738": {
+      "team_id": 1596,
+      "kalshi_name": "San Jose",
+      "our_name": "San Jose Earthquakes"
+    },
+    "c512a520-2cf9-4858-9a33-86aaed387807": {
+      "team_id": 2314,
+      "kalshi_name": "San Luis",
+      "our_name": "Atletico San Luis"
+    },
+    "c7839560-75ac-4c16-8cce-c7446207d6bc": {
+      "team_id": 2285,
+      "kalshi_name": "Santos Laguna",
+      "our_name": "Santos Laguna"
+    },
+    "96b9bb0a-dac0-44cd-98f7-6a1b093eb9e9": {
+      "team_id": 1595,
+      "kalshi_name": "Seattle",
+      "our_name": "Seattle Sounders"
+    },
+    "e7f5c871-11c6-46cb-b7fa-1a1fbfd3bbf6": {
+      "team_id": 2279,
+      "kalshi_name": "Tigres",
+      "our_name": "Tigres UANL"
+    },
+    "7eff3bc2-6c5d-48dc-a020-27671a9566c9": {
+      "team_id": 2280,
+      "kalshi_name": "Tijuana de Caliente",
+      "our_name": "Club Tijuana"
+    },
+    "2b4d89c8-d771-4157-af4d-e216d66f44aa": {
+      "team_id": 2281,
+      "kalshi_name": "Toluca",
+      "our_name": "Toluca"
+    },
+    "ff6a1eff-a3c2-4d61-afc1-a57a3ea1a050": {
+      "team_id": 1601,
+      "kalshi_name": "Toronto",
+      "our_name": "Toronto FC"
+    },
+    "b3fea460-61a1-48c7-a27e-9a01c39cd113": {
+      "team_id": 1603,
+      "kalshi_name": "Vancouver",
+      "our_name": "Vancouver Whitecaps"
+    }
+  }
+}
