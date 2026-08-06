@@ -45,7 +45,9 @@ http://127.0.0.1:8090/_/, fix whatever the model got wrong, then flip it.
   --skip-refresh      skip stage 1 (publish and draft from the cache as it is).
   --skip-publish      skip stage 3 (draft from Postgres as it is).
   --force-link        waive ESPN-vs-ours *team name* disagreement in stage 2. The
-                      kickoff is still checked. See commentary/fixture_link.py.
+                      kickoff is still checked, and this flag can never waive it. A
+                      match delayed past the 15-min tolerance links on its own, without
+                      any flag, when both team names agree (ADR 0038).
   --instruction TEXT  a one-off editorial steer for this report ("lead with the
                       comeback"). It joins the *user* prompt after the facts, not
                       the system prompt: it is about this match, not this
@@ -266,11 +268,16 @@ def stage_espn(espn_id: str, fixture_id: int, *, force_link: bool, reclassify: b
             f"requests. Nothing was written to data/commentary.db."
         ) from e
     if code:
+        # No remedy is offered here on purpose. `commentary.ingest` returns an exit
+        # *code*, so this function cannot know which check refused — and it used to
+        # print both guesses at every failure. Against a delayed-match refusal one was
+        # misleading ("still live": football.db lags, because stage 1 runs --no-rebuild)
+        # and the other impossible (--force-link cannot waive a kickoff). The refusal
+        # above states its own remedy, which is the only place that knows it (ADR 0038).
         raise PipelineError(
-            f"ESPN ingest refused game {espn_id} (see the reason above). Nothing has "
-            f"been published or drafted.\n"
-            f"    If the match is still live, re-run this after full time.\n"
-            f"    If the teams merely disagree by spelling, re-run with --force-link."
+            f"ESPN ingest refused game {espn_id}. Nothing has been published or "
+            f"drafted.\n"
+            f"    The refusal above says which check failed and what to do about it."
         )
 
 

@@ -74,6 +74,25 @@ FOOTBALL_DB = Path(__file__).resolve().parent.parent / "data" / "football.db"
 #: one is caught by the team-name anchor below rather than by this bound.
 KICKOFF_TOLERANCE = timedelta(minutes=15)
 
+#: The **delayed match** window (ADR 0038). One provider records the scheduled
+#: kickoff and the other the actual one, so they disagree by hours rather than
+#: minutes: Monterrey v Orlando City in the Leagues Cup was ESPN `00:55Z` against
+#: API-Football `23:30`, 85 minutes apart, while every other match on that slate
+#: agreed exactly — a delay, not a rounding convention.
+#:
+#: This is NOT a wider `KICKOFF_TOLERANCE`, and must never be merged into one. That
+#: bound is safe because it cannot reach a neighbouring fixture; this one plainly can
+#: (two Leagues Cup matches kicked off at 23:30 that night and two more at 00:30), so
+#: it is admitted only under the strictly stronger anchor of **both** team names
+#: agreeing — see `_compare`.
+#:
+#: Six hours because of what it actually guards. Against a *wrong fixture* it guards
+#: nothing that the both-names anchor has not already settled: the same two teams
+#: cannot play twice in an evening. What it catches is **our own data being wrong** —
+#: a kickoff out by six hours is a delay, one out by a day is a bug we want to keep
+#: hearing about.
+DELAY_TOLERANCE = timedelta(hours=6)
+
 
 class FixtureMismatch(Exception):
     """The supplied fixture_id is not this ESPN match. Never store the link."""
@@ -117,6 +136,11 @@ def verify_fixture(
 
     Returns the Fixture row, plus `name_mismatch` recording whether the team
     names actually agreed. Read-only; never writes.
+
+    Three ways a link is accepted: kickoffs equal; kickoffs within
+    `KICKOFF_TOLERANCE` anchored by one agreeing team name; or a **delayed match** —
+    kickoffs within `DELAY_TOLERANCE` with *both* names agreeing, where one provider
+    recorded the scheduled kickoff and the other the actual one (ADR 0038).
 
     `force` (the CLI's `--force-link`) waives the **team-name** check only, for
     the common case where the two providers simply spell a team differently —
@@ -174,19 +198,62 @@ def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: st
         if espn_kickoff is None or db_kickoff is None
         else abs(espn_kickoff - db_kickoff)
     )
-    if drift is None or drift > KICKOFF_TOLERANCE:
+    espn_teams = {_norm_team(match["home"]["team"]), _norm_team(match["away"]["team"])}
+    db_teams = {_norm_team(row["home_team_name"]), _norm_team(row["away_team_name"])}
+    name_mismatch = espn_teams != db_teams
+    shared = espn_teams & db_teams
+
+    # The **delayed match** path (ADR 0038). Beyond KICKOFF_TOLERANCE the clock is no
+    # longer evidence of anything, so the link rests entirely on both names agreeing —
+    # which is why this cannot be reached with one name, or with `force`. `force` waives
+    # a naming disagreement, and a naming disagreement is exactly what disqualifies a
+    # match from this path.
+    delayed = (
+        drift is not None
+        and drift > KICKOFF_TOLERANCE
+        and drift <= DELAY_TOLERANCE
+        and not name_mismatch
+    )
+    if delayed:
+        mins = int(drift.total_seconds() // 60)
+        print(
+            f"  LINKED despite a {mins} min kickoff drift — delayed match (ADR 0038).\n"
+            f"    ESPN  {match['game_id']}: {match.get('date')!r}"
+            + (f" [{match['league']}]" if match.get("league") else "")
+            + f"\n    fixture {fixture_id} ({source}): {str(row['date'])!r} "
+            f"[{row['league_name']}]\n"
+            f"    Both team names agree, which is the whole of the evidence here."
+        )
+
+    if not delayed and (drift is None or drift > KICKOFF_TOLERANCE):
+        tol = int(KICKOFF_TOLERANCE.total_seconds() // 60)
+        if drift is None:
+            why = "one of the two kickoffs could not be parsed"
+        elif drift > DELAY_TOLERANCE:
+            why = (
+                f"they differ by {int(drift.total_seconds() // 60)} min, beyond both the "
+                f"{tol} min tolerance and the "
+                f"{int(DELAY_TOLERANCE.total_seconds() // 3600)}h delayed-match window"
+            )
+        else:
+            # Inside the delay window, so the names are what refused it.
+            why = (
+                f"they differ by {int(drift.total_seconds() // 60)} min, which a delayed "
+                f"match may — but a delayed match links only when BOTH team names agree, "
+                f"and here "
+                + (f"only {', '.join(sorted(shared))} does" if shared
+                   else "neither does")
+            )
         raise FixtureMismatch(
             f"kickoff disagrees — refusing to link.\n"
             f"  ESPN  {match['game_id']}: {match.get('date')!r} "
             f"({match['home']['team']} v {match['away']['team']})\n"
             f"  fixture {fixture_id} ({source}): {str(row['date'])!r} "
-            f"({row['home_team_name']} v {row['away_team_name']}, {row['league_name']})"
+            f"({row['home_team_name']} v {row['away_team_name']}, {row['league_name']})\n"
+            f"  {why}.\n"
+            f"  --force-link cannot help: it waives team names only, and is checked "
+            f"after this. To ingest without a link, omit --fixture-id."
         )
-
-    espn_teams = {_norm_team(match["home"]["team"]), _norm_team(match["away"]["team"])}
-    db_teams = {_norm_team(row["home_team_name"]), _norm_team(row["away_team_name"])}
-    name_mismatch = espn_teams != db_teams
-    shared = espn_teams & db_teams
 
     # A kickoff *within* tolerance but not identical is weaker evidence than an
     # exact one, so it must be anchored: at least one team name has to agree
@@ -201,7 +268,8 @@ def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: st
             f"to link. The providers differ by {int(drift.total_seconds() // 60)} "
             f"min, which is within the {int(KICKOFF_TOLERANCE.total_seconds() // 60)} "
             f"min tolerance, but with neither team in common there is nothing left "
-            f"to confirm this is the same match — check the fixture id.\n"
+            f"to confirm this is the same match — check the fixture id, or omit "
+            f"--fixture-id to ingest this match unlinked.\n"
             f"  ESPN  {match['game_id']}: {match.get('date')!r} "
             f"({match['home']['team']} v {match['away']['team']})\n"
             f"  fixture {fixture_id} ({source}): {str(row['date'])!r} "

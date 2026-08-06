@@ -322,8 +322,11 @@ rather than guessed. Kickoffs are compared in UTC within a **15-minute tolerance
 because ESPN rounds to the hour where API-Football keeps the broadcast minute
 (`03:00Z` against `03:05` is one Liga MX match, not two); a kickoff that agrees only
 *within* the tolerance must additionally be **anchored** by at least one exactly
-agreeing team name, which `--force-link` cannot waive (ADR 0030). The Fixture id is
-a **bridge, never the key**.
+agreeing team name, which `--force-link` cannot waive (ADR 0030). A **delayed
+match** — where the providers disagree by hours because one recorded the scheduled
+kickoff and the other the actual one — is admitted on a longer window only when
+**both** team names agree, since the same two teams cannot meet twice that day
+(ADR 0038). The Fixture id is a **bridge, never the key**.
 _Avoid_: fixture, game, match; assuming a Narrated Match has a Fixture (most do
 not); keying a Narrated Match on a Fixture id; reading an absent Fixture link as a
 collection failure (it means ESPN narrates a competition we do not collect);

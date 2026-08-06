@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from commentary.fixture_link import (
+    DELAY_TOLERANCE,  # noqa: F401 — imported so a rename breaks this file loudly
     KICKOFF_TOLERANCE,
     FixtureMismatch,
     _compare,
@@ -99,10 +100,34 @@ def test_exact_kickoff_stands_on_its_own_without_an_anchor():
 
 @pytest.mark.parametrize("minutes", [16, 20, 60, 24 * 60])
 def test_kickoff_beyond_tolerance_is_refused_however_hard_it_is_forced(minutes):
-    row = db_row(date=KICKOFF + timedelta(minutes=minutes))
+    """Beyond the tolerance with a team name disagreeing, nothing gets you a link.
+
+    The disagreeing name matters and is why this test reads as it does: with BOTH
+    names agreeing, a drift up to DELAY_TOLERANCE is now a delayed match and links
+    (ADR 0038, covered in tests/test_delayed_link.py). What must never be reachable
+    is a link where the clock is beyond tolerance *and* the names do not both agree,
+    because then nothing has been verified at all — and `--force-link` waiving the
+    names is precisely what would compound into that.
+    """
+    row = db_row(date=KICKOFF + timedelta(minutes=minutes), away="Atlante")
     for force in (False, True):
         with pytest.raises(FixtureMismatch, match="kickoff disagrees"):
             compare(espn_match(), row, force=force)
+
+
+@pytest.mark.parametrize("minutes", [16, 20, 60])
+def test_the_same_drift_links_when_both_names_agree(minutes):
+    """The counterpart, so the pair documents the whole rule: identical drift, and the
+    only difference is whether both names agree (ADR 0038)."""
+    row = db_row(date=KICKOFF + timedelta(minutes=minutes))
+    assert compare(espn_match(), row)["name_mismatch"] is False
+
+
+def test_beyond_the_delay_window_nothing_links():
+    """24h is past DELAY_TOLERANCE, so even both names agreeing cannot buy it."""
+    row = db_row(date=KICKOFF + timedelta(hours=24))
+    with pytest.raises(FixtureMismatch, match="kickoff disagrees"):
+        compare(espn_match(), row)
 
 
 @pytest.mark.parametrize("delta,ok", [
@@ -110,12 +135,19 @@ def test_kickoff_beyond_tolerance_is_refused_however_hard_it_is_forced(minutes):
     (timedelta(minutes=15, seconds=1), False),
 ])
 def test_the_tolerance_boundary(delta, ok):
-    row = db_row(date=KICKOFF + delta)
+    """The 15-minute edge, probed where it still decides the outcome.
+
+    With both names agreeing the edge no longer decides anything — either side of it
+    links, by a different rule (ADR 0038). It still decides for a row with a
+    disagreeing name: inside, the anchor holds and --force-link covers the spelling;
+    outside, there is no delayed path to fall back on.
+    """
+    row = db_row(date=KICKOFF + delta, away="Atlante")
     if ok:
-        assert compare(espn_match(), row)["name_mismatch"] is False
+        assert compare(espn_match(), row, force=True)["name_mismatch"] is True
     else:
         with pytest.raises(FixtureMismatch, match="kickoff disagrees"):
-            compare(espn_match(), row)
+            compare(espn_match(), row, force=True)
 
 
 def test_drift_is_symmetric():
