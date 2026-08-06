@@ -818,5 +818,39 @@
     ],
     "calendar_year": false,
     "type": "league"
+  },
+  {
+    "league_id": 772,
+    "name": "Leagues Cup",
+    "seasons": [
+      2019,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 307,
+    "name": "Pro League",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
   }
 ]
