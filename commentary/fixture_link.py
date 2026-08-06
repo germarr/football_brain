@@ -24,10 +24,15 @@ What is compared:
   football.db `2026-07-12 15:00:00.000000`), but not always: ESPN rounds to the
   hour where API-Football keeps the broadcast minute, so a true Liga MX link can
   read `03:00Z` against `03:05` (ADR 0030). Fixture ids are globally unique.
-- **Team names**, as confirmation. Exact match after normalising case/whitespace.
-  National teams agree readily ("France"/"Spain"); clubs may not, and a
-  disagreement is reported verbatim so the operator can see both sides rather
-  than being told a vague "mismatch".
+- **Team names**, as confirmation, compared *canonically* (`_norm_team`): accents
+  folded, punctuation and acronym dots removed, generic club tokens (`FC`/`CF`/`SC`)
+  dropped, word order ignored. So "Charlotte FC" agrees with "Charlotte", and
+  "Pumas UNAM" with "U.N.A.M. - Pumas" (ADR 0039). This is spelling reconciliation,
+  not fuzzy matching: nothing is scored, and a genuinely different club never
+  matches. What it cannot reach is an *alternate name* rather than a respelling —
+  "Atlético de San Luis" against "Atletico San Luis" still disagrees, because the
+  connective word cannot be dropped without merging real clubs. Disagreements are
+  still reported verbatim so the operator sees both sides.
 
 The two are not independent: an *exact* kickoff stands on its own, but a merely
 *close* one must be anchored by at least one team name agreeing exactly. That
@@ -59,7 +64,9 @@ against `football.db` keeps its SQLite-and-stdlib-only dependency profile.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
+import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -98,8 +105,65 @@ class FixtureMismatch(Exception):
     """The supplied fixture_id is not this ESPN match. Never store the link."""
 
 
+def _unlinked_remedy(link_required: bool) -> str:
+    """The 'what do I do now' sentence every refusal ends with.
+
+    ADR 0038 moved remedies to the raise sites because only they know which check
+    failed. They do not, however, know whether the *caller* can act on the remedy —
+    and "omit --fixture-id" is impossible from `football_blog.pipeline`, which
+    requires it to draft (ADR 0039). So the caller declares that, and the refusal
+    names the escape hatch that caller actually has: dropping the commentary rather
+    than the link.
+    """
+    if link_required:
+        return (
+            "--fixture-id cannot be dropped here — the pipeline drafts from it. To "
+            "draft this Fixture without the ESPN commentary, omit --espn-id instead; "
+            "to ingest the commentary unlinked, run commentary.ingest on its own."
+        )
+    return "To ingest without a link, omit --fixture-id."
+
+
+#: Generic club-type tokens dropped before comparing team names. Deliberately just
+#: these three (ADR 0039). Every longer list tested merged clubs that are genuinely
+#: distinct: dropping `afc` merges Liverpool with AFC Liverpool and Blackpool with AFC
+#: Blackpool (fan-owned clubs, separate ids, separate matches), and dropping `usa`/`de`
+#: merges Corinthians with Corinthians USA and Lyon with Club De Lyon. `fc`/`cf`/`sc`
+#: carry no such freight — no pair of distinct clubs in the store is told apart by them
+#: alone.
+CLUB_TOKENS = frozenset({"fc", "cf", "sc"})
+
+
 def _norm_team(name: str | None) -> str:
-    return " ".join((name or "").split()).casefold()
+    """Canonical form of a team name, for comparing two providers' spellings.
+
+    ESPN and API-Football name the same club differently in ways that are systematic
+    rather than arbitrary, and exact-after-casefold could see none of them:
+
+        'Charlotte FC'      vs 'Charlotte'            — a club-type suffix
+        'Pumas UNAM'        vs 'U.N.A.M. - Pumas'     — acronym dots, and word order
+        'Atletico San Luis' vs 'Atlético de San Luis' — an accent
+
+    So: accents folded away, dots *inside* an acronym deleted rather than spaced (or
+    `U.N.A.M.` becomes four one-letter tokens), remaining punctuation turned into
+    space, `CLUB_TOKENS` dropped, and the rest compared as an order-insensitive set —
+    returned as a sorted string so callers can still print what agreed.
+
+    Digits are kept, which is what keeps a reserve side distinct from its first team
+    ('Toronto FC II' does not become 'Toronto FC'). Suffixes are dropped wherever they
+    appear, not just at the end, because ESPN writes 'FC Cincinnati' where
+    API-Football writes 'Cincinnati FC'.
+    """
+    folded = unicodedata.normalize("NFKD", name or "")
+    folded = "".join(c for c in folded if not unicodedata.combining(c)).casefold()
+    # `u.n.a.m.` -> `unam`: only dots bounded by single letters, so `St. Louis` keeps
+    # its word break and does not become `stlouis`.
+    folded = re.sub(r"(?<=\b\w)\.(?=\w\b)", "", folded).replace(".", " ")
+    tokens = re.sub(r"[^a-z0-9]+", " ", folded).split()
+    kept = [t for t in tokens if t not in CLUB_TOKENS]
+    # A club named only for its type ('FC') would otherwise normalise to nothing and
+    # compare equal to every other such name.
+    return " ".join(sorted(kept or tokens))
 
 
 def _parse_espn_date(value: str | None) -> datetime | None:
@@ -131,6 +195,7 @@ def verify_fixture(
     *,
     db_path: Path | None = None,
     force: bool = False,
+    link_required: bool = False,
 ) -> dict:
     """Confirm `fixture_id` in football.db IS `match`. Raise FixtureMismatch if not.
 
@@ -157,7 +222,7 @@ def verify_fixture(
     if not path.exists():
         raise FixtureMismatch(
             f"{path} does not exist, so --fixture-id {fixture_id} cannot be "
-            f"verified. Re-run without --fixture-id to ingest without the link."
+            f"verified. {_unlinked_remedy(link_required)}"
         )
 
     # mode=ro: SQLite itself refuses any write through this handle.
@@ -177,13 +242,15 @@ def verify_fixture(
         raise FixtureMismatch(
             f"fixture_id {fixture_id} is not in {path.name}. That is a typo, not an "
             f"untracked competition: an untracked competition has no fixture id at "
-            f"all, so omit --fixture-id entirely to ingest this match unlinked."
+            f"all. {_unlinked_remedy(link_required)}"
         )
 
-    return _compare(fixture_id, dict(row), match, force=force, source=path.name)
+    return _compare(fixture_id, dict(row), match, force=force, source=path.name,
+                    link_required=link_required)
 
 
-def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: str) -> dict:
+def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: str,
+             link_required: bool = False) -> dict:
     """The comparison itself, shared by both sources. `row` must carry `date`,
     `home_team_name`, `away_team_name`, `league_name` and both goal columns.
 
@@ -252,7 +319,7 @@ def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: st
             f"({row['home_team_name']} v {row['away_team_name']}, {row['league_name']})\n"
             f"  {why}.\n"
             f"  --force-link cannot help: it waives team names only, and is checked "
-            f"after this. To ingest without a link, omit --fixture-id."
+            f"after this. {_unlinked_remedy(link_required)}"
         )
 
     # A kickoff *within* tolerance but not identical is weaker evidence than an
@@ -268,8 +335,8 @@ def _compare(fixture_id: int, row: dict, match: dict, *, force: bool, source: st
             f"to link. The providers differ by {int(drift.total_seconds() // 60)} "
             f"min, which is within the {int(KICKOFF_TOLERANCE.total_seconds() // 60)} "
             f"min tolerance, but with neither team in common there is nothing left "
-            f"to confirm this is the same match — check the fixture id, or omit "
-            f"--fixture-id to ingest this match unlinked.\n"
+            f"to confirm this is the same match — check the fixture id. "
+            f"{_unlinked_remedy(link_required)}\n"
             f"  ESPN  {match['game_id']}: {match.get('date')!r} "
             f"({match['home']['team']} v {match['away']['team']})\n"
             f"  fixture {fixture_id} ({source}): {str(row['date'])!r} "
@@ -304,7 +371,8 @@ def _coerce_db_date(value) -> datetime | None:
     return _parse_db_date(value)
 
 
-def verify_fixture_pg(fixture_id: int, match: dict, *, force: bool = False) -> dict:
+def verify_fixture_pg(fixture_id: int, match: dict, *, force: bool = False,
+                      link_required: bool = False) -> dict:
     """`verify_fixture`, against the Published Store instead of `football.db`.
 
     Same contract, same refusals — only the source differs. Useful when
@@ -327,17 +395,18 @@ def verify_fixture_pg(fixture_id: int, match: dict, *, force: bool = False) -> d
         raise FixtureMismatch(
             f"fixture_id {fixture_id} is not in the Published Store either. Either it "
             f"is a typo, or its Competition has never been published to Postgres — "
-            f"publish it first (`uv run python -m football.publish.delta <league_id>`), "
-            f"or omit --fixture-id to ingest this match unlinked."
+            f"publish it first (`uv run python -m football.publish.delta <league_id>`). "
+            f"{_unlinked_remedy(link_required)}"
         )
 
     cols = ("id", "date", "league_name", "home_team_name", "away_team_name",
             "status", "home_goals", "away_goals")
     return _compare(fixture_id, dict(zip(cols, row)), match,
-                    force=force, source="football_prod")
+                    force=force, source="football_prod", link_required=link_required)
 
 
-def verify_fixture_any(fixture_id: int, match: dict, *, force: bool = False) -> dict:
+def verify_fixture_any(fixture_id: int, match: dict, *, force: bool = False,
+                       link_required: bool = False) -> dict:
     """Try `football.db`, then the Published Store. Refuse only if both refuse.
 
     The fallback exists for the two cases `football.db` cannot answer for a
@@ -347,10 +416,12 @@ def verify_fixture_any(fixture_id: int, match: dict, *, force: bool = False) -> 
     disagreement, because a refusal is raised unless *some* source agreed.
     """
     try:
-        return verify_fixture(fixture_id, match, force=force)
+        return verify_fixture(fixture_id, match, force=force,
+                              link_required=link_required)
     except FixtureMismatch as first:
         try:
-            result = verify_fixture_pg(fixture_id, match, force=force)
+            result = verify_fixture_pg(fixture_id, match, force=force,
+                                       link_required=link_required)
         except FixtureMismatch as second:
             raise FixtureMismatch(
                 f"neither source could confirm fixture {fixture_id}.\n\n"

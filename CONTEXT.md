@@ -326,7 +326,12 @@ agreeing team name, which `--force-link` cannot waive (ADR 0030). A **delayed
 match** — where the providers disagree by hours because one recorded the scheduled
 kickoff and the other the actual one — is admitted on a longer window only when
 **both** team names agree, since the same two teams cannot meet twice that day
-(ADR 0038). The Fixture id is a **bridge, never the key**.
+(ADR 0038). Team names agree **canonically**, not literally: accents, punctuation,
+word order and the club tokens `FC`/`CF`/`SC` are not evidence about which match this
+is, so "Charlotte FC" agrees with "Charlotte" and "Pumas UNAM" with "U.N.A.M. - Pumas".
+This reconciles a **respelling**, never an **alternate name** — "Atlético de San Luis"
+against "Atletico San Luis" still disagrees, and is `--force-link`'s job (ADR 0039).
+The Fixture id is a **bridge, never the key**.
 _Avoid_: fixture, game, match; assuming a Narrated Match has a Fixture (most do
 not); keying a Narrated Match on a Fixture id; reading an absent Fixture link as a
 collection failure (it means ESPN narrates a competition we do not collect);

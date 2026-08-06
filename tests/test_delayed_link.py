@@ -71,9 +71,14 @@ def test_beyond_the_delay_window_is_refused():
 
 
 def test_one_agreeing_name_is_not_enough_for_a_delay():
-    """The ADR 0030 anchor (one name) is deliberately too weak at this range."""
+    """The ADR 0030 anchor (one name) is deliberately too weak at this range.
+
+    The away side must be a genuinely *different* club, not a respelling: since ADR
+    0039 'Orlando City' and 'Orlando City SC' are the same name canonically, so using
+    them here would silently test the both-names path instead of this one.
+    """
     with pytest.raises(FixtureMismatch) as e:
-        link(espn("2026-08-06T00:55Z", away="Orlando City"), ours())
+        link(espn("2026-08-06T00:55Z", away="Nashville SC"), ours())
     assert "BOTH team names" in str(e.value)
 
 
@@ -81,7 +86,7 @@ def test_force_cannot_buy_a_delayed_link():
     """`--force-link` waives naming, and a naming disagreement is exactly what
     disqualifies a match from this path. Forcing must not compound the two."""
     with pytest.raises(FixtureMismatch):
-        link(espn("2026-08-06T00:55Z", away="Orlando City"), ours(), force=True)
+        link(espn("2026-08-06T00:55Z", away="Nashville SC"), ours(), force=True)
 
 
 def test_neither_name_agreeing_is_refused_at_delay_range():
@@ -99,8 +104,12 @@ def test_exact_kickoff_still_links():
 
 def test_the_liga_mx_rounding_case_still_links_on_one_name():
     """5 minutes apart with one name differing: inside KICKOFF_TOLERANCE, anchored by
-    the agreeing name, needing --force-link for the spelling. ADR 0030's whole point."""
-    m, r = espn("2026-08-02T03:00Z", home="Cruz Azul", away="Atlante"), ours(
+    the agreeing name, needing --force-link for the disagreement. ADR 0030's whole point.
+
+    'Atlas' against 'Atlante FC' — two real and distinct Liga MX clubs. The pair this
+    once used ('Atlante' / 'Atlante FC') is a respelling, which ADR 0039 now reconciles.
+    """
+    m, r = espn("2026-08-02T03:00Z", home="Cruz Azul", away="Atlas"), ours(
         "2026-08-02 03:05:00", home="Cruz Azul", away="Atlante FC")
     with pytest.raises(FixtureMismatch):
         link(m, r)                      # names disagree -> refused without force

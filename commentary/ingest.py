@@ -167,6 +167,14 @@ def main(argv: list[str] | None = None) -> int:
         "football_blog.pipeline passes; it does not waive any check.",
     )
     parser.add_argument(
+        "--link-required",
+        action="store_true",
+        help="the caller cannot proceed without the link, so a refusal must not "
+        "advise omitting --fixture-id. This is what football_blog.pipeline passes, "
+        "because it drafts from the Fixture and requires the id (ADR 0039); it "
+        "waives no check and changes only the wording of a refusal.",
+    )
+    parser.add_argument(
         "--reclassify",
         action="store_true",
         help="re-ingest a match already stored: deletes its lines and re-runs the "
@@ -221,7 +229,8 @@ def main(argv: list[str] | None = None) -> int:
         meta = match_meta(payload, game_id)
         check = verify_fixture_any if args.verify_fallback_pg else verify_fixture
         try:
-            fixture = check(args.fixture_id, meta, force=args.force_link)
+            fixture = check(args.fixture_id, meta, force=args.force_link,
+                            link_required=args.link_required)
         except FixtureMismatch as error:
             print(f"REFUSED: {error}", file=sys.stderr)
             return 1

@@ -237,7 +237,11 @@ def stage_refresh(league_id: int) -> None:
 
 def stage_espn(espn_id: str, fixture_id: int, *, force_link: bool, reclassify: bool) -> None:
     """Ingest the ESPN match into data/commentary.db, linked to the Fixture."""
-    argv = [espn_id, "--fixture-id", str(fixture_id), "--verify-fallback-pg"]
+    # --link-required: this stage cannot fall back to an unlinked ingest, because the
+    # drafter is keyed on the Fixture and --fixture-id is required. Without it a
+    # refusal would end by advising the one thing impossible here (ADR 0039).
+    argv = [espn_id, "--fixture-id", str(fixture_id), "--verify-fallback-pg",
+            "--link-required"]
     if force_link:
         argv.append("--force-link")
     if reclassify:

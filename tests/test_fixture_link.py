@@ -70,9 +70,13 @@ def test_inexact_kickoff_with_both_names_agreeing_verifies():
 
 
 def test_inexact_kickoff_with_one_name_differing_needs_force():
-    """'Cruz Azul' agrees, 'Atlante' vs 'Atlante FC' does not — a naming
-    disagreement, which is exactly what --force-link is for."""
-    row = db_row(date=KICKOFF + timedelta(minutes=5), away="Atlante")
+    """'Cruz Azul' agrees, 'Atlas' vs 'Atlante FC' does not — a naming disagreement,
+    which is exactly what --force-link is for.
+
+    Two genuinely different Liga MX clubs, deliberately. This once read 'Atlante' vs
+    'Atlante FC', which since ADR 0039 is one club spelled two ways and agrees.
+    """
+    row = db_row(date=KICKOFF + timedelta(minutes=5), away="Atlas")
     with pytest.raises(FixtureMismatch, match="teams do not"):
         compare(espn_match(), row)
     assert compare(espn_match(), row, force=True)["name_mismatch"] is True
@@ -109,7 +113,7 @@ def test_kickoff_beyond_tolerance_is_refused_however_hard_it_is_forced(minutes):
     because then nothing has been verified at all — and `--force-link` waiving the
     names is precisely what would compound into that.
     """
-    row = db_row(date=KICKOFF + timedelta(minutes=minutes), away="Atlante")
+    row = db_row(date=KICKOFF + timedelta(minutes=minutes), away="Atlas")
     for force in (False, True):
         with pytest.raises(FixtureMismatch, match="kickoff disagrees"):
             compare(espn_match(), row, force=force)
@@ -139,10 +143,10 @@ def test_the_tolerance_boundary(delta, ok):
 
     With both names agreeing the edge no longer decides anything — either side of it
     links, by a different rule (ADR 0038). It still decides for a row with a
-    disagreeing name: inside, the anchor holds and --force-link covers the spelling;
+    disagreeing name: inside, the anchor holds and --force-link covers the difference;
     outside, there is no delayed path to fall back on.
     """
-    row = db_row(date=KICKOFF + delta, away="Atlante")
+    row = db_row(date=KICKOFF + delta, away="Atlas")
     if ok:
         assert compare(espn_match(), row, force=True)["name_mismatch"] is True
     else:
