@@ -49,10 +49,12 @@ expecting the Champions League's continent to be `"Europe"` (a `"World"` cup is
 
 **Registry**:
 A small committed file naming the entities the recurring jobs must cover. There are
-two: the **Competition registry** — the single source of truth for every Competition
-we collect, league and cup alike (ADR 0019) — and the **Venue registry**, an
+three: the **Competition registry** — the single source of truth for every Competition
+we collect, league and cup alike (ADR 0019); the **Venue registry**, an
 append-only `(name, city) → stable id` map that gives the same stadium the same id in
-every store (ADR 0028).
+every store (ADR 0028); and the **Kalshi team registry**, a `Kalshi team UUID → our
+team id` map (plus series → Competition) that is the sole basis on which a **Winner
+Market** is attached to a Fixture.
 A Registry is **input** to the pipeline, never its output: alone among the data here
 it is *decided* rather than fetched or derived, so it has no rebuild path from the raw
 cache, and every change to it is reviewed as a diff. Nothing is collected, parsed or
@@ -551,9 +553,15 @@ removes retracted rows — an accepted blind spot of the additive path).
 
 **Editorial Store**:
 The PocketBase instance holding **Publications**, **Match Posts** and their
-**Narratives** — the only store here that is **authored rather than derived**, and so
-the only one with no rebuild path: there is no re-parse that reconstructs it and no
-raw cache behind it. Losing it loses the writing.
+**Narratives** — the only store here that holds anything **authored rather than
+derived**, and so the only one with a half that has no rebuild path: there is no
+re-parse that reconstructs a Narrative and no raw cache behind it. Losing it loses the
+writing.
+It is not *wholly* authored, and the split is **per-collection, not per-store**: it also
+carries **Match Previews**, which are derived, rewritten on every run, and cost one
+rebuild to lose. So "back this up" is true of the store while "cannot be regenerated" is
+true only of its authored half — and a **settled** Match Preview sits between the two
+(derived, but frozen around a market read no rebuild recovers).
 It is also the only **co-tenanted** store: the same instance serves a personal site
 whose `posts`, `pages`, `projects`, `profile` and `users` collections are nothing to
 do with football. The pipeline never reads or writes those, but they share one
@@ -637,6 +645,107 @@ is a manual, human act, and the only one.
 _Avoid_: post (the PocketBase instance also serves a personal site with its own,
 entirely unrelated `posts` collection — hence `match_post`); article; treating the slug
 as its identity (the Fixture id is — the slug is derived and could change).
+
+**Winner Market**:
+The three mutually exclusive contracts **Kalshi** lists on one Fixture's result — home,
+away, and the **draw** — and the only Kalshi product we take. The qualifier is load-
+bearing: Kalshi also runs spread, total, both-teams-to-score, first-team-to-score,
+correct-score, method-of-victory and first-half series on the *same* Fixture, so "the
+market for this game" names a dozen things and "the Winner Market" names one.
+Three properties matter and none is guessable:
+- **It settles on regulation, we score on extra time.** Kalshi resolves *"after 90
+  minutes plus stoppage time (does not include extra time or penalties)"*, while a
+  Fixture's `home_goals`/`away_goals` are the on-pitch result **after extra time**
+  (ADR 0012). For a knockout tie that goes past 90 the two disagree about who won —
+  legitimately, about different questions.
+- **The draw is a contract, not a residual.** It is not `100 − home − away`; it trades
+  on its own, and it carries a Kalshi team UUID like the two clubs do (a constant one,
+  shared across every Winner Market), so it is recognised structurally rather than by
+  matching the word "Tie".
+- **A Team is identified by UUID, never by name.** Kalshi's own names disagree with ours
+  about half the time in ways no canonical comparison reconciles — `Tigres UANL` against
+  `Tigres`, `Guadalajara Chivas` against `Guadalajara`, `Club Tijuana` against `Tijuana
+  de Caliente`. The **Kalshi team registry** is the only bridge, and a Winner Market
+  whose two clubs do not *both* resolve through it is **refused**, never half-attached.
+Which Winner Market belongs to which Fixture is settled by the **local match date** — the
+kickoff in the Publication's display timezone, the same date that fixes a **Match Post**'s
+slug — because Kalshi's ticker is dated locally (a 01:00 UTC kickoff is the previous day's
+market). Kalshi's own `occurrence_datetime` is *not* the kickoff: it equals the expected
+settlement, some hours later, and is a sanity band rather than an anchor.
+A Winner Market is read through two numbers that must not be confused.
+A **Quote** is what Kalshi published for one outcome — bid, ask, last trade, and the
+**volume** behind them — and it is a provider fact, kept verbatim. Volume is the honest
+depth signal (`liquidity` reads `0.0000` on markets with tens of thousands of contracts
+traded, so it says nothing): a 34,197-contract Quote and a 162-contract Quote are not the
+same claim, and a card that renders them alike is lying by omission.
+A **Market Probability** is **ours** — the mid of bid and ask, normalised across the three
+outcomes so they sum to 1. Kalshi never publishes it. The raw mids sum to roughly 1.005–1.025
+(the overround), so the normalisation is what lets three percentages on a card add to 100
+without appearing broken; the Quote is retained beside it so the overround stays auditable.
+Derived, in the same sense as **Age** and a Competition's **continent**.
+_Avoid_: calling a Market Probability a price or an exchange figure (Kalshi never published
+it); reading a Quote's bid as the probability; comparing Market Probabilities across
+Fixtures without regard to volume; calling Kalshi's container an **Event** (that is a goal, card, substitution or VAR
+decision in a Fixture — a different provider and a different thing entirely); "the market"
+unqualified (there are a dozen per Fixture); treating the draw as a leftover; matching a
+Winner Market to a Fixture by team name or by UTC date; reading its settlement as our
+scoreline.
+
+**Match Preview**:
+The card the blog shows for a Fixture that has **not been played yet** — the
+forward-looking counterpart to a **Match Post**, and its opposite in the way that
+matters most. A Match Post is **authored**: its **Narrative** is written by a model,
+edited by hand, and no re-run recovers the edit. A Match Preview is **derived**: every
+field on it — each Team's position and points in the table, its leading scorer and
+assister, and the market's view of the result — falls out of a rebuild, and losing the
+whole collection costs one run.
+There is at most one per Fixture, keyed on the Fixture id exactly as a Match Post is, and
+it exists only for a Fixture kicking off within the next **seven days** whose Competition
+has a **Publication**. A Match Preview carries **no prose**: it is data for a card, and
+the writing on this project remains the Narrative's alone.
+Its two halves are true as of **two different moments**, and it carries a timestamp for
+each. The football half is recomputed nightly, behind a quota-bound **Refresh**, so it
+reflects every match Final before 04:00 — stale in a bounded, explainable way. The market
+half is re-read hourly, because a **Quote** is a live price and a day-old one presented as
+current is not stale but wrong. One `updated` field would misdate whichever half it did
+not describe.
+It has two states and one transition. **upcoming** — rewritten on every run,
+because table positions, leaders and prices all move. **settled** — the Fixture has
+kicked off; the record is frozen and never rewritten again. The freeze is not
+bookkeeping. A Match Preview's football half stays derivable forever (it is only
+history), but its market half is a **point-in-time** read: nothing rebuilds what the
+market thought an hour before kickoff. So a settled Match Preview is the one record here
+that *starts* derived and stops being so — which is why it is frozen in place rather than
+archived elsewhere. There is no second collection: the lifecycle field is what changes,
+and the record never moves.
+_Avoid_: preview article, prose, copy (a Match Preview carries no writing — that is a
+**Match Post**'s Narrative); old preview, archive (a settled Match Preview does not move
+anywhere); treating an `upcoming` record as durable (it is overwritten on the next run);
+expecting a settled one to be refreshed or re-derived; keying it on anything but the
+Fixture id.
+
+**Team Leaders**:
+A Team's leading scorer and leading assister as a **Match Preview** carries them —
+**always two of them, each stamped with the scope it was measured over**, because there
+is no single scope that is both meaningful and populated.
+Measured over the Fixture's own **Tournament**, the number is coherent with the table on
+the same card but frequently empty: three games into a Leagues Cup group phase a club has
+no scorer at all, and three matchdays into a Liga MX Apertura its "leading scorer" is a
+four-way tie on one goal. Measured over the club's **domestic league** Tournament it is
+always populated — but on a Leagues Cup card the two sides' figures then come from two
+different leagues.
+So a Match Preview carries both: the club's domestic-league leader always, and the
+Fixture's own Tournament leader when that Tournament differs. The **scope label**
+(competition, season, tournament, and games played) is part of the fact, not a rendering
+choice — "1 goal" is true of a three-game campaign and false of a season, and only the
+label distinguishes them. There is deliberately **no threshold**: nothing decides that a
+tournament is "too young" and swaps scope behind the reader's back.
+This is the one place a Match Preview mixes scopes on purpose. The table is
+Fixture-scoped; the leaders may be domestic. Labelled, that is two clearly-scoped facts;
+unlabelled it is the failure **Narration Coverage** warns about.
+_Avoid_: captain, manager (a Leader here is a statistical top, not a role); "top scorer"
+unqualified (the question is always *over what*); dropping the scope label; inventing a
+fallback threshold; comparing two Leaders' figures without checking they share a scope.
 
 **Narrative**:
 The prose body of a **Match Post** — the match report itself, in its Publication's
