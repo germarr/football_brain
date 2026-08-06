@@ -25,11 +25,14 @@
       bare `/desk` or `/console` costs a redirect hop. Linked directly here; the
       redirects exist in surfaces/app.py for the URLs typed by hand.
 
-      Order is read → write → build → admit. Competitions is last because onboarding a
-      Competition is the rarest act here — 42 of its 45 cards are things you are not
-      currently doing anything to. -#}
+      Order is read → write → build → admit. Previews sits beside the Desk because the
+      two are the same act pointed in opposite directions — the Desk writes about matches
+      that have been played, Previews shows the ones that have not. Competitions is last
+      because onboarding a Competition is the rarest act here — 42 of its 45 cards are
+      things you are not currently doing anything to. -#}
   <a href="/"{% if not _mount %} class="on"{% endif %}>Viewer</a>
   <a href="/desk/"{% if _mount.startswith('/desk') %} class="on"{% endif %}>Desk</a>
+  <a href="/previews/"{% if _mount.startswith('/previews') %} class="on"{% endif %}>Previews</a>
   <a href="/console/"{% if _mount.startswith('/console') %} class="on"{% endif %}>Console</a>
   <a href="/competitions/"{% if _mount.startswith('/competitions') %} class="on"{% endif %}>Competitions</a>
 </nav>

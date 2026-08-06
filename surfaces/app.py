@@ -1,4 +1,5 @@
-"""Mount the Viewer at `/`, the Desk, the Console and Competitions (ADR 0035/0037).
+"""Mount the Viewer at `/`, the Desk, the Console, Competitions and Previews
+(ADR 0035/0037/0040).
 
 Three mechanics, all of them load-bearing:
 
@@ -18,9 +19,9 @@ Three mechanics, all of them load-bearing:
   unconditionally. A renamed nav raises `TemplateNotFound` instead of silently vanishing
   from every page — the `ignore missing` that used to hide that is gone.
 
-It owns only redirects from the bare `/desk`, `/console` and `/competitions` — a
-Mount matches below its prefix, never the prefix itself. The four surfaces answer
-everything else.
+It owns only redirects from the bare `/desk`, `/console`, `/competitions` and
+`/previews` — a Mount matches below its prefix, never the prefix itself. The five
+surfaces answer everything else.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ from fastapi.responses import RedirectResponse
 from .competitions.app import app as competitions_app
 from .console.app import app as console_app
 from .desk.app import app as desk_app
+from .previews.app import app as previews_app
 from .viewer.app import app as viewer_app
 
 app = FastAPI(title="La Cancha — local surfaces")
@@ -55,9 +57,16 @@ def _competitions_root() -> RedirectResponse:
     return RedirectResponse("/competitions/")
 
 
+@app.get("/previews", include_in_schema=False)
+def _previews_root() -> RedirectResponse:
+    """Same as `/desk` — see above."""
+    return RedirectResponse("/previews/")
+
+
 # Order matters: the prefixes first, then the catch-all — Starlette tries routes in
 # order, and nothing registered after a mount at `/` is ever reached.
 app.mount("/desk", desk_app)
 app.mount("/console", console_app)
 app.mount("/competitions", competitions_app)
+app.mount("/previews", previews_app)
 app.mount("/", viewer_app)

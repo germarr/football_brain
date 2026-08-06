@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Cancha — Previews</title>
+{% include "_theme.html" %}
+<style>
+  /* Everything else comes from surfaces/templates/_theme.html. This surface looks
+     forward where the Desk looks back, so it takes a distinct accent — amber, the
+     colour already used for "not yet" states across these apps. */
+  :root{ --accent:#b45309; --chip-bg:#eef1f5; }
+  @media (prefers-color-scheme:dark){ :root{ --accent:#f59e0b; --chip-bg:#1e2531; } }
+
+  header{padding:18px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .spacer{margin-left:auto}
+  main{max-width:1180px;margin:0 auto;padding:22px 28px 160px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    margin:26px 0 12px;font-weight:700}
+  main>section:first-of-type h2{margin-top:4px}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin:0 0 16px}
+  .note code{font-size:12px}
+
+  .tally{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .tally b{color:var(--ink);font-weight:660}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+  .card.gap{border-color:var(--accent)}
+  .when{font-size:11.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;
+    align-items:center}
+  .comp{font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+  .teams{display:grid;gap:6px}
+  .side{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+  .side img{width:20px;height:20px;object-fit:contain;flex:none}
+  .side .p{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;
+    font-size:13px;color:var(--accent)}
+  .side.drawrow{font-weight:500;color:var(--muted);font-size:12.5px;padding-left:28px}
+  .side.drawrow .p{color:var(--muted);font-weight:640}
+
+  .bits{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto;padding-top:2px}
+  .bit{font-size:10.5px;font-weight:660;padding:2px 7px;border-radius:20px;
+    background:var(--chip-bg);color:var(--muted);letter-spacing:.02em}
+  .bit.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .bit.no{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+  .vol{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  .btn{background:var(--accent);color:#fff;padding:6px 12px;font-size:12.5px;
+    border:none;border-radius:8px;font-weight:640;cursor:pointer;font-family:var(--sans)}
+  .btn.ghost{background:transparent;color:var(--accent);
+    box-shadow:inset 0 0 0 1px var(--accent)}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  table.unmapped{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.unmapped th{text-align:left;font-size:11px;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+  table.unmapped td{padding:6px 8px;border-bottom:1px solid var(--line)}
+  table.unmapped code{font-size:11.5px;color:var(--muted)}
+  .loading{font-size:12.5px;color:var(--muted)}
+
+  #log{position:fixed;left:0;right:0;bottom:0;max-height:46vh;overflow:auto;
+    background:#0b0f14;color:#d7e3f4;font-family:var(--mono,ui-monospace,monospace);
+    font-size:12px;line-height:1.5;padding:10px 14px;border-top:1px solid #223;display:none}
+  #log.on{display:block}
+  #log .hd{position:sticky;top:0;background:#0b0f14;padding-bottom:6px;
+    display:flex;gap:10px;align-items:center;color:#8fa6c4}
+</style>
+</head>
+<body>
+{% include "_nav.html" %}
+
+<header>
+  <strong>Previews</strong>
+  <span class="tally">
+    <span><b>{{ summary.fixtures }}</b> Fixtures in the next 7 days</span>
+    <span><b>{{ summary.built }}</b> built</span>
+    <span><b>{{ summary.complete }}</b> complete</span>
+    {% if summary.not_built %}<span><b>{{ summary.not_built }}</b> not built</span>{% endif %}
+    {% if summary.no_market %}<span><b>{{ summary.no_market }}</b> without a market</span>{% endif %}
+  </span>
+  <span class="spacer"></span>
+  <button class="btn ghost" data-action="quotes">Re-read markets</button>
+  <button class="btn" data-action="full">Rebuild previews</button>
+</header>
+
+<main>
+  <section>
+    <h2>Unmapped Kalshi Teams</h2>
+    {# The gap is a *Team*, not a game: a Winner Market attaches by Kalshi's stable team
+       UUID, so this list shrinks to zero and stays there (ADR 0041). A market naming any
+       club below is refused whole — never half-attached to the one side that resolved. #}
+    <div id="unmapped"><p class="loading">Checking Kalshi…</p></div>
+  </section>
+
+  <section>
+    <h2>Next seven days</h2>
+    {% if not cards %}
+      <p class="note">Nothing scheduled in the window for a published Publication.</p>
+    {% endif %}
+    <div class="grid">
+      {% for c in cards %}
+      <article class="card{% if not c.complete %} gap{% endif %}">
+        <div class="when">
+          <span class="comp" style="color:{{ c.brand_color or 'var(--accent)' }}">{{ c.league_name }}</span>
+          <span>{{ c.kickoff.strftime('%a %d %b · %H:%M') }} UTC</span>
+          {% if c.lifecycle == 'settled' %}<span class="bit">settled</span>{% endif %}
+        </div>
+
+        <div class="teams">
+          <div class="side">
+            {% if c.home_logo %}<img src="{{ c.home_logo }}" alt="">{% endif %}
+            <span>{{ c.home_name }}</span>
+            {% if c.home_probability is not none %}
+              <span class="p">{{ '%.0f'|format(c.home_probability * 100) }}%</span>{% endif %}
+          </div>
+          {% if c.draw_probability is not none %}
+          <div class="side drawrow">
+            <span>Draw</span>
+            <span class="p">{{ '%.0f'|format(c.draw_probability * 100) }}%</span>
+          </div>
+          {% endif %}
+          <div class="side">
+            {% if c.away_logo %}<img src="{{ c.away_logo }}" alt="">{% endif %}
+            <span>{{ c.away_name }}</span>
+            {% if c.away_probability is not none %}
+              <span class="p">{{ '%.0f'|format(c.away_probability * 100) }}%</span>{% endif %}
+          </div>
+        </div>
+
+        {% if c.market_volume %}
+        {# Depth, because a 34,197-contract Quote and a 162-contract one are not the same
+           claim and a card that renders them alike is lying by omission (CONTEXT.md). #}
+        <div class="vol">{{ '{:,.0f}'.format(c.market_volume) }} contracts traded</div>
+        {% endif %}
+
+        <div class="bits">
+          {% if c.present %}
+            <span class="bit {% if c.has_table %}ok{% else %}no{% endif %}">table</span>
+            <span class="bit {% if c.has_leaders %}ok{% else %}no{% endif %}">leaders</span>
+            <span class="bit {% if c.has_market %}ok{% else %}no{% endif %}">
+              {%- if c.has_market %}market{% else %}{{ c.market_reason or c.market_state or 'no market' }}{% endif -%}
+            </span>
+          {% else %}
+            <span class="bit no">not built</span>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+
+<div id="log"><div class="hd"><strong id="logtitle"></strong>
+  <span id="logstatus"></span><span style="margin-left:auto"></span>
+  <button class="btn ghost" id="logclose">close</button></div><pre id="logbody"></pre></div>
+
+<script>
+const BASE = "{{ base_url(request) }}";
+const REGISTRY = {{ registry_path | tojson }};
+
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+async function loadUnmapped(){
+  const box = document.getElementById('unmapped');
+  try{
+    const r = await fetch(BASE + '/api/unmapped');
+    const d = await r.json();
+    if (d.error){ box.innerHTML = '<p class="note">' + esc(d.error) + '</p>'; return; }
+    if (!d.teams.length){
+      box.innerHTML = '<p class="note">Every Kalshi Team in the open markets resolves ' +
+        'through the registry. Nothing to map.</p>';
+      return;
+    }
+    let h = '<p class="note"><strong>' + d.teams.length + ' Team(s)</strong> have no ' +
+      'registry entry, so <strong>' + d.markets_refused + '</strong> Winner Market(s) are ' +
+      'refused rather than half-attached. Propose entries below, then review with ' +
+      '<code>git diff -- ' + esc(REGISTRY) + '</code> before committing.</p>' +
+      '<table class="unmapped"><thead><tr><th>Kalshi name</th><th>UUID</th>' +
+      '<th>Series</th><th>Markets</th></tr></thead><tbody>';
+    for (const t of d.teams){
+      h += '<tr><td><strong>' + esc(t.kalshi_name || '—') + '</strong></td>' +
+           '<td><code>' + esc(t.kalshi_team) + '</code></td>' +
+           '<td>' + esc(t.series.join(', ')) + '</td>' +
+           '<td>' + t.events + '</td></tr>';
+    }
+    h += '</tbody></table><p style="margin-top:12px">' +
+      '<button class="btn" data-action="propose">Propose registry entries</button></p>';
+    box.innerHTML = h;
+  }catch(e){
+    box.innerHTML = '<p class="note">Could not reach Kalshi: ' + esc(String(e)) + '</p>';
+  }
+}
+
+async function run(action, label){
+  const log = document.getElementById('log');
+  document.getElementById('logtitle').textContent = label;
+  document.getElementById('logstatus').textContent = 'running…';
+  document.getElementById('logbody').textContent = '';
+  log.classList.add('on');
+  const r = await fetch(BASE + '/run', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({action})});
+  const {job_id, error} = await r.json();
+  if (error){ document.getElementById('logstatus').textContent = error; return; }
+  const es = new EventSource(BASE + '/jobs/' + job_id + '/stream');
+  es.onmessage = (ev) => {
+    const d = JSON.parse(ev.data);
+    if (d.line !== undefined){
+      document.getElementById('logbody').textContent += d.line + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+    if (d.done){
+      es.close();
+      document.getElementById('logstatus').textContent = d.status;
+      // The board is derived from what the run just wrote, so re-read rather than
+      // patching the DOM — a stale card is exactly what this page exists to surface.
+      setTimeout(() => location.reload(), 700);
+    }
+  };
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-action]');
+  if (!b) return;
+  run(b.dataset.action, b.textContent.trim());
+});
+document.getElementById('logclose').onclick = () =>
+  document.getElementById('log').classList.remove('on');
+
+loadUnmapped();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+predicitons/fastapi_server/
 
 # marimo session caches (regenerated on every notebook run)
 __marimo__/
@@ -64,3 +65,6 @@ football/registry/venues.json.lock
 
 # Harness-written transient settings temp files
 .claude/*.tmp.*
+
+# Surface job logs (per-run subprocess output; regenerated on every run)
+surfaces/previews/logs/
