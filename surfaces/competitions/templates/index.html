@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Cancha — Competitions</title>
+{% include "_theme.html" %}
+<style>
+  /* Everything else comes from surfaces/templates/_theme.html. The accent is the one
+     thing that must differ — this surface admits Competitions to the blog, so it takes
+     the Desk's editorial teal rather than the pipeline blue. */
+  :root{ --accent:#0f766e; --stage-bg:#eef1f5; }
+  @media (prefers-color-scheme:dark){ :root{ --accent:#2dd4bf; --stage-bg:#1e2531; } }
+
+  header{padding:18px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .spacer{margin-left:auto}
+  main{max-width:1180px;margin:0 auto;padding:22px 28px 160px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    margin:26px 0 12px;font-weight:700}
+  main>section:first-of-type h2{margin-top:4px}
+  .note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin:0 0 16px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+  .card.on{border-color:var(--accent)}
+  .ctop{display:flex;align-items:baseline;gap:8px}
+  .cname{font-weight:650;font-size:14.5px;letter-spacing:-.01em}
+  .ctype{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    font-weight:700}
+  .cmeta{font-size:11.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+
+  /* The stage bar: five segments, filled to the furthest stage reached. */
+  .bar{display:flex;gap:3px}
+  .seg{height:5px;flex:1;border-radius:3px;background:var(--stage-bg)}
+  .seg.done{background:var(--accent)}
+  .seg.live{background:var(--ok)}
+  .stage{font-size:11.5px;font-weight:640;color:var(--accent)}
+  .stage.live{color:var(--ok)}
+  .stage.early{color:var(--muted)}
+  .blocked{font-size:11.5px;color:var(--warn,#b45309);line-height:1.45}
+  .cact{margin-top:auto;display:flex;align-items:center;gap:8px}
+  .btn{background:var(--accent);color:var(--accent-ink,#fff);padding:6px 12px;font-size:12.5px;
+    border:none;border-radius:8px;font-weight:640;cursor:pointer;font-family:var(--sans)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .done-note{font-size:11.5px;color:var(--muted)}
+
+  /* Form */
+  dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);
+    color:var(--ink);padding:0;max-width:540px;width:calc(100vw - 32px)}
+  dialog::backdrop{background:rgba(0,0,0,.42)}
+  .dlg-head{padding:16px 20px 0}
+  .dlg-head h3{margin:0;font-size:16px}
+  .dlg-body{padding:14px 20px 4px;display:grid;gap:12px}
+  .f label{display:block;font-size:12px;font-weight:650;margin-bottom:3px}
+  .f .hint{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .f input,.f select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+    background:var(--bg);color:var(--ink);font-size:13.5px;font-family:var(--sans)}
+  .perm{border-left:3px solid var(--warn,#b45309);padding-left:9px}
+  .dlg-foot{padding:12px 20px 18px;display:flex;gap:8px;align-items:center}
+  .btn.ghost{background:var(--chip);color:var(--ink)}
+
+  /* Run drawer */
+  #run{position:fixed;left:0;right:0;bottom:0;background:var(--panel);
+    border-top:1px solid var(--line);max-height:64vh;display:none;flex-direction:column;z-index:30}
+  #run.open{display:flex}
+  .run-head{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line)}
+  .run-body{padding:12px 20px 20px;overflow:auto}
+  pre{background:var(--code-bg);color:var(--code-ink);border:1px solid var(--line);
+    border-radius:8px;padding:11px;overflow:auto;font-size:12px;line-height:1.5;margin:0;
+    max-height:34vh;font-family:var(--mono)}
+  .job-status{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .job-status.running{color:var(--run)} .job-status.done{color:var(--ok)}
+  .job-status.failed,.job-status.stopped{color:var(--fail)}
+  .run-foot{margin-top:10px;font-size:12.5px;line-height:1.55}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Football 2.0</h1>
+  {% include "_nav.html" %}
+  <span class="badge">Competitions</span>
+  <span class="badge local">● 127.0.0.1 — local only</span>
+  <span class="spacer"></span>
+  <span class="badge">{{ summary.draftable }} draftable · {{ summary.total }} collected</span>
+</header>
+
+<main>
+<section>
+  <h2>Competitions</h2>
+  <p class="note">
+    Every Competition in the <b>Registry</b> — what we collect — and how far each is from
+    the blog: <b>Collected → In the Published Store → Has a Publication → Draftable → Live</b>.
+    The button advances a Competition to <b>Draftable</b> and stops there. Going
+    <b>Live</b> means flipping a Publication's <code>published</code> gate, which is a
+    human act done in PocketBase, not here.
+  </p>
+
+  <div class="grid">
+    {% for c in cards %}
+    <div class="card{% if c.is_draftable %} on{% endif %}">
+      <div class="ctop">
+        <span class="cname">{{ c.name }}</span>
+        <span class="ctype">{{ c.type }}</span>
+      </div>
+
+      <div class="bar">
+        {%- for s in stages %}
+        <span class="seg{% if loop.index0 <= c.stage_index %} {{ 'live' if c.stage == 'live' else 'done' }}{% endif %}"></span>
+        {%- endfor %}
+      </div>
+      <div class="stage {{ 'live' if c.stage == 'live' else ('early' if c.stage_index < 2 else '') }}">
+        {{ stage_label[c.stage] }}
+      </div>
+
+      <div class="cmeta">
+        <span>id {{ c.league_id }}</span>
+        <span>{{ c.seasons }} seasons</span>
+        {% if c.has_play_count %}<span>{{ '{:,}'.format(c.played) }} played</span>
+        {% else %}<span title="league_meta carries standings, and a cup has none (ADR 0025)">— played</span>{% endif %}
+        {% if c.finals_in_store %}<span>{{ '{:,}'.format(c.finals_in_store) }} in store</span>{% endif %}
+      </div>
+
+      {% if c.blocked_reason %}<div class="blocked">{{ c.blocked_reason }}</div>{% endif %}
+
+      <div class="cact">
+        {% if c.next_action %}
+          <button class="btn" {% if c.blocked_reason %}disabled{% endif %}
+                  onclick="openForm({{ c.league_id }}, {{ c.name|tojson }})">
+            {{ c.next_action }}
+          </button>
+        {% elif c.stage == 'live' %}
+          <span class="done-note">Live as <b>{{ c.publication.slug }}</b></span>
+        {% else %}
+          <span class="done-note">Draftable — flip <code>published</code> in PocketBase to go live</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+</main>
+
+<dialog id="form">
+  <form method="dialog" onsubmit="return false">
+    <div class="dlg-head"><h3 id="f-title">Onboard</h3></div>
+    <div class="dlg-body">
+      <p class="hint" style="margin:0">
+        Pre-filled from the Competition where we can derive it. Measured against the three
+        Publications that exist, the derived slug and display name were right one time in
+        three — so these are <b>suggestions</b>, not answers.
+      </p>
+      <div class="f perm">
+        <label for="f-slug">URL slug</label>
+        <input id="f-slug" autocomplete="off">
+        <div class="hint">Permanent — it appears in every published URL. <span id="f-slug-hint"></span></div>
+      </div>
+      <div class="f">
+        <label for="f-name">Display name</label>
+        <input id="f-name" autocomplete="off">
+      </div>
+      <div class="f">
+        <label for="f-lang">Default language</label>
+        <select id="f-lang">
+          {% for l in languages %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+        </select>
+        <div class="hint">Picks the system prompt the model is given.</div>
+      </div>
+      <div class="f perm">
+        <label for="f-tz">Display timezone</label>
+        <select id="f-tz">
+          {% for t in timezones %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+        <div class="hint">Fixes the local date in every Match Post slug. The World Cup uses
+          the <i>audience's</i> zone, not the tournament's.</div>
+      </div>
+      <div class="f">
+        <label for="f-color">Brand colour</label>
+        <input id="f-color" placeholder="#RRGGBB" autocomplete="off">
+      </div>
+      <p class="hint" style="margin:0">
+        This runs the wholesale publish over <b>every</b> Publication's Competition plus this
+        one — the set is derived, so nothing can be dropped by omission. It never sets
+        <code>published</code>, and never edits an existing Publication.
+      </p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" id="f-go" onclick="startRun()">Start onboarding</button>
+      <button class="btn ghost" onclick="document.getElementById('form').close()">Cancel</button>
+      <span class="hint" id="f-err" style="color:var(--fail)"></span>
+    </div>
+  </form>
+</dialog>
+
+<div id="run">
+  <div class="run-head">
+    <strong id="run-title">Run</strong>
+    <span class="job-status running" id="run-status">running</span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="run-stop">Stop</button>
+    <button class="btn ghost" onclick="document.getElementById('run').classList.remove('open')">Hide</button>
+  </div>
+  <div class="run-body">
+    <pre id="run-log"></pre>
+    <div class="run-foot" id="run-foot" hidden></div>
+  </div>
+</div>
+
+<script>
+const BASE = {{ base_url(request) | tojson }};
+let CURRENT = null;
+
+async function openForm(id, name){
+  CURRENT = id;
+  document.getElementById('f-title').textContent = 'Onboard ' + name;
+  document.getElementById('f-err').textContent = '';
+  const r = await fetch(`${BASE}/api/defaults/${id}`);
+  const {defaults, derived} = await r.json();
+  document.getElementById('f-slug').value = defaults.slug || '';
+  document.getElementById('f-name').value = defaults.display_name || name;
+  if(defaults.display_timezone){ document.getElementById('f-tz').value = defaults.display_timezone; }
+  document.getElementById('f-slug-hint').textContent = derived
+    ? '' : 'Not yet in the Published Store, so nothing could be derived — the name above is the Registry\'s.';
+  document.getElementById('form').showModal();
+}
+
+async function startRun(){
+  const body = {
+    league_id: CURRENT,
+    slug: document.getElementById('f-slug').value,
+    display_name: document.getElementById('f-name').value,
+    language: document.getElementById('f-lang').value,
+    timezone: document.getElementById('f-tz').value,
+    brand_color: document.getElementById('f-color').value,
+  };
+  const res = await fetch(`${BASE}/run`, {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json();
+  if(!res.ok){ document.getElementById('f-err').textContent = data.error || 'Could not start'; return; }
+  document.getElementById('form').close();
+  openJob(data.job_id, data.title);
+}
+
+function openJob(jobId, title){
+  const drawer = document.getElementById('run');
+  const log = document.getElementById('run-log');
+  const statusEl = document.getElementById('run-status');
+  const foot = document.getElementById('run-foot');
+  drawer.classList.add('open');
+  document.getElementById('run-title').textContent = title;
+  log.textContent = ''; foot.hidden = true;
+  statusEl.textContent = 'running'; statusEl.className = 'job-status running';
+
+  const stop = document.getElementById('run-stop');
+  stop.disabled = false;
+  stop.onclick = ()=> fetch(`${BASE}/jobs/${jobId}/stop`, {method:'POST'});
+
+  const es = new EventSource(`${BASE}/jobs/${jobId}/stream`);
+  es.onmessage = (e)=>{ log.textContent += JSON.parse(e.data).line + '\n';
+    log.scrollTop = log.scrollHeight; };
+  es.addEventListener('end', (e)=>{
+    const d = JSON.parse(e.data);
+    statusEl.textContent = d.status; statusEl.className = 'job-status ' + d.status;
+    stop.disabled = true; es.close();
+    foot.hidden = false;
+    // Says what the run did and, deliberately, what it did not: the last stage is a
+    // human act elsewhere (ADR 0037).
+    foot.innerHTML = d.status === 'done'
+      ? 'Onboarded. It is now <b>Draftable</b> — write about it from the '
+        + '<a href="/desk/">Desk</a>. It is <b>not</b> live: flip <code>published</code> '
+        + 'in PocketBase when you want it public. '
+        + '<a href="#" onclick="location.reload();return false">Reload the board →</a>'
+      : 'The run did not finish. Nothing was published live, and any Publication it '
+        + 'created is <code>published=false</code> and harmless. Re-running is safe — it '
+        + 'resumes and never overwrites an existing Publication.';
+  });
+  es.onerror = ()=>{ if(statusEl.textContent !== 'running'){ es.close(); return; }
+    statusEl.textContent = 'disconnected'; statusEl.className = 'job-status stopped';
+    foot.hidden = false;
+    foot.innerHTML = 'Lost the stream — the run itself carries on, logged to '
+      + '<code>surfaces/competitions/logs/</code>.'; };
+}
+</script>
+</body>
+</html>

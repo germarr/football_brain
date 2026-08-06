@@ -136,14 +136,15 @@ uv run python -m surfaces          # then open http://127.0.0.1:8001
 | **Viewer** | `/` | read the data — this week, standings, match tracker |
 | **Desk** | `/desk` | write about it — Drafting Candidates, the prompt, the pipeline |
 | **Console** | `/console` | build it — onboard, backfill, rebuild, publish |
+| **Competitions** | `/competitions` | admit it — every Competition we collect, and how far each is from the blog |
 
-All three answer on one port under one header since
-[ADR-0035](docs/adr/0035-one-port-three-surfaces.md), and all three live in `surfaces/`
-since [ADR-0036](docs/adr/0036-the-surfaces-package.md) — they could be grouped because
-they own **no store between them**. None holds a `football.db` handle either, which is the
+They answer on one port under one header since
+[ADR-0035](docs/adr/0035-one-port-three-surfaces.md) and live in `surfaces/` since
+[ADR-0036](docs/adr/0036-the-surfaces-package.md) — they could be grouped because they
+own **no store between them**. None holds a `football.db` handle either, which is the
 coupling [ADR-0023](docs/adr/0023-split-viewer-app-and-serving-db.md) split apart, so
 there is nothing left for separate processes to protect. Each still boots alone
-(`python -m surfaces.viewer`, `.console`, `.desk`) as a debug entrypoint.
+(`python -m surfaces.viewer`, `.console`, `.desk`, `.competitions`) as a debug entrypoint.
 
 Bound to `127.0.0.1` only — it spawns subprocesses and spends API quota, so it is
 never network-exposed. Every trigger runs the **exact** `python -m …` command you
@@ -166,7 +167,7 @@ store between them, so grouping them moves no store and breaks no invariant
 
 | Role | What it does | Where |
 |---|---|---|
-| **Onboard** | Admit an entity to a **Registry** so every later recurring job covers it. One-time, idempotent, forward-acting. | `football/onboard/`, `football_blog/onboard.py` |
+| **Onboard** | Admit an entity to a **Registry** so every later recurring job covers it. One-time, idempotent, forward-acting. Two registries, two decisions: a **Competition** we collect, a **Publication** we write about. | `football/onboard/`, `football_blog/onboard.py` |
 | **Backfill** | Bulk-fetch Seasons into the raw cache. Resumable, quota-bound, admits nothing. | `football/collect/` |
 | **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
 | **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/`, `football_blog/candidates.py` |
@@ -192,10 +193,11 @@ football/            the pipeline package — one package, one store (ADR 0011)
   collect/           backfill events, team stats, team profiles  (network)
   build/             parse / scope / venues — cache to SQLite  (offline)
   publish/           pg (wholesale) + delta — the Postgres Published Store
-surfaces/        the three local apps on one port, :8001  (ADR 0035/0036)
+surfaces/        the four local apps on one port, :8001  (ADR 0035/0036)
   viewer/        the reader-facing Viewer, at /  (ADR 0023)
   desk/          the Desk — Drafting Candidates + prompt, at /desk  (ADR 0034)
   console/       the Operator Console, at /console  (ADR 0021/0023)
+  competitions/  onboarding board — stage per Competition, at /competitions  (ADR 0037)
 serving/         serve.db + the publish step that builds it  (ADR 0023/0036)
 commentary/      ESPN Commentary Store  (ADR 0026)
 live/            provisional Live Mirror during a match  (ADR 0020)

@@ -604,6 +604,21 @@ to have a status); eligible/publishable fixture (publishing is a separate manual
 the Match Post); reading it as a queue with an order — it is a set, and which one to
 write is an editorial choice; treating data completeness as part of the definition.
 
+**Draftable**:
+A **Competition** whose Finals can become **Drafting Candidates** — it has rows in the
+**Published Store** and a **Publication** pointing at it. It is a property of a
+Competition, where a Drafting Candidate is a property of a Fixture: a Competition
+becomes Draftable once, and every later Final it plays is a Candidate without further
+ceremony.
+Draftable is *not* **published**: that gate is the Publication's, flipped by a human
+afterwards, so a Draftable Competition can be written about for weeks while nothing
+about it is public. Nor is it **onboarded** — a Competition can sit in the Competition
+**Registry** for years, collected nightly, and never be Draftable, because nobody
+decided to write about it.
+_Avoid_: onboarded (that admits an entity to a Registry, and the two registries are
+separate decisions); published/live (the public gate, a later act); ready (says nothing
+about *for what*); treating it as a property of a Fixture — that is a Drafting Candidate.
+
 **Match Post**:
 The blog's unit of work: exactly one per **Fixture**, identified by that Fixture's id
 and by nothing else. It carries the **Narrative**, a URL slug composed from both teams

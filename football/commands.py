@@ -322,6 +322,61 @@ COMMANDS: list[Command] = [
         ],
     ),
 
+    Command(
+        key="onboard_blog", group="Onboard", title="Onboard a Competition to the blog",
+        module="football_blog.onboard",
+        summary="Publish a Competition to the Published Store, verify it, and create its Publication.",
+        detail="The Competitions board's one button, as a command (ADR 0037). Runs the "
+               "frontier refresh, then a WHOLESALE publish whose Competition set is "
+               "DERIVED — every existing Publication's Competition plus this one — so "
+               "nothing can be dropped by omission, the failure a hand-typed id list "
+               "invites. Then the five data checks, then the Publication, which is "
+               "created only if absent and never overwritten: llm_prompt_overrides is "
+               "authored from the Desk and lives in the store with no rebuild path. It "
+               "never sets published=true; that gate is a separate human act. Safe to "
+               "re-run — onboarding is idempotent (CONTEXT.md).",
+        example="Onboard the Brasileirão: it refreshes that Competition's frontier, "
+                "republishes Liga MX + MLS + the World Cup + Brasileirão wholesale to "
+                "Postgres, checks fixtures/coverage/logos/venues, then creates the "
+                "Publication with the slug and timezone you give it. The Competition is "
+                "then Draftable — its Finals show up on the Desk — but nothing is public "
+                "until you flip published in PocketBase. Leave the fields blank to be "
+                "prompted instead.",
+        scope="one competition · rewrites the Postgres Published Store",
+        network=True, long_running=True,
+        params=[
+            Param("league_id", "Competition", "competition", "--league-id", required=True,
+                  help="The Competition to put on the blog. Must already be collected — "
+                       "this command does not backfill."),
+            Param("slug", "URL slug", "str", "--slug",
+                  placeholder="e.g. brasileirao",
+                  help="PERMANENT — it appears in every published URL. Blank prompts "
+                       "interactively rather than guessing; the derived value is right "
+                       "about one time in three."),
+            Param("language", "Default language", "str", "--language", placeholder="es or en",
+                  help="Picks the system prompt the model is given. Blank prompts."),
+            Param("timezone_name", "Display timezone", "str", "--timezone",
+                  placeholder="e.g. America/Mexico_City",
+                  help="Fixes the local date in every Match Post slug. Blank prompts."),
+            Param("display_name", "Display name", "str", "--display-name", advanced=True,
+                  help="Shown as-is on the site. Defaults to the Competition's name."),
+            Param("brand_color", "Brand colour", "str", "--brand-color", advanced=True,
+                  placeholder="#RRGGBB", help="Optional."),
+            Param("overrides_file", "Prompt overrides file", "str", "--overrides-file",
+                  advanced=True,
+                  help="Markdown whose text becomes llm_prompt_overrides. Applied on "
+                       "creation only — it never overwrites an existing Publication's."),
+            Param("skip_publish", "Skip the publish stage", "bool", "--skip-publish",
+                  advanced=True,
+                  help="Run only the checks and the Publication step. Use when the "
+                       "Competition is already in the Published Store."),
+            Param("yes", "Non-interactive", "bool", "--yes", advanced=True,
+                  help="Never prompt. Requires slug, language and timezone if the "
+                       "Publication does not exist yet — it refuses rather than "
+                       "inventing a permanent slug."),
+        ],
+    ),
+
     # --- Publish (rebuild a derived read store; offline, no API quota) ------
     Command(
         key="publish", group="Publish", title="Publish serve.db (for the Viewer)",

@@ -49,6 +49,7 @@ live/live.db
 surfaces/console/logs/
 surfaces/desk/logs/
 surfaces/viewer/logs/
+surfaces/competitions/logs/
 
 # The serving store (ADR 0023, moved to serving/ by ADR 0036): a re-derivable daily
 # slice of football.db, rebuilt with `python -m serving.publish`, plus that job's cron

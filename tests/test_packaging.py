@@ -27,6 +27,7 @@ PACKAGE_DIRS = [
     # because a subpackage missing its __init__.py still imports as a namespace package
     # and so fails exactly the silent way this file exists to catch.
     "surfaces", "surfaces/viewer", "surfaces/desk", "surfaces/console",
+    "surfaces/competitions",
 ]
 
 
