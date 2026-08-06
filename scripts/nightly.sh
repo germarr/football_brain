@@ -37,3 +37,18 @@ VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE
 "$PY" -m football.publish.pg --heal-venues >> refresh/logs/heal.out 2>&1
 { git add "$VENUES"; git diff --cached --quiet || git commit -m "venues: nightly registry append [cron]"; } >> refresh/logs/venues.out 2>&1
 "$PY" -m serving.publish >> serving/logs/publish-cron.out 2>&1
+
+# The football half of every **Match Preview** for the next seven days (ADR 0040). Last
+# because it reads what everything above produced, and because a failure here must not
+# cost the Viewer its nightly serve.db.
+#
+# It delta-publishes the Publications' Competitions itself before reading. That is not
+# redundant with the Refresh above: `publish.pg --heal-venues` returns *before* publishing
+# anything and no wholesale publish runs on any schedule, so without that step a
+# re-dated Fixture — or a knockout round drawn after a group stage ends — would sit in the
+# cache and never reach the store the builder reads (ADR 0028 amendment).
+#
+# The market half is NOT here. Quotes move continuously and are three free GETs, so they
+# have their own hourly crontab entry; a nightly-only price would be presented as current
+# while being up to a day old.
+"$PY" -m football_blog.preview --full >> refresh/logs/preview-cron.out 2>&1

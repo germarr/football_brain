@@ -323,6 +323,43 @@ COMMANDS: list[Command] = [
     ),
 
     Command(
+        key="preview", group="Refresh", title="Build Match Previews",
+        module="football_blog.preview",
+        summary="Build the next seven days of Match Previews into the Editorial Store.",
+        detail="The forward half of the blog (ADR 0040). One card per scheduled Fixture "
+               "in a published Publication's Competition: each Team's table position and "
+               "points, its leading scorer and assister, and Kalshi's view of the result. "
+               "A Match Preview is DERIVED — rebuilding one costs nothing, unlike a Match "
+               "Post's hand-edited Narrative — so this is safe to re-run at will. It "
+               "delta-publishes the Publications' Competitions first, because nothing "
+               "else on any schedule pushes a re-dated or newly-drawn Fixture to the "
+               "Published Store. Every run first freezes any Preview whose kickoff has "
+               "passed: a settled card keeps the last Quote read before kickoff, and "
+               "nothing reconstructs that.",
+        example="Run it with no flags after the nightly: it refreshes the store, freezes "
+                "yesterday's cards, and rebuilds today's — 38 Fixtures across Leagues "
+                "Cup, MLS and Liga MX in about a minute. Tick Quotes only to re-read "
+                "just the market prices (three free GETs, no quota), which is what the "
+                "hourly cron does. Check the result at "
+                "http://127.0.0.1:8001/previews.",
+        scope="every published Publication's competition · next 7 days",
+        network=True,
+        params=[
+            Param("quotes", "Quotes only (hourly mode)", "bool", "--quotes",
+                  help="Re-read the Kalshi Winner Markets and nothing else — leaves the "
+                       "table, the Team Leaders and their timestamp untouched. Cheap "
+                       "enough to run hourly: three unauthenticated GETs, no API key."),
+            Param("dry_run", "Dry run (write nothing)", "bool", "--dry-run",
+                  help="Assemble every card and report the tallies without touching the "
+                       "Editorial Store."),
+            Param("no_publish", "Skip the delta publish", "bool", "--no-publish",
+                  advanced=True,
+                  help="Preview whatever the Published Store already holds. Faster, but "
+                       "a Fixture re-dated since the last publish will be wrong."),
+        ],
+    ),
+
+    Command(
         key="onboard_blog", group="Onboard", title="Onboard a Competition to the blog",
         module="football_blog.onboard",
         summary="Publish a Competition to the Published Store, verify it, and create its Publication.",

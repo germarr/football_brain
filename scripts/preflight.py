@@ -42,6 +42,13 @@ def check_registries() -> list[str]:
             "football.config", fromlist=["config"]).COMPETITIONS_FILE),
         ("Venue registry", lambda: __import__(
             "football.build.venues", fromlist=["venues"]).REGISTRY_FILE),
+        # The third Registry (ADR 0041). Its own failure is loud — `load_registry` raises
+        # rather than returning empty — but it is checked here for the same reason as the
+        # other two: a Registry at the wrong path is the class of fault that should stop a
+        # night before it spends anything, not surface later as cards quietly missing
+        # their Winner Market.
+        ("Kalshi team registry", lambda: __import__(
+            "football_blog.kalshi", fromlist=["kalshi"]).REGISTRY_FILE),
     ):
         try:
             path = Path(getter())

@@ -232,6 +232,38 @@ def _publications(pb: PocketBaseClient) -> dict[int, dict]:
             for p in pb.list_publications(only_published=True)}
 
 
+def refresh_published_store(pb: PocketBaseClient) -> list[int]:
+    """Delta-publish every published Publication's Competition before reading it.
+
+    Without this the builder reads a store nothing has updated. `scripts/nightly.sh` runs
+    a full **Refresh** — which updates the raw cache and `football.db` — and then calls
+    `football.publish.pg --heal-venues`, which returns *before* publishing anything. No
+    wholesale publish runs on any schedule. So a Fixture whose kickoff moved, or a
+    knockout round drawn after a group stage ended, would sit in the cache and never reach
+    the Published Store (ADR 0028's amendment is what makes the delta carry it; this is
+    what makes the delta run).
+
+    Same shape and same stance as `candidates.refresh_board`: additive, seconds, mostly
+    cache hits, and a non-zero exit thins the board rather than emptying it. Imports are
+    local so `build` stays importable from a web request without dragging in the publish
+    path.
+    """
+    from football.publish import pg as publish_pg
+
+    competition_ids = sorted(_publications(pb))
+    if not competition_ids:
+        return []
+    try:
+        publish_pg.delta_publish(competition_ids)
+    except SystemExit as e:
+        # A delta needs a prior wholesale publish to baseline against. If that has never
+        # happened the right answer is a stale board, not a failed nightly.
+        if e.code:
+            print(f"⚠ Delta publish exited non-zero (code {e.code}) — previewing whatever "
+                  f"the Published Store already holds.")
+    return competition_ids
+
+
 def freeze_kicked_off(pb: PocketBaseClient, now: Optional[datetime] = None) -> int:
     """Flip every `upcoming` Match Preview whose kickoff has passed to `settled`."""
     now = now or datetime.now(timezone.utc)
@@ -274,7 +306,7 @@ def upcoming_fixtures(cur, competition_ids: list[int], now: datetime,
     return cur.fetchall()
 
 
-def build(full: bool = True, dry_run: bool = False,
+def build(full: bool = True, dry_run: bool = False, publish: bool = True,
           now: Optional[datetime] = None) -> dict[str, int]:
     """One run. `full` recomputes both halves; otherwise only the market half moves."""
     now = now or datetime.now(timezone.utc)
@@ -282,6 +314,11 @@ def build(full: bool = True, dry_run: bool = False,
 
     pb = PocketBaseClient()
     try:
+        # Only on a full run: `--quotes` touches nothing the store feeds, so making the
+        # hourly job delta-publish would spend a re-parse every hour for no new fact.
+        if full and publish and not dry_run:
+            refresh_published_store(pb)
+
         counts["frozen"] = 0 if dry_run else freeze_kicked_off(pb, now)
 
         publications = _publications(pb)
@@ -450,6 +487,9 @@ def main(argv: list[str] | None = None) -> int:
                            "half and its timestamp untouched.")
     ap.add_argument("--dry-run", action="store_true",
                     help="assemble and report, write nothing.")
+    ap.add_argument("--no-publish", action="store_true",
+                    help="skip the delta publish that precedes a --full run; preview "
+                         "whatever the Published Store already holds.")
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
 
@@ -458,7 +498,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.verbose:
         logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    counts = build(full=not args.quotes, dry_run=args.dry_run)
+    counts = build(full=not args.quotes, dry_run=args.dry_run,
+                   publish=not args.no_publish)
     print("\n  " + "  ".join(f"{k}={v}" for k, v in sorted(counts.items())))
     if counts.get("unmapped_teams"):
         print(f"\n  ⚠ {counts['unmapped_teams']} Kalshi Team(s) unmapped — those Winner "
