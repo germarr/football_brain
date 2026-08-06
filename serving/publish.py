@@ -119,7 +119,9 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
             con.close()
 
         os.replace(tmp, serve_db)   # atomic swap — readers never see a partial store
-        counts["live_cleared"] = _clear_settled_live_rows(serve_db)
+        # `start` is the window's past edge: a polled fixture older than it can never
+        # reappear in a future publish, so this is what makes reason 2 decidable.
+        counts["live_cleared"] = _clear_settled_live_rows(serve_db, start)
         return counts, (start, end)
     finally:
         lock_f.close()
@@ -332,13 +334,36 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
     return counts
 
 
-def _clear_settled_live_rows(serve_db: Path) -> int:
-    """Auto-clear the Live Mirror once the snapshot has caught up (ADR 0024).
+#: A fixture the Live Mirror should stop shadowing: Final, or ended without a Final
+#: (postponed / cancelled / abandoned / awarded / walkover). Clearing only on Final left
+#: a postponed game provisional forever, since nothing else ever revisits it.
+#: The same set exists as the Viewer's TERMINAL_STATUS and live.poll's _TERMINAL — three
+#: names for one thing, worth consolidating and not this change's job.
+TERMINAL = ("FT", "AET", "PEN", "PST", "CANC", "ABD", "AWD", "WO")
 
-    Delete `live/live.db` rows for any fixture the freshly-published serve.db now records
-    as **Final** — its provisional overlay is redundant, and leaving it would keep a stale
-    'provisional' marker on a finished game in the Viewer table. Best-effort: a failure
-    here never fails the publish (serve.db is already swapped in).
+
+def _clear_settled_live_rows(serve_db: Path, window_start: str) -> int:
+    """Auto-clear the Live Mirror once the snapshot can take over (ADR 0024).
+
+    Two reasons to drop a fixture's provisional rows:
+
+      1. **serve.db now records it as terminal.** The overlay is redundant, and leaving
+         it keeps a stale `provisional` marker on a finished game in the Viewer's table.
+         The timing here is not incidental and is the reason this lives in publish rather
+         than in the poller: clearing when the *poll* first sees a Final would drop the
+         match page back to a serve.db that does not have the result yet, rendering a
+         finished game as **scheduled**. A row may only be cleared once something
+         authoritative can answer in its place.
+
+      2. **serve.db can never adjudicate it.** A fixture whose kickoff predates the
+         published window's past edge will not appear in this publish or any later one,
+         so reason 1 can never fire for it. This happens whenever no publish runs for
+         longer than `--before` days — a stopped cron, a machine that was off. Without
+         this clause those rows stay provisional permanently, and the Match Tracker keeps
+         serving a half-finished poll of a match nobody remembers watching, with no error
+         anywhere (ADR 0033).
+
+    Best-effort: a failure here never fails the publish — serve.db is already swapped in.
     """
     live_path = config.ROOT / "live" / "live.db"
     if not live_path.exists():
@@ -347,11 +372,17 @@ def _clear_settled_live_rows(serve_db: Path) -> int:
         con = sqlite3.connect(live_path, timeout=5)
         try:
             con.execute("ATTACH DATABASE ? AS serve", (str(serve_db),))
+            marks = ",".join("?" * len(TERMINAL))
             settled = [
                 r[0] for r in con.execute(
-                    "select lp.fixture_id from livepoll lp "
-                    "join serve.fixture sf on sf.id = lp.fixture_id "
-                    "where upper(sf.status) in ('FT','AET','PEN')"
+                    # LEFT joins on purpose: reason 2 is precisely the case where the
+                    # fixture is *absent* from serve.db, which an inner join drops.
+                    f"select lp.fixture_id from livepoll lp "
+                    f"left join serve.fixture sf on sf.id = lp.fixture_id "
+                    f"left join fixture lf on lf.id = lp.fixture_id "
+                    f"where upper(coalesce(sf.status,'')) in ({marks}) "
+                    f"   or (sf.id is null and coalesce(lf.date, lp.polled_at) < ?)",
+                    (*TERMINAL, window_start),
                 )
             ]
             for fid in settled:
