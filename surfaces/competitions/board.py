@@ -44,10 +44,15 @@ class CompetitionCard:
     name: str
     type: str                      # league | cup
     country: Optional[str]
-    flag: Optional[str]
+    continent: Optional[str]
+    flag: Optional[str]            # null for the six international Competitions
+    logo: Optional[str]            # populated for all 45 — the reliable identifier
     seasons: int                   # how many Seasons the Registry covers
+    season_label: Optional[str]    # newest Season, e.g. "2025/26"
+    team_count: int
+    stats_light: bool              # Coverage-light: timeline-only reports (ADR 0014)
     in_serve: bool                 # present in the serving store
-    played: int                    # matches played, newest Season (serve.db league_meta)
+    played: int                    # matches played, newest Season
     in_store: bool                 # rows in the Published Store
     finals_in_store: int
     publication: Optional[dict]    # the Publication record, if any
@@ -88,6 +93,24 @@ class CompetitionCard:
         return "Onboard to the blog"
 
     @property
+    def is_international(self) -> bool:
+        """No national flag because there is no nation — the six `country == "World"`
+        Competitions. Detected by the absent flag rather than by string-matching the
+        country, since the absence is exactly the fact being reported."""
+        return not self.flag
+
+    @property
+    def coverage_note(self) -> Optional[str]:
+        """Why a Narrative from this Competition would read thin (ADR 0014/0034).
+
+        Editorially decisive and invisible everywhere else: 13 of the 31 leagues here are
+        Coverage-light, meaning no per-player or team stats, so the drafter emits
+        "(no per-player stats)" and writes a timeline-only report. Worth knowing *before*
+        onboarding, and never a blocker — a timeline-only report is still worth writing.
+        """
+        return "Coverage-light — timeline-only reports" if self.stats_light else None
+
+    @property
     def has_play_count(self) -> bool:
         """Whether `played` means anything for this Competition.
 
@@ -98,19 +121,38 @@ class CompetitionCard:
         return self.type == "league"
 
     @property
+    def season_note(self) -> Optional[str]:
+        """Context, deliberately not a blocker.
+
+        An earlier version refused to onboard a Competition whose newest Season had no
+        matches played, which in early August blocked La Liga, the Premier League, the
+        Bundesliga and Ligue 1 — eleven leagues with twelve Seasons of history each,
+        between seasons. Whether there is anything recent to write about is a 90-day
+        question that `football_blog.onboard` already asks against the Published Store.
+        The card says what it knows; the command decides.
+        """
+        if self.has_play_count and not self.played and self.seasons > 1:
+            return "Between Seasons — newest has not kicked off"
+        return None
+
+    @property
     def blocked_reason(self) -> Optional[str]:
-        """Why the button would be pointless — only ever asked when it has work to do."""
+        """The one thing that genuinely makes the button pointless: we hold nothing."""
         if self.next_action is None:
             return None
         if not self.in_serve:
             return "Not in the serving store — run Publish serve.db first."
-        if self.has_play_count and not self.played:
-            return "No matches played in the newest Season yet."
         return None
 
 
 def _serve_rows() -> dict[int, dict]:
-    """Competition + newest-Season play counts from the serving store."""
+    """Competition identity + newest-Season shape, from the serving store.
+
+    `played` is the **newest Season only**, summed across its Tournaments so a split
+    season (Apertura + Clausura) counts once. An earlier version summed every Season,
+    which made a card read "3,042 played" for a league 205 matches into its current one —
+    a lifetime total wearing a current-season label.
+    """
     if not SERVE_DB.exists():
         return {}
     try:
@@ -118,13 +160,31 @@ def _serve_rows() -> dict[int, dict]:
         con.row_factory = sqlite3.Row
         try:
             comps = {r["id"]: dict(r) for r in con.execute(
-                "select id, name, type, country, flag from competition")}
+                "select id, name, type, country, country_code, continent, flag, logo "
+                "from competition")}
             for r in con.execute(
-                "select league_id, max(season) as season, sum(played) as played "
-                "from league_meta group by league_id"
+                """
+                select lm.league_id,
+                       max(lm.season_label)  as season_label,
+                       max(lm.team_count)    as team_count,
+                       max(lm.stats_light)   as stats_light,
+                       sum(lm.played)        as played
+                from league_meta lm
+                where lm.season = (select max(season) from league_meta x
+                                   where x.league_id = lm.league_id)
+                group by lm.league_id
+                """
             ):
-                if r["league_id"] in comps:
-                    comps[r["league_id"]]["played"] = r["played"] or 0
+                c = comps.get(r["league_id"])
+                if c is not None:
+                    c.update({
+                        "season_label": r["season_label"],
+                        "team_count": r["team_count"] or 0,
+                        # max(): if either Tournament of a split Season is Coverage-light,
+                        # the Season is — a thin half still yields thin reports.
+                        "stats_light": bool(r["stats_light"]),
+                        "played": r["played"] or 0,
+                    })
             return comps
         finally:
             con.close()
@@ -188,8 +248,13 @@ def list_cards() -> list[CompetitionCard]:
             name=s.get("name") or comp.get("name") or str(lid),
             type=(s.get("type") or comp.get("type") or "league"),
             country=s.get("country"),
+            continent=s.get("continent"),
             flag=s.get("flag"),
+            logo=s.get("logo"),
             seasons=len(comp.get("seasons") or []),
+            season_label=s.get("season_label"),
+            team_count=int(s.get("team_count") or 0),
+            stats_light=bool(s.get("stats_light")),
             in_serve=lid in serve,
             played=int(s.get("played") or 0),
             in_store=lid in store_ids,

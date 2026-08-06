@@ -26,7 +26,19 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
     padding:13px 14px;display:flex;flex-direction:column;gap:9px}
   .card.on{border-color:var(--accent)}
-  .ctop{display:flex;align-items:baseline;gap:8px}
+  .ctop{display:flex;align-items:center;gap:8px}
+  .cflag{width:20px;height:14px;object-fit:cover;border-radius:2px;flex:none;
+    box-shadow:0 0 0 1px var(--line)}
+  .clogo{width:18px;height:18px;object-fit:contain;flex:none}
+  .cwhere{font-size:11.5px;color:var(--muted);margin-top:-4px}
+  .light{font-size:11.5px;color:var(--net,#b45309);font-weight:600}
+  .snote{font-size:11.5px;color:var(--muted)}
+  .filter{display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap}
+  .filter input{padding:7px 10px;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel);color:var(--ink);font-size:13.5px;min-width:230px;
+    font-family:var(--sans)}
+  .filter .n{font-size:12px;color:var(--muted)}
+  .card.hide{display:none}
   .cname{font-weight:650;font-size:14.5px;letter-spacing:-.01em}
   .ctype{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
     font-weight:700}
@@ -98,12 +110,27 @@
     human act done in PocketBase, not here.
   </p>
 
+  <p class="filter">
+    <input id="q" placeholder="Filter by name, country or continent…" autocomplete="off"
+           oninput="applyFilter()">
+    <span class="n" id="qn"></span>
+  </p>
+
   <div class="grid">
     {% for c in cards %}
-    <div class="card{% if c.is_draftable %} on{% endif %}">
+    <div class="card{% if c.is_draftable %} on{% endif %}"
+         data-q="{{ (c.name ~ ' ' ~ (c.country or '') ~ ' ' ~ (c.continent or '') ~ ' ' ~ c.type ~ ' ' ~ stage_label[c.stage])|lower }}">
       <div class="ctop">
+        {# Flag where there is a nation, the competition logo where there is not — the
+           six international Competitions have no flag, and `logo` is populated for all
+           45. Falling back keeps every card visually identifiable. #}
+        {% if c.flag %}<img class="cflag" src="{{ c.flag }}" alt="" loading="lazy">
+        {% elif c.logo %}<img class="clogo" src="{{ c.logo }}" alt="" loading="lazy">{% endif %}
         <span class="cname">{{ c.name }}</span>
         <span class="ctype">{{ c.type }}</span>
+      </div>
+      <div class="cwhere">
+        {{ c.country }}{% if c.continent and not c.is_international %} · {{ c.continent }}{% endif %}
       </div>
 
       <div class="bar">
@@ -118,17 +145,30 @@
       <div class="cmeta">
         <span>id {{ c.league_id }}</span>
         <span>{{ c.seasons }} seasons</span>
+        {% if c.season_label %}<span>{{ c.season_label }}</span>{% endif %}
+        {% if c.team_count %}<span>{{ c.team_count }} teams</span>{% endif %}
         {% if c.has_play_count %}<span>{{ '{:,}'.format(c.played) }} played</span>
         {% else %}<span title="league_meta carries standings, and a cup has none (ADR 0025)">— played</span>{% endif %}
         {% if c.finals_in_store %}<span>{{ '{:,}'.format(c.finals_in_store) }} in store</span>{% endif %}
       </div>
 
+      {% if c.coverage_note %}
+      <div class="light" title="No per-player or team stats, so the drafter writes a timeline-only report (ADR 0014). Not a reason to skip it.">
+        {{ c.coverage_note }}
+      </div>
+      {% endif %}
+      {% if c.season_note %}<div class="snote">{{ c.season_note }}</div>{% endif %}
       {% if c.blocked_reason %}<div class="blocked">{{ c.blocked_reason }}</div>{% endif %}
 
       <div class="cact">
         {% if c.next_action %}
+          {# The name travels as a data attribute, not inside the onclick: Jinja's
+             `tojson` escapes for a <script> context and leaves double quotes alone, so
+             `onclick="openForm(1, "Premier League")"` terminated the attribute early and
+             produced a dead button. Attribute values are HTML-escaped normally. #}
           <button class="btn" {% if c.blocked_reason %}disabled{% endif %}
-                  onclick="openForm({{ c.league_id }}, {{ c.name|tojson }})">
+                  data-id="{{ c.league_id }}" data-name="{{ c.name }}"
+                  onclick="openForm(this)">
             {{ c.next_action }}
           </button>
         {% elif c.stage == 'live' %}
@@ -210,9 +250,23 @@
 
 <script>
 const BASE = {{ base_url(request) | tojson }};
+
+// Client-side because the whole board is already on the page — 45 cards is small, and a
+// round-trip per keystroke would be slower than the filter it replaces.
+function applyFilter(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll('.card').forEach(el=>{
+    const hit = !q || el.dataset.q.includes(q);
+    el.classList.toggle('hide', !hit);
+    if(hit) shown++;
+  });
+  document.getElementById('qn').textContent = q ? `${shown} shown` : '';
+}
 let CURRENT = null;
 
-async function openForm(id, name){
+async function openForm(btn){
+  const id = Number(btn.dataset.id), name = btn.dataset.name;
   CURRENT = id;
   document.getElementById('f-title').textContent = 'Onboard ' + name;
   document.getElementById('f-err').textContent = '';
