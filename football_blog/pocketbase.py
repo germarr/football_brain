@@ -28,6 +28,10 @@ from .config import require_env, optional_env
 # Collection names — change them here, not at the call sites.
 POST_COLLECTION = "match_post"
 PUBLICATION_COLLECTION = "publication"
+#: The forward half (ADR 0040). Named for `match_post`'s reason, not a new one: the
+#: co-tenanted personal site owns generic nouns here, and `preview` is generic enough
+#: that it could plausibly want it later.
+PREVIEW_COLLECTION = "match_preview"
 
 
 class PocketBaseClient:
@@ -139,6 +143,85 @@ class PocketBaseClient:
             r.raise_for_status()
             found.update({p["postgres_fixture_id"]: p for p in r.json()["items"]})
         return found
+
+    # --- match_preview ---
+    def list_previews(self, *, lifecycle: Optional[str] = None,
+                      extra_filter: str = "") -> list[dict[str, Any]]:
+        """Every Match Preview, optionally narrowed by lifecycle.
+
+        Paged to exhaustion rather than capped: the builder decides what to freeze from
+        this list, and a truncated page would silently leave kicked-off Fixtures sitting
+        in `upcoming` forever.
+        """
+        clauses = [c for c in (f'lifecycle = "{lifecycle}"' if lifecycle else "",
+                               extra_filter) if c]
+        items, page = [], 1
+        while True:
+            params = {"perPage": 200, "page": page, "sort": "kickoff_utc"}
+            if clauses:
+                params["filter"] = " && ".join(clauses)
+            r = self._client.get(
+                f"{self.base_url}/api/collections/{PREVIEW_COLLECTION}/records",
+                headers=self._headers(), params=params)
+            r.raise_for_status()
+            body = r.json()
+            items.extend(body["items"])
+            if page >= body["totalPages"] or not body["items"]:
+                return items
+            page += 1
+
+    def list_previews_by_fixture_ids(self, fixture_ids: list[int]) -> dict[int, dict[str, Any]]:
+        """Map<fixture_id, preview record>. Chunked like `list_posts_by_fixture_ids` —
+        the filter travels in the URL and PocketBase answers 400 once it grows too long."""
+        if not fixture_ids:
+            return {}
+        found: dict[int, dict[str, Any]] = {}
+        for i in range(0, len(fixture_ids), self._FIXTURE_FILTER_CHUNK):
+            chunk = fixture_ids[i:i + self._FIXTURE_FILTER_CHUNK]
+            filter_expr = " || ".join(f"postgres_fixture_id = {fid}" for fid in chunk)
+            r = self._client.get(
+                f"{self.base_url}/api/collections/{PREVIEW_COLLECTION}/records",
+                headers=self._headers(),
+                params={"filter": filter_expr, "perPage": len(chunk)})
+            r.raise_for_status()
+            found.update({p["postgres_fixture_id"]: p for p in r.json()["items"]})
+        return found
+
+    def upsert_preview(self, data: dict[str, Any],
+                       existing: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+        """Create or replace one Match Preview, keyed on its Fixture id.
+
+        Unlike `upsert_post` there is no refuse-to-overwrite guard, and that asymmetry is
+        the point: a Match Preview is **derived**, so overwriting it costs one rebuild,
+        while a published Match Post carries hand-edited prose nothing regenerates
+        (ADR 0029/0040). The guard that matters here is the *caller's* — a `settled`
+        record must never be passed to this method.
+        """
+        found = existing if existing is not None else \
+            self.list_previews_by_fixture_ids([data["postgres_fixture_id"]]).get(
+                data["postgres_fixture_id"])
+        if found:
+            r = self._client.patch(
+                f"{self.base_url}/api/collections/{PREVIEW_COLLECTION}/records/{found['id']}",
+                headers=self._headers(), json=data)
+        else:
+            r = self._client.post(
+                f"{self.base_url}/api/collections/{PREVIEW_COLLECTION}/records",
+                headers=self._headers(), json=data)
+        r.raise_for_status()
+        return r.json()
+
+    def settle_preview(self, record_id: str) -> None:
+        """Freeze a Match Preview at kickoff — the lifecycle flip, and nothing else.
+
+        Deliberately patches only `lifecycle`. The record's last **Quote** was read before
+        kickoff and nothing reconstructs it, so the freeze must not be an opportunity to
+        rewrite the market half with whatever the exchange says now (ADR 0040).
+        """
+        r = self._client.patch(
+            f"{self.base_url}/api/collections/{PREVIEW_COLLECTION}/records/{record_id}",
+            headers=self._headers(), json={"lifecycle": "settled"})
+        r.raise_for_status()
 
     # --- team_slug ---
     def upsert_team_slug(self, postgres_team_id: int, slug: str, display_name: str) -> dict[str, Any]:
