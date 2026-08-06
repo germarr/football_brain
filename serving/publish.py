@@ -32,7 +32,7 @@ from pathlib import Path
 
 from sqlmodel import SQLModel, create_engine
 
-from football import config, models, status  # noqa: F401 — importing models registers the schema
+from football import config, models, standings as standings_mod, status  # noqa: F401 — importing models registers the schema
 
 SERVE_DIR = Path(__file__).resolve().parent
 SERVE_DB = SERVE_DIR / "serve.db"
@@ -130,8 +130,11 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
 # --------------------------------------------------------------------------- #
 # League standings + leaders (ADR 0025)
 # --------------------------------------------------------------------------- #
-FINAL = status.FINAL           # a Final fixture counts toward the table (CONTEXT.md)
-LEADER_TOP_N = 5
+# The rules themselves live in `football.standings` — kernel, store-agnostic — because
+# **Match Previews** compute the same tables from Postgres (ADR 0040). Two
+# implementations would have let the Viewer and the blog disagree about a team's position
+# with nothing erroring anywhere (ADR 0033). This module keeps only the SQLite plumbing.
+LEADER_TOP_N = standings_mod.LEADER_TOP_N
 
 
 def _season_label(league_id: int, season: int) -> str:
@@ -141,37 +144,8 @@ def _season_label(league_id: int, season: int) -> str:
     return f"{season}/{str(season + 1)[-2:]}"
 
 
-def _standings_rows(fixtures: list) -> list[dict]:
-    """League table over (home_id, home_name, away_id, away_name, home_goals, away_goals,
-    status) tuples. Every fixture seeds its two teams (so a not-yet-started season still
-    lists all teams at 0), but only **Final** fixtures score points — explore.py's rules:
-    3/1/0, sort Pts → GD → GF."""
-    teams: dict[int, dict] = {}
-
-    def ensure(tid: int, name: str) -> dict:
-        return teams.setdefault(tid, {
-            "team_id": tid, "name": name,
-            "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "Pts": 0,
-        })
-
-    for h, hn, a, an, hg, ag, status in fixtures:
-        th, ta = ensure(h, hn), ensure(a, an)   # seed teams even for scheduled games
-        if status not in FINAL or hg is None or ag is None:
-            continue
-        th["P"] += 1; ta["P"] += 1
-        th["GF"] += hg; th["GA"] += ag; ta["GF"] += ag; ta["GA"] += hg
-        if hg > ag:
-            th["W"] += 1; th["Pts"] += 3; ta["L"] += 1
-        elif ag > hg:
-            ta["W"] += 1; ta["Pts"] += 3; th["L"] += 1
-        else:
-            th["D"] += 1; ta["D"] += 1; th["Pts"] += 1; ta["Pts"] += 1
-
-    rows = list(teams.values())
-    for t in rows:
-        t["GD"] = t["GF"] - t["GA"]
-    rows.sort(key=lambda t: (-t["Pts"], -t["GD"], -t["GF"], t["name"]))
-    return rows
+#: The table itself is `football.standings.standings_rows` — see the note above.
+_standings_rows = standings_mod.standings_rows
 
 
 def _name_map(con: sqlite3.Connection, table: str, ids: set[int]) -> dict[int, str]:
@@ -272,13 +246,9 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
     con.execute("drop table if exists _fx")
 
     # 3) Rank top-N per (league, season, tournament) by id; collect ids that need names.
-    def top(players: dict, metric: str) -> list[tuple]:
-        ranked = sorted(
-            ((pid, p[metric], max(p["teams"].items(), key=lambda kv: kv[1])[0])
-             for pid, p in players.items() if p[metric] > 0),
-            key=lambda x: (-x[1], x[0]),
-        )
-        return ranked[:LEADER_TOP_N]   # (player_id, value, primary_team_id)
+    #    `leaders_overall` groups by *player*, so a mid-season move within the league sums
+    #    to one season total — see its docstring for why Match Previews group differently.
+    top = standings_mod.leaders_overall   # (players, metric) -> [(player_id, value, team_id)]
 
     leaders: dict[tuple, tuple] = {}
     need_p: set[int] = set()

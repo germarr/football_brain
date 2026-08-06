@@ -25,7 +25,10 @@ from tests.conftest import REPO_ROOT
 CONSUMERS = [
     ("football_blog", "FINAL_STATUSES", "FINAL"),
     ("refresh.core", "FINAL_STATUSES", "FINAL"),
-    ("serving.publish", "FINAL", "FINAL"),
+    # `serving.publish` no longer names FINAL: the standings rules that consume it moved
+    # to the `football.standings` kernel so Match Previews could compute the same table
+    # from Postgres (ADR 0040). The consumer moved with them; publish keeps only TERMINAL.
+    ("football.standings", "FINAL", "FINAL"),
     ("serving.publish", "TERMINAL", "TERMINAL"),
     ("live.poll", "_FINAL", "FINAL"),
     ("live.poll", "_TERMINAL", "TERMINAL"),

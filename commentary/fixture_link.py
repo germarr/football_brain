@@ -64,11 +64,11 @@ against `football.db` keeps its SQLite-and-stdlib-only dependency profile.
 """
 from __future__ import annotations
 
-import re
 import sqlite3
-import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
+
+from football import teamnames
 
 FOOTBALL_DB = Path(__file__).resolve().parent.parent / "data" / "football.db"
 
@@ -124,46 +124,11 @@ def _unlinked_remedy(link_required: bool) -> str:
     return "To ingest without a link, omit --fixture-id."
 
 
-#: Generic club-type tokens dropped before comparing team names. Deliberately just
-#: these three (ADR 0039). Every longer list tested merged clubs that are genuinely
-#: distinct: dropping `afc` merges Liverpool with AFC Liverpool and Blackpool with AFC
-#: Blackpool (fan-owned clubs, separate ids, separate matches), and dropping `usa`/`de`
-#: merges Corinthians with Corinthians USA and Lyon with Club De Lyon. `fc`/`cf`/`sc`
-#: carry no such freight — no pair of distinct clubs in the store is told apart by them
-#: alone.
-CLUB_TOKENS = frozenset({"fc", "cf", "sc"})
-
-
-def _norm_team(name: str | None) -> str:
-    """Canonical form of a team name, for comparing two providers' spellings.
-
-    ESPN and API-Football name the same club differently in ways that are systematic
-    rather than arbitrary, and exact-after-casefold could see none of them:
-
-        'Charlotte FC'      vs 'Charlotte'            — a club-type suffix
-        'Pumas UNAM'        vs 'U.N.A.M. - Pumas'     — acronym dots, and word order
-        'Atletico San Luis' vs 'Atlético de San Luis' — an accent
-
-    So: accents folded away, dots *inside* an acronym deleted rather than spaced (or
-    `U.N.A.M.` becomes four one-letter tokens), remaining punctuation turned into
-    space, `CLUB_TOKENS` dropped, and the rest compared as an order-insensitive set —
-    returned as a sorted string so callers can still print what agreed.
-
-    Digits are kept, which is what keeps a reserve side distinct from its first team
-    ('Toronto FC II' does not become 'Toronto FC'). Suffixes are dropped wherever they
-    appear, not just at the end, because ESPN writes 'FC Cincinnati' where
-    API-Football writes 'Cincinnati FC'.
-    """
-    folded = unicodedata.normalize("NFKD", name or "")
-    folded = "".join(c for c in folded if not unicodedata.combining(c)).casefold()
-    # `u.n.a.m.` -> `unam`: only dots bounded by single letters, so `St. Louis` keeps
-    # its word break and does not become `stlouis`.
-    folded = re.sub(r"(?<=\b\w)\.(?=\w\b)", "", folded).replace(".", " ")
-    tokens = re.sub(r"[^a-z0-9]+", " ", folded).split()
-    kept = [t for t in tokens if t not in CLUB_TOKENS]
-    # A club named only for its type ('FC') would otherwise normalise to nothing and
-    # compare equal to every other such name.
-    return " ".join(sorted(kept or tokens))
+#: Canonical team-name comparison is `football.teamnames` — kernel, because
+#: `football_blog.kalshi` now needs the same algorithm to propose Kalshi registry entries
+#: (ADR 0041). Re-exported here so this module's own readers and callers are unchanged.
+CLUB_TOKENS = teamnames.CLUB_TOKENS
+_norm_team = teamnames.canonical
 
 
 def _parse_espn_date(value: str | None) -> datetime | None:
