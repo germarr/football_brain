@@ -56,6 +56,7 @@ from .. import config, fetch
 from ..build import parse, scope, venues
 from .. import models  # noqa: F401 — importing models registers the schema
 from ..client import CachedClient
+from ..status import FINAL
 
 # The Competitions a bare run publishes: Liga MX (262) + Major League Soccer (253).
 DEFAULT_LEAGUE_IDS = [262, 253]
@@ -283,13 +284,57 @@ def _upsert_dimension(sq: sqlite3.Connection, pg: psycopg.Connection, table: str
 
 
 def _insert_changed(sq: sqlite3.Connection, pg: psycopg.Connection, table: str,
-                    key_col: str, ids: list[int]) -> int:
+                    key_col: str, ids: list[int], *, on_conflict: str = "") -> int:
     """Insert the changed fixtures' rows of a fact table (already deleted from public)."""
     stg, cols, n = _stage(sq, pg, table, key_col, ids)
     if n:
         collist = ", ".join(f'"{c}"' for c in cols)
-        pg.execute(f'INSERT INTO public.{table} ({collist}) SELECT {collist} FROM {stg}')
+        pg.execute(f'INSERT INTO public.{table} ({collist}) SELECT {collist} FROM {stg} '
+                   f'{on_conflict}')
     return n
+
+
+def _replace_scheduled(sq: sqlite3.Connection, pg: psycopg.Connection) -> int:
+    """Replace the current Season's **non-Final** Fixtures wholesale (ADR 0028 amendment).
+
+    The ledger-keyed delta above knows only Finals, so a *scheduled* Fixture was never
+    inserted, re-dated or removed — its rows in the Published Store dated from whenever a
+    wholesale `publish()` was last run by hand, and nothing in `scripts/nightly.sh` runs
+    one. **Match Previews** read upcoming Fixtures from this store (ADR 0040), and a
+    knockout round drawn after a group stage ends is a set of brand-new non-Final rows
+    that would never have arrived.
+
+    Delete-then-reinsert rather than upsert, because one statement then covers re-dating,
+    cancellation, provider retraction *and* newly-drawn Fixtures alike, and it is
+    idempotent. Two things bound the blast radius:
+
+      - **Scope is the current Season only** — the (league, season) pairs actually present
+        in the staging parse. Historical non-Final rows (a Leagues Cup game cancelled in
+        2022, say) have no fresh data behind them and are left exactly as they are.
+      - **A Final is never deleted.** The `NOT (status = ANY(FINAL))` filter is applied to
+        what *Postgres* holds, not to what staging holds, so a row this store considers
+        Final survives even if the staging parse disagrees; the reinsert then skips it via
+        ON CONFLICT rather than failing. That keeps ADR 0028's real invariant intact.
+
+    Child rows are deleted with the Fixtures but never reinserted: a non-Final Fixture has
+    no per-match data to collect (CONTEXT.md), so staging carries none for it either.
+    """
+    scope_pairs = sq.execute("SELECT DISTINCT league_id, season FROM fixture").fetchall()
+    doomed: list[int] = []
+    for lid, season in scope_pairs:
+        doomed += [r[0] for r in pg.execute(
+            "SELECT id FROM public.fixture WHERE league_id = %s AND season = %s "
+            "AND NOT (status = ANY(%s))", (lid, season, list(FINAL))).fetchall()]
+    if doomed:
+        for t in ("teammatchstat", "squadentry", "event"):
+            pg.execute(f"DELETE FROM public.{t} WHERE fixture_id = ANY(%s)", (doomed,))
+        pg.execute("DELETE FROM public.fixture WHERE id = ANY(%s)", (doomed,))
+
+    placeholders = ",".join("?" for _ in FINAL)
+    fresh = [r[0] for r in sq.execute(
+        f"SELECT id FROM fixture WHERE status NOT IN ({placeholders})", FINAL)]
+    return _insert_changed(sq, pg, "fixture", "id", fresh,
+                           on_conflict="ON CONFLICT (id) DO NOTHING")
 
 
 def _copy_commentary_full(pg: psycopg.Connection, commentary_path: Path) -> dict[str, int]:
@@ -371,7 +416,8 @@ def delta_publish(league_ids: list[int] | None = None, use_all: bool = False) ->
         finally:
             sq.close()
 
-    print(f"\n  applied {counts.get('fixture', 0):,} changed Final(s)")
+    print(f"\n  applied {counts.get('fixture', 0):,} changed Final(s), "
+          f"refreshed {counts.get('fixture_scheduled', 0):,} scheduled Fixture(s)")
     _report_bridges(url)
     return counts
 
@@ -379,7 +425,8 @@ def delta_publish(league_ids: list[int] | None = None, use_all: bool = False) ->
 def _apply_delta(sq: sqlite3.Connection, pg: psycopg.Connection, changed: list[int],
                  ledger: dict[int, str], commentary_path: Path | None) -> dict[str, int]:
     """One transaction: upsert core dimensions, delete+reinsert the changed Finals and their
-    child rows, advance their stamps, and full-copy commentary. TEMP tables drop at COMMIT."""
+    child rows, advance their stamps, replace the current Season's scheduled Fixtures, and
+    full-copy commentary. TEMP tables drop at COMMIT."""
     counts: dict[str, int] = {}
     # 1) Core dimensions (bounded: one Season) — upsert so a debut player / promoted team /
     #    new venue a changed Fixture references exists before its rows land.
@@ -401,6 +448,12 @@ def _apply_delta(sq: sqlite3.Connection, pg: psycopg.Connection, changed: list[i
             [(fid, ledger[fid]) for fid in changed])
     else:
         counts["fixture"] = 0
+
+    # 3b) Scheduled Fixtures: replace the current Season's non-Final rows wholesale, so
+    #     re-datings, cancellations and newly-drawn knockout Fixtures reach the store the
+    #     Match Preview builder reads (ADR 0028 amendment, ADR 0040). Runs unconditionally
+    #     — a night with zero changed Finals is exactly when a new round gets drawn.
+    counts["fixture_scheduled"] = _replace_scheduled(sq, pg)
 
     # 4) Commentary: always full, unscoped (tiny).
     if commentary_path:

@@ -151,3 +151,32 @@ chain of consequences that follow from it.
   *and* re-baseline in one ~110s pass. Rejected to keep any "re-send everything" out of the
   automated path; the surgical venue heal covers the only issue that actually needs nightly
   attention, and retractions are handled by the accepted manual reset.
+
+## Amendment (2026-08-06): the delta also replaces scheduled Fixtures
+
+*Required by ADR 0040 (Match Previews), which reads upcoming Fixtures from the Published Store.*
+
+As accepted, `delta_publish` computes `changed` from the ledger — which knows only **Finals**
+— so a **scheduled** Fixture is never inserted, never re-dated and never removed. Its non-Final
+rows therefore date from whenever a wholesale `publish()` was last run by hand. Today
+Postgres and `football.db` happen to agree exactly on all 410 upcoming Fixtures, but nothing
+in `scripts/nightly.sh` maintains that: the sequence runs `refresh`, `pg --heal-venues`, the
+venue commit and `serving.publish`, and no wholesale publish at all. The gap has a date on it —
+Leagues Cup's group stage ends 2026-08-14 and the knockout Fixtures drawn afterwards are new
+non-Final rows that a delta would never carry across.
+
+So each `delta_publish` now **replaces the current Season's non-Final Fixtures wholesale**:
+delete them, reinsert from the staging parse. One statement handles re-dating, cancellation
+and newly-drawn Fixtures alike, and it is idempotent.
+
+This changes a word in this ADR's own description, which is why it is recorded rather than
+slipped in: **the delta is no longer purely additive — it deletes.** The property this ADR
+actually cared about is preserved absolutely, though. The deletion is scoped to non-Final
+rows of the current Season, which is precisely the mutable frontier a **Refresh** already
+re-fetches by design (CONTEXT.md), and it provably cannot touch a Final. It is also safe to
+cascade nothing: across the entire Published Store, non-Final Fixtures carry 0 squad entries,
+0 team match stats and 1 stray event.
+
+The stated blind spot is unchanged and now narrower — a provider-retracted **Final** is still
+removed only by a wholesale `publish()`. A retracted *scheduled* Fixture now disappears on the
+next delta.
