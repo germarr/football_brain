@@ -49,10 +49,11 @@ expecting the Champions League's continent to be `"Europe"` (a `"World"` cup is
 
 **Registry**:
 A small committed file naming the entities the recurring jobs must cover. There are
-three: the **Competition registry** — the single source of truth for every Competition
+four: the **Competition registry** — the single source of truth for every Competition
 we collect, league and cup alike (ADR 0019); the **Venue registry**, an
-append-only `(name, city) → stable id` map that gives the same stadium the same id in
-every store (ADR 0028); and the **Kalshi team registry**, a `Kalshi team UUID → our
+append-only `(name, city) → stable id` map that gives the same ground the same id in
+every store (ADR 0028); the **Venue merge list**, which records the entries judged to
+be one ground where no rule can decide it (ADR 0042); and the **Kalshi team registry**, a `Kalshi team UUID → our
 team id` map (plus series → Competition) that is the sole basis on which a **Winner
 Market** is attached to a Fixture.
 A Registry is **input** to the pipeline, never its output: alone among the data here
@@ -181,6 +182,17 @@ decided on penalties, status `PEN`). This is deliberate: the provider's raw `goa
 field conflates the shootout into the scoreline for `PEN` games (ADR 0012).
 _Avoid_: game, match; reading `home_goals`/`away_goals` as the shootout result;
 deciding a `PEN` tie's winner from goals alone (compare the penalty columns).
+
+**Venue**:
+The ground a Fixture is played at, identified by an id we assign — the provider's
+own venue id is too sparse and inconsistent to key on. A Venue is one **physical
+ground**, not one spelling of it: the provider writes the same stadium several ways
+and sometimes omits its city, so identity is matched on a *normalized* name and city
+rather than the literal pair (ADR 0042). Where two entries turn out to be one ground,
+one **merges into** the other; the survivor is the **canonical Venue**, and the merged
+id keeps its place in the Registry forever but is never assigned again.
+_Avoid_: stadium, ground (as a data term); alias or retire for a merge; treating the
+provider's `venue.id` as identity; assuming one ground has exactly one Registry entry.
 
 **Team**:
 A club **or national team** that contests Fixtures, identified by a stable
