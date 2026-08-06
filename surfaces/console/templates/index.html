@@ -47,36 +47,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Football 2.0 — Operator Console</title>
+{% include "_theme.html" %}
 <style>
-  :root{
-    --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
-    --accent:#2f6feb; --accent-ink:#fff; --chip:#eef1f5;
-    --code-bg:#eef1f5; --code-ink:#334155;
-    --ex-bg:#eef4ff; --ex-line:#2f6feb; --ex-label:#2f6feb;
-    --net:#b45309; --db:#6d28d9; --ok:#15803d; --fail:#b91c1c; --run:#2563eb;
-    --live:#dc2626; --final:#6b7280;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  }
+  /* Everything else comes from surfaces/templates/_theme.html. The accent and the
+     --ex-* trio derived from it are what make this surface look like the Console. */
+  :root{ --accent:#2f6feb; --ex-bg:#eef4ff; --ex-line:#2f6feb; --ex-label:#2f6feb; }
   @media (prefers-color-scheme:dark){
-    :root{
-      --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#9aa4b2; --line:#283040;
-      --accent:#4c8bf5; --chip:#1e2531;
-      --code-bg:#0d1117; --code-ink:#9fb2cc;
-      --ex-bg:#141d2e; --ex-line:#4c8bf5; --ex-label:#7aa7f7;
-      --net:#f59e0b; --db:#a78bfa; --ok:#4ade80; --fail:#f87171; --run:#60a5fa;
-    }
+    :root{ --accent:#4c8bf5; --ex-bg:#141d2e; --ex-line:#4c8bf5; --ex-label:#7aa7f7; }
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-    line-height:1.45;font-size:15px}
-  a{color:var(--accent)}
-  header{padding:22px 28px;border-bottom:1px solid var(--line);background:var(--panel);
+    header{padding:22px 28px;border-bottom:1px solid var(--line);background:var(--panel);
     position:sticky;top:0;z-index:5;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-  header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
-  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);
-    color:var(--muted);font-weight:600}
-  .badge.local{color:var(--ok)}
   main{max-width:1180px;margin:0 auto;padding:24px 28px 120px}
   h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
     margin:34px 0 12px;font-weight:700}
@@ -205,7 +185,6 @@
   #toast{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:var(--fail);
     color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:40;
     opacity:0;transition:opacity .2s;pointer-events:none}
-  #toast.show{opacity:1}
   .note{font-size:12px;color:var(--muted);margin:2px 0 0}
 </style>
 </head>

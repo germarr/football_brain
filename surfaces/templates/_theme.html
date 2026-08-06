@@ -1,0 +1,66 @@
+{#- The palette and base rules shared by all three surfaces (ADR 0036 deferred this;
+    this is that commit).
+
+    It was four copies — `viewer/index.html`, `viewer/fixture.html`,
+    `console/index.html`, `desk/_base.html` — agreeing byte-for-byte on every colour
+    except one. Included from each `<head>` *before* that app's own `<style>`, so an app
+    can still override anything here by declaring it after.
+
+    What deliberately stays local, because it is the one thing that genuinely differs:
+    `--accent` (Viewer/Console blue, Desk editorial teal) and the `--ex-*` trio derived
+    from it. That difference is load-bearing — it is what makes the nav's active pill
+    say which surface you are on, now that all three share a browser tab.
+
+    Three inconsistencies are fixed by consolidating rather than preserved:
+      * `--final` and `--live` had no dark-mode value outside the Viewer's index, so a
+        Final pill stayed light-mode grey on a dark Console;
+      * `.badge.local` hardcoded `#15803d` in the Viewer instead of `var(--ok)`, so it
+        alone did not lighten in dark mode.
+    All three are drift of exactly the kind a shared palette exists to prevent.
+-#}
+<style>
+  :root{
+    /* surfaces */
+    --bg:#f6f7f9; --panel:#fff; --ink:#12151b; --muted:#5b6572; --line:#e4e7ec;
+    --chip:#eef1f5; --accent-ink:#fff;
+    /* code */
+    --code-bg:#eef1f5; --code-ink:#334155;
+    /* status */
+    --ok:#15803d; --fail:#b91c1c; --run:#2563eb; --net:#b45309; --db:#6d28d9;
+    --live:#dc2626; --final:#6b7280;
+    /* type */
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --panel:#161b22; --ink:#e6edf3; --muted:#9aa4b2; --line:#283040;
+      --chip:#1e2531;
+      --code-bg:#0d1117; --code-ink:#9fb2cc;
+      --ok:#4ade80; --fail:#f87171; --run:#60a5fa; --net:#f59e0b; --db:#a78bfa;
+      --live:#f87171; --final:#9aa4b2;
+    }
+  }
+
+  /* Base rules that were identical in every copy. */
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.45;font-size:15px}
+  a{color:var(--accent)}
+  header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:-.01em}
+  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);
+    color:var(--muted);font-weight:600}
+  .badge.local{color:var(--ok)}
+  .muted{color:var(--muted)}
+  #toast.show{opacity:1}
+
+  /* The header nav (ADR 0035). Lived inline in `_nav.html`; it belongs with the rest of
+     the shared chrome now that there is somewhere for it to live. The active pill takes
+     `var(--accent)`, which is why that variable stays per-app. */
+  .surfnav{display:flex;gap:2px;align-items:center;align-self:center;
+    background:var(--chip);border-radius:999px;padding:3px}
+  .surfnav a{display:block;padding:4px 13px;border-radius:999px;font-size:12.5px;
+    font-weight:640;text-decoration:none;color:var(--muted);line-height:1.5}
+  .surfnav a:hover{color:var(--ink)}
+  .surfnav a.on{background:var(--accent);color:var(--accent-ink,#fff)}
+</style>

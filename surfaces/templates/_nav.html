@@ -19,14 +19,6 @@
     Desk's _base.html set out to give the browser tab — "a glance says which app you are
     in" — moved to where it still works now that there is only one tab.
 -#}
-<style>
-  .surfnav{display:flex;gap:2px;align-items:center;align-self:center;
-    background:var(--chip);border-radius:999px;padding:3px}
-  .surfnav a{display:block;padding:4px 13px;border-radius:999px;font-size:12.5px;
-    font-weight:640;text-decoration:none;color:var(--muted);line-height:1.5}
-  .surfnav a:hover{color:var(--ink)}
-  .surfnav a.on{background:var(--accent);color:var(--accent-ink,#fff)}
-</style>
 {% set _mount = request.scope.get('root_path', '') -%}
 <nav class="surfnav">
   {#- Trailing slashes are load-bearing: a Mount matches only *below* its prefix, so a
