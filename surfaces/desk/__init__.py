@@ -10,7 +10,7 @@ shows the prompt the model will be given, and fires the pipeline.
 Since ADR 0035 the Desk and the Viewer answer on one port, mounted by `surfaces/` at
 `/desk` and `/` — they share no store, so the split ADR 0023 enforced between the
 Console and the Viewer does not apply between these two. Still three applications;
-two of them now behind one address. `python -m football_blog.desk` remains as a debug
+two of them now behind one address. `python -m surfaces.desk` remains as a debug
 entrypoint, and every template path here is built from `base_url(request)` so both
 modes serve correctly.
 

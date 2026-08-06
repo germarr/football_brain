@@ -36,4 +36,4 @@ VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE
 "$PY" -m refresh >> refresh/logs/cron.out
 "$PY" -m football.publish.pg --heal-venues >> refresh/logs/heal.out 2>&1
 { git add "$VENUES"; git diff --cached --quiet || git commit -m "venues: nightly registry append [cron]"; } >> refresh/logs/venues.out 2>&1
-"$PY" -m web.publish >> web/logs/publish-cron.out 2>&1
+"$PY" -m serving.publish >> serving/logs/publish-cron.out 2>&1

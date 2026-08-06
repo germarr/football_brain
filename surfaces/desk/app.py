@@ -42,14 +42,15 @@ from typing import Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, FileSystemLoader
 
 from football import config as football_config
 
-from .. import espn_lookup
-from ..candidates import DEFAULT_DAYS, BoardRow, list_board, list_competitions
-from ..loader import load_post_bundles
-from ..pocketbase import PocketBaseClient
-from ..prompts import assemble_prompt, load_system_prompt, system_prompt_path
+from football_blog import espn_lookup
+from football_blog.candidates import DEFAULT_DAYS, BoardRow, list_board, list_competitions
+from football_blog.loader import load_post_bundles
+from football_blog.pocketbase import PocketBaseClient
+from football_blog.prompts import assemble_prompt, load_system_prompt, system_prompt_path
 
 _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"
@@ -59,13 +60,22 @@ POCKETBASE_ADMIN = "http://127.0.0.1:8090/_/#/collections?collection=match_post"
 
 app = FastAPI(title="La Cancha — the Desk")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
+# The nav lives in `surfaces/templates/`, one level up. Appended here rather than
+# injected by the composition root (ADR 0035's arrangement) because a sibling directory
+# always exists — so `_nav.html` is included unconditionally and a rename fails loudly
+# (ADR 0036).
+templates.env.loader = ChoiceLoader([
+    templates.env.loader,
+    FileSystemLoader(str(_HERE.parent / "templates")),
+])
+
 
 
 def _base_url(request: Request) -> str:
     """This app's mount prefix: `""` standalone, `"/desk"` under `surfaces` (ADR 0035).
 
     Every absolute path in the Desk's templates is written against this rather than
-    hardcoded, so the same templates serve both `python -m football_blog.desk` and the
+    hardcoded, so the same templates serve both `python -m surfaces.desk` and the
     composed surfaces. Hardcoding `/desk` would have worked when mounted and 404'd
     standalone — leaving the debug entrypoint as the one place the bug hides.
     """

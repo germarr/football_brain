@@ -1,9 +1,7 @@
-"""`surfaces/` composes all three local surfaces onto one port (ADR 0035).
+"""`surfaces/` — the three local surfaces and the root that composes them (ADR 0035/0036).
 
-It contains **none of them**, and that is the point rather than an oversight. The
-Viewer is `web/`, the Desk is `football_blog/desk/`, the Console is `console/`, and
-all three stay exactly where ADR 0023, 0031 and 0034 put them. This package only
-mounts them and lends them a header.
+Each is a subpackage: `viewer/`, `desk/`, `console/`. `app.py` mounts them onto one
+port and owns the header they share.
 
     uv run python -m surfaces          # then open http://127.0.0.1:8001
 
@@ -11,11 +9,11 @@ mounts them and lends them a header.
     /desk        the Desk     — write about the data
     /console     the Console  — build the data
 
-The import points *this* way on purpose. Had `web/` mounted the Desk, the package
-whose whole identity in ADR 0023 is "reads only its own stores" would have imported
-`football_blog`, and with it PocketBase and the Postgres loader — exactly the spread
-ADR 0034 forbade. Mounting is teaching, so the package that belongs to no context
-does the mounting.
+They could be grouped because they own **no store between them** — that is ADR 0036's
+whole argument, and the reason this is not the role-as-the-tree reorganisation ADR 0031
+refused. `desk/` reaches into `football_blog` for the Editorial Store and `viewer/` into
+`serving/` and `live/`; both do it with absolute imports, which announce the boundary
+crossing that a relative import used to hide.
 
 This is not the merge ADR 0023 rejected. That rejection was about a shared *database
 handle* — `football.db`, dropped and rebuilt wholesale for ~13 minutes at a time.

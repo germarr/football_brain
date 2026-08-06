@@ -1,20 +1,21 @@
-{#- The header nav shared by the Viewer and the Desk (ADR 0035).
+{#- The header nav shared by all three surfaces (ADR 0035/0036).
 
-    Reachable from either app only because `surfaces.app` lends this directory to their
-    Jinja loaders at mount time — neither package imports the other, or this one. Both
-    include it `ignore missing`, so `python -m web` and `python -m football_blog.desk`
-    still render their headers standalone, minus the nav.
+    Each sibling app appends this directory to its own Jinja loader at import (ADR 0036),
+    so the include is unconditional and a rename raises `TemplateNotFound` rather than
+    silently removing the nav from every page. ADR 0035's `ignore missing` is gone with
+    the lending machinery that needed it.
 
-    That `ignore missing` is a deliberate silent failure and the thing to watch: rename
-    this file, or break the loader injection, and every page renders a header with no
-    nav and no error anywhere (ADR 0033).
+    A standalone `python -m surfaces.viewer` therefore renders this nav with two links
+    that 404 — the Viewer sits at `/` either way, so `root_path` cannot tell composed
+    from standalone. Accepted: a confused second in a debug entrypoint beats a flag that
+    must be set correctly (ADR 0036).
 
     The labels are the glossary's words. "This Week" was rejected — it names the
     Viewer's first <section>, not the app, and it would be the active item on
     /league/262 and on every Match Tracker page.
 
     The active pill takes `var(--accent)` rather than a colour of its own, so it renders
-    Viewer blue on one side and editorial teal on the other. That is the affordance the
+    Viewer blue, editorial teal or Console blue depending on where you are. That is the affordance the
     Desk's _base.html set out to give the browser tab — "a glance says which app you are
     in" — moved to where it still works now that there is only one tab.
 -#}

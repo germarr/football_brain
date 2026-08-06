@@ -1,7 +1,7 @@
 """The Viewer — the reader-facing FastAPI app (ADR 0023).
 
 Reads ONLY its own stores, never `data/football.db`:
-  - `web/serve.db`  — the daily-published serving slice (authoritative-for-the-Viewer),
+  - `serving/serve.db`  — the daily-published serving slice (authoritative-for-the-Viewer),
   - `live/live.db`  — the provisional Live Mirror (ADR 0020), the per-match live overlay.
 
 Three surfaces:
@@ -31,6 +31,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, FileSystemLoader
 
 from football import config
 
@@ -49,11 +50,20 @@ _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-SERVE_DB_PATH = config.ROOT / "web" / "serve.db"       # authoritative-for-the-Viewer
+SERVE_DB_PATH = config.ROOT / "serving" / "serve.db"       # authoritative-for-the-Viewer
 LIVE_DB_PATH = config.ROOT / "live" / "live.db"        # provisional Live Mirror (ADR 0020)
 
 app = FastAPI(title="Football 2.0 — Viewer")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
+# The nav lives in `surfaces/templates/`, one level up. Appended here rather than
+# injected by the composition root (ADR 0035's arrangement) because a sibling directory
+# always exists — so `_nav.html` is included unconditionally and a rename fails loudly
+# (ADR 0036).
+templates.env.loader = ChoiceLoader([
+    templates.env.loader,
+    FileSystemLoader(str(_HERE.parent / "templates")),
+])
+
 
 
 # --------------------------------------------------------------------------- #

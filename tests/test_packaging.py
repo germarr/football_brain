@@ -20,8 +20,13 @@ from tests.conftest import REPO_ROOT
 #: Directories that are Python packages and must be committed as such.
 PACKAGE_DIRS = [
     "football", "football/onboard", "football/collect", "football/build",
-    "football/publish", "console", "commentary", "live", "refresh", "web",
+    "football/publish", "commentary", "live", "refresh", "serving",
     "football_blog", "football_blog/prompts",
+    # The three local surfaces and their composition root (ADR 0035/0036). `surfaces`
+    # and the Desk were never listed here — added on the move that made them siblings,
+    # because a subpackage missing its __init__.py still imports as a namespace package
+    # and so fails exactly the silent way this file exists to catch.
+    "surfaces", "surfaces/viewer", "surfaces/desk", "surfaces/console",
 ]
 
 

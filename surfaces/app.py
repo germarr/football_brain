@@ -11,51 +11,26 @@ Three mechanics, all of them load-bearing:
   need no edits. Only the Desk's and the Console's paths take a prefix, which each
   derives per-request from `root_path` so both still work standalone.
 
-  **The header is lent, not imported.** No app may know this package exists, so
-  `surfaces` reaches into the loaders of what it just composed and adds its own template
-  directory. All three include `_nav.html` with `ignore missing`, so booting any of them
-  alone renders its header with no nav and no error.
+  **The header is a shared template, not lent machinery.** ADR 0035 had this package
+  reach into each app's Jinja loader at mount time, because the three lived in packages
+  that could not name each other. ADR 0036 made them subpackages, so each now appends
+  `surfaces/templates/` to its own loader at import and includes `_nav.html`
+  unconditionally. A renamed nav raises `TemplateNotFound` instead of silently vanishing
+  from every page — the `ignore missing` that used to hide that is gone.
 
 It owns exactly two routes — redirects from the bare `/desk` and `/console` — and
 nothing else. The three surfaces answer everything.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from jinja2 import ChoiceLoader, FileSystemLoader
 
-from console.app import app as console_app
-from console.app import templates as console_templates
-from football_blog.desk.app import app as desk_app
-from football_blog.desk.app import templates as desk_templates
-from web.app import app as viewer_app
-from web.app import templates as viewer_templates
-
-_HERE = Path(__file__).resolve().parent
-TEMPLATES = _HERE / "templates"
+from .console.app import app as console_app
+from .desk.app import app as desk_app
+from .viewer.app import app as viewer_app
 
 app = FastAPI(title="La Cancha — local surfaces")
-
-
-def _lend_templates(templates) -> None:
-    """Let a mounted app resolve `surfaces/templates/*` after its own.
-
-    Its own loader stays first, so an app can always override anything lent to it.
-    This is the only contact between the three packages, and it runs at import time
-    here rather than anywhere inside `web` or `football_blog`.
-    """
-    templates.env.loader = ChoiceLoader([
-        templates.env.loader,
-        FileSystemLoader(str(TEMPLATES)),
-    ])
-
-
-_lend_templates(viewer_templates)
-_lend_templates(desk_templates)
-_lend_templates(console_templates)
 
 
 @app.get("/desk", include_in_schema=False)

@@ -121,7 +121,7 @@ def _collect_flags() -> list[Param]:
                    "you'll run several collections back-to-back and rebuild once at the end."),
         Param("no_publish", "Don't refresh the Viewer (skip publish)", "bool", "--no-publish",
               advanced=True,
-              help="After the rebuild, this normally publishes web/serve.db so the new "
+              help="After the rebuild, this normally publishes serving/serve.db so the new "
                    "Competition shows in the Viewer immediately. Tick to skip that and "
                    "publish later with the Publish command."),
     ]
@@ -325,15 +325,15 @@ COMMANDS: list[Command] = [
     # --- Publish (rebuild a derived read store; offline, no API quota) ------
     Command(
         key="publish", group="Publish", title="Publish serve.db (for the Viewer)",
-        module="web.publish",
-        summary="Clone a small, current slice of football.db into web/serve.db.",
+        module="serving.publish",
+        summary="Clone a small, current slice of football.db into serving/serve.db.",
         detail="Zero-API DB→DB copy (ADR 0023): all competitions + all players/careers "
                "+ a rolling window of fixtures/events, written to serve.db.tmp then "
                "atomically swapped in. This is what the Viewer app reads; football.db "
                "is never read by a web UI. The nightly Refresh runs this as its last step.",
         example="After a Refresh (or Rebuild) updates football.db, run this to refresh the "
                 "Viewer: it copies every tracked Competition, every player Bio + Career Stint, "
-                "and the −3..+10 day fixture/Event window into web/serve.db — seconds, no API "
+                "and the −3..+10 day fixture/Event window into serving/serve.db — seconds, no API "
                 "calls. The Viewer at http://127.0.0.1:8001 then serves the new data.",
         scope="football.db → serve.db · offline",
         params=[

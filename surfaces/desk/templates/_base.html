@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}the Desk{% endblock %}</title>
 <style>
-  /* Palette lifted from console/templates/index.html — three local surfaces that
+  /* Palette lifted from surfaces/console/templates/index.html — three local surfaces that
      look like one tool. The accent differs (editorial green, not pipeline blue) so a
      glance at a tab says which app you are in. */
   :root{
@@ -91,7 +91,7 @@
 <body>
 <header>
   <h1><a href="{{ base_url(request) }}/">the Desk</a></h1>
-  {% include "_nav.html" ignore missing %}
+  {% include "_nav.html" %}
   <span class="badge local">127.0.0.1</span>
   <span class="badge">La Cancha · Editorial Store</span>
   <span class="spacer"></span>
@@ -209,7 +209,7 @@ function openJob(jobId, title, opts){
     // whatever was waiting on it rather than stranding the page.
     foot.hidden = false;
     foot.innerHTML = 'Lost the stream. The run itself carries on — it is logged to '
-      + '<code>football_blog/desk/logs/</code>.';
+      + '<code>surfaces/desk/logs/</code>.';
     finish('disconnected'); };
 }
 

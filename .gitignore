@@ -41,21 +41,21 @@ refresh/logs/
 # by re-polling. The live/ code is tracked; only its local DB is ignored.
 live/live.db
 
-# Operator dashboard runtime logs (ADR 0021): per-trigger subprocess logs.
-# The football/ui/ code is tracked; only the captured job logs are ignored.
-console/logs/
+# Runtime job logs for the three local surfaces (ADR 0021/0023/0034), all moved into
+# surfaces/ by ADR 0036. Per-trigger and per-run subprocess output; every directory is
+# recreated on import. The code and templates beside them are tracked — these rules are
+# path-anchored, so they must be edited whenever a surface moves. Getting that wrong
+# fails by *adding*: the paths simply become tracked and the logs land in a commit.
+surfaces/console/logs/
+surfaces/desk/logs/
+surfaces/viewer/logs/
 
-# Viewer serving store + runtime (ADR 0023): serve.db is a re-derivable daily slice
-# of football.db (rebuild via `python -m web.publish`); logs are live-poll subprocess
-# output. The web/ code and templates are tracked; only local state is ignored.
-web/serve.db
-web/serve.db.tmp
-web/logs/
-
-# Desk runtime logs (ADR 0034): per-run subprocess output, same stance as the
-# Console's. The football_blog/desk/ code and templates are tracked; only the
-# captured job logs are ignored. The directory is recreated on import.
-football_blog/desk/logs/
+# The serving store (ADR 0023, moved to serving/ by ADR 0036): a re-derivable daily
+# slice of football.db, rebuilt with `python -m serving.publish`, plus that job's cron
+# output. 39 MB of binary — this is the rule whose staleness would be expensive.
+serving/serve.db
+serving/serve.db.tmp
+serving/logs/
 
 # Venue registry write lock (ADR 0028) — transient; the registry itself
 # (football/registry/venues.json) is committed. Path moved by ADR 0031.

@@ -1,4 +1,4 @@
-"""Publish `web/serve.db` — the Viewer's read-optimized serving store (ADR 0023).
+"""Publish `serving/serve.db` — the Viewer's read-optimized serving store (ADR 0023).
 
 A zero-API DB→DB copy: open the authoritative `data/football.db` read-only and copy a
 small, schema-identical slice into a fresh `serve.db` — everything the Viewer renders
@@ -17,8 +17,8 @@ Contents (schema-identical to `football.db`, via `football.models`):
     per-match view is headline + event timeline only (ADR 0022/0023).
 
 Run:
-    uv run python -m web.publish                    # default window: -3 .. +10 days
-    uv run python -m web.publish --before 3 --after 10
+    uv run python -m serving.publish                    # default window: -3 .. +10 days
+    uv run python -m serving.publish --before 3 --after 10
 """
 from __future__ import annotations
 
@@ -380,7 +380,7 @@ def publish_after_build() -> None:
         counts, _ = publish()
     except BaseException as e:  # SystemExit (build lock) included — never crash the collect
         print(f"⚠ serve.db publish skipped: {e}\n"
-              "  football.db is up to date; run `python -m web.publish` to refresh the Viewer.")
+              "  football.db is up to date; run `python -m serving.publish` to refresh the Viewer.")
         return
     print(f"  serve.db updated — {counts.get('fixture', 0)} fixtures, "
           f"{counts.get('event', 0)} events in window.")
@@ -388,8 +388,8 @@ def publish_after_build() -> None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(
-        prog="python -m web.publish",
-        description="Publish web/serve.db from data/football.db (ADR 0023).",
+        prog="python -m serving.publish",
+        description="Publish serving/serve.db from data/football.db (ADR 0023).",
     )
     ap.add_argument("--before", type=int, default=DEFAULT_BEFORE,
                     help=f"days of recent fixtures to include (default {DEFAULT_BEFORE})")

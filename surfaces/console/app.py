@@ -2,7 +2,7 @@
 
 The Console's *only* job is to run the scripts that build/refresh data/football.db
 (Collect / Build / Refresh / Publish, from `football.commands`). Since ADR 0023 split
-the reader surface out into the Viewer (`web.app`), this app no longer reads
+the reader surface out into the Viewer (`surfaces.viewer.app`), this app no longer reads
 football.db or renders any leagues/week/match panels — the Viewer owns those, over its
 own serve.db. The Live group is gone too: launching `live.poll` now lives on the
 Viewer's Match Tracker page.
@@ -31,6 +31,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, FileSystemLoader
 
 from football import commands, config
 
@@ -42,6 +43,15 @@ LOG_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Football 2.0 — Operator Console")
 templates = Jinja2Templates(directory=str(_HERE / "templates"))
+# The nav lives in `surfaces/templates/`, one level up. Appended here rather than
+# injected by the composition root (ADR 0035's arrangement) because a sibling directory
+# always exists — so `_nav.html` is included unconditionally and a rename fails loudly
+# (ADR 0036).
+templates.env.loader = ChoiceLoader([
+    templates.env.loader,
+    FileSystemLoader(str(_HERE.parent / "templates")),
+])
+
 
 
 def _base_url(request: Request) -> str:

@@ -300,7 +300,7 @@ def main(argv: list[str] | None = None) -> None:
     # Refresh the Viewer's serving store so the new league shows up without a manual
     # publish step (ADR 0023). Non-fatal — a publish hiccup never sinks the collection.
     if not args.no_publish:
-        from web.publish import publish_after_build
+        from serving.publish import publish_after_build
         publish_after_build()
 
 

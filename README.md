@@ -138,12 +138,12 @@ uv run python -m surfaces          # then open http://127.0.0.1:8001
 | **Console** | `/console` | build it — onboard, backfill, rebuild, publish |
 
 All three answer on one port under one header since
-[ADR-0035](docs/adr/0035-one-port-three-surfaces.md), composed by `surfaces/` without any
-of the three packages importing another. None of them holds a `football.db` handle — the
-coupling [ADR-0023](docs/adr/0023-split-viewer-app-and-serving-db.md) split apart — so
+[ADR-0035](docs/adr/0035-one-port-three-surfaces.md), and all three live in `surfaces/`
+since [ADR-0036](docs/adr/0036-the-surfaces-package.md) — they could be grouped because
+they own **no store between them**. None holds a `football.db` handle either, which is the
+coupling [ADR-0023](docs/adr/0023-split-viewer-app-and-serving-db.md) split apart, so
 there is nothing left for separate processes to protect. Each still boots alone
-(`python -m web`, `python -m console`, `python -m football_blog.desk`) as a debug
-entrypoint.
+(`python -m surfaces.viewer`, `.console`, `.desk`) as a debug entrypoint.
 
 Bound to `127.0.0.1` only — it spawns subprocesses and spends API quota, so it is
 never network-exposed. Every trigger runs the **exact** `python -m …` command you
@@ -160,14 +160,18 @@ script's **role** is declared in [`football/commands.py`](football/commands.py) 
 here, never by where the file sits, because role cross-cuts context: `commentary/`
 alone collects, builds and publishes ([ADR-0031](docs/adr/0031-package-by-context-role-in-the-registry.md)).
 
+`surfaces/` is the one exception, and it proves the rule: the three local apps own no
+store between them, so grouping them moves no store and breaks no invariant
+([ADR-0036](docs/adr/0036-the-surfaces-package.md)).
+
 | Role | What it does | Where |
 |---|---|---|
 | **Onboard** | Admit an entity to a **Registry** so every later recurring job covers it. One-time, idempotent, forward-acting. | `football/onboard/`, `football_blog/onboard.py` |
 | **Backfill** | Bulk-fetch Seasons into the raw cache. Resumable, quota-bound, admits nothing. | `football/collect/` |
 | **Build** | Model the cache into a store. Cache-only — a miss raises rather than fetching. | `football/build/` |
 | **Refresh** | Re-collect each Competition's current-season frontier nightly. | `refresh/`, `football_blog/candidates.py` |
-| **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `web/publish.py`, `football/publish/`, `football_blog/` |
-| **Control** | Fire the pipeline. Populates nothing — one entry, `surfaces`, which launches all three local apps at once. | `surfaces/`, `console/`, `football_blog/desk/` |
+| **Publish** | Derive a read surface: the Viewer's `serve.db`, the Postgres Published Store, the blog's Editorial Store. | `serving/publish.py`, `football/publish/`, `football_blog/` |
+| **Control** | Fire the pipeline. Populates nothing — one entry, `surfaces`, which launches all three local apps at once. | `surfaces/` |
 
 Onboard and Backfill were one group until ADR 0031. They split because they fail
 differently: a backfill cut short resumes for free, while an entity that was never
@@ -188,14 +192,15 @@ football/            the pipeline package — one package, one store (ADR 0011)
   collect/           backfill events, team stats, team profiles  (network)
   build/             parse / scope / venues — cache to SQLite  (offline)
   publish/           pg (wholesale) + delta — the Postgres Published Store
-surfaces/        mounts all three local apps on :8001  (ADR 0035)
-console/         local FastAPI + Jinja Operator Console, at /console  (ADR 0021/0023)
-web/             the reader-facing Viewer, at /, over its own serve.db  (ADR 0023)
+surfaces/        the three local apps on one port, :8001  (ADR 0035/0036)
+  viewer/        the reader-facing Viewer, at /  (ADR 0023)
+  desk/          the Desk — Drafting Candidates + prompt, at /desk  (ADR 0034)
+  console/       the Operator Console, at /console  (ADR 0021/0023)
+serving/         serve.db + the publish step that builds it  (ADR 0023/0036)
 commentary/      ESPN Commentary Store  (ADR 0026)
 live/            provisional Live Mirror during a match  (ADR 0020)
 refresh/         nightly frontier Refresh  (ADR 0018)
 football_blog/   Editorial Store + match-report pipeline  (ADR 0029)
-  desk/          the Desk — Drafting Candidates + prompt, at /desk  (ADR 0034)
 notebooks/       marimo exploration notebooks (explore, ligamx, worldcup, …)
 scripts/         nightly.sh (the cron's one entrypoint) + preflight  (ADR 0032/0033)
 tests/           the silent-failure guards + a committed cache slice  (ADR 0033)

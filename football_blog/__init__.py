@@ -25,7 +25,7 @@ __version__ = "0.1.0"
 #: drift ADR 0034 warns about, already present before the Desk existed. A divergence
 #: here makes the Desk *hide* work the pipeline would happily draft, with no error.
 #:
-#: Deliberately NOT shared with `refresh.core`, `web.app`, `web.publish` or
+#: Deliberately NOT shared with `refresh.core`, `surfaces.viewer.app`, `serving.publish` or
 #: `live.poll`, which each hold their own. Those are separate contexts, and under
 #: ADR 0031 a context does not import another's internals to save four strings.
 #:
