@@ -852,5 +852,158 @@
     ],
     "calendar_year": false,
     "type": "league"
+  },
+  {
+    "league_id": 528,
+    "name": "Community Shield",
+    "seasons": [
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 121,
+    "name": "DBU Pokalen",
+    "seasons": [
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 526,
+    "name": "Trophée des Champions",
+    "seasons": [
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 529,
+    "name": "Super Cup - GER",
+    "seasons": [
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 547,
+    "name": "Super Cup - ITA",
+    "seasons": [
+      2014,
+      2015,
+      2016,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "calendar_year": false,
+    "type": "cup"
+  },
+  {
+    "league_id": 44,
+    "name": "FA WSL",
+    "seasons": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
+  },
+  {
+    "league_id": 64,
+    "name": "Feminine Division 1",
+    "seasons": [
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "calendar_year": false,
+    "type": "league"
   }
 ]

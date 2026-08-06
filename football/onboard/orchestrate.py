@@ -255,6 +255,11 @@ def main(argv: list[str] | None = None) -> None:
 
     print(f"Looking up league {args.league_id} in the provider catalogue …")
     record = _lookup(client, args.league_id)
+    if record["league"]["type"].lower() != "league":
+        raise SystemExit(
+            f"League {args.league_id} ({record['league']['name']}) is a "
+            f"{record['league']['type']!r}, not a League. Use `football.onboard.cups` for cups."
+        )
     name = _resolve_name(args.league_id, record, args.name)
     seasons = _seasons(record, args.from_season, args.to_season)
     if not seasons:
