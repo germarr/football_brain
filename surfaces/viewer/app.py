@@ -33,18 +33,19 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import ChoiceLoader, FileSystemLoader
 
-from football import config
+from football import config, status
 
 NY = zoneinfo.ZoneInfo("America/New_York")
 UTC = dt.timezone.utc
 WEEK_DAYS = 7
 
-FINAL_STATUS = {"FT", "AET", "PEN"}
-LIVE_STATUS = {"1H", "2H", "HT", "ET", "BT", "P", "LIVE", "INT", "SUSP"}
-# A fixture is "settled" (no live refresh will change it) once terminal: Final plus the
-# non-Final ends (postponed/cancelled/abandoned/…). The Refresh button targets the
-# complement — kicked-off but NOT terminal (ADR 0024).
-TERMINAL_STATUS = FINAL_STATUS | {"PST", "CANC", "ABD", "AWD", "WO"}
+# The status vocabulary is defined once, in the kernel. A fixture is "settled" (no live
+# refresh will change it) once TERMINAL: Final plus the non-Final ends
+# (postponed/cancelled/abandoned/…). The Refresh button targets the complement —
+# kicked-off but NOT terminal (ADR 0024).
+FINAL_STATUS = status.FINAL
+LIVE_STATUS = status.LIVE
+TERMINAL_STATUS = status.TERMINAL
 
 _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"

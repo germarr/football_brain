@@ -32,7 +32,7 @@ from pathlib import Path
 
 from sqlmodel import SQLModel, create_engine
 
-from football import config, models  # noqa: F401 — importing models registers the schema
+from football import config, models, status  # noqa: F401 — importing models registers the schema
 
 SERVE_DIR = Path(__file__).resolve().parent
 SERVE_DB = SERVE_DIR / "serve.db"
@@ -130,7 +130,7 @@ def publish(before: int = DEFAULT_BEFORE, after: int = DEFAULT_AFTER,
 # --------------------------------------------------------------------------- #
 # League standings + leaders (ADR 0025)
 # --------------------------------------------------------------------------- #
-FINAL = ("FT", "AET", "PEN")   # a Final fixture counts toward the table (CONTEXT.md)
+FINAL = status.FINAL           # a Final fixture counts toward the table (CONTEXT.md)
 LEADER_TOP_N = 5
 
 
@@ -337,9 +337,7 @@ def _build_league_tables(con: sqlite3.Connection) -> dict:
 #: A fixture the Live Mirror should stop shadowing: Final, or ended without a Final
 #: (postponed / cancelled / abandoned / awarded / walkover). Clearing only on Final left
 #: a postponed game provisional forever, since nothing else ever revisits it.
-#: The same set exists as the Viewer's TERMINAL_STATUS and live.poll's _TERMINAL — three
-#: names for one thing, worth consolidating and not this change's job.
-TERMINAL = ("FT", "AET", "PEN", "PST", "CANC", "ABD", "AWD", "WO")
+TERMINAL = status.TERMINAL
 
 
 def _clear_settled_live_rows(serve_db: Path, window_start: str) -> int:

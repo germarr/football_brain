@@ -26,6 +26,7 @@ import requests
 from sqlmodel import Field, Session, SQLModel, create_engine, delete, select
 
 from football import config
+from football import status as status_vocab
 from football.models import Event, Fixture, Player
 from football.build.parse import _is_shootout_kick, _parse_event, _parse_fixture
 
@@ -33,8 +34,8 @@ DB_PATH = Path(__file__).resolve().parent / "live.db"
 
 # Final states (the authoritative record; ADR 0012) plus other terminal statuses
 # that also end a watch (a match that is abandoned/postponed will never go Final).
-_FINAL = {"FT", "AET", "PEN"}
-_TERMINAL = _FINAL | {"PST", "CANC", "ABD", "AWD", "WO"}
+_FINAL = status_vocab.FINAL
+_TERMINAL = status_vocab.TERMINAL
 
 
 class LivePoll(SQLModel, table=True):

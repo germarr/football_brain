@@ -17,18 +17,17 @@ __version__ = "0.1.0"
 
 #: The statuses that mean "this match is over and its data will not change again".
 #:
-#: This package's single definition, and the reason it is here rather than in a
-#: module: it is one of the two conditions that make a Fixture a **Drafting
-#: Candidate** (CONTEXT.md), so `pipeline`, `draft`, `onboard` and the Desk must all
-#: read the same tuple. Until ADR 0034 they did not — `pipeline` held the constant
-#: while `draft` and `onboard` inlined `IN ('FT','AET','PEN')` into SQL, which is the
-#: drift ADR 0034 warns about, already present before the Desk existed. A divergence
-#: here makes the Desk *hide* work the pipeline would happily draft, with no error.
+#: Re-exported under this package's own name because `pipeline`, `draft`, `onboard` and
+#: `candidates` all import it from here, and because it is one of the two conditions that
+#: make a Fixture a **Drafting Candidate** (CONTEXT.md) — worth naming where that concept
+#: lives. Until ADR 0034 these modules did not agree: `pipeline` held the constant while
+#: `draft` and `onboard` inlined `IN ('FT','AET','PEN')` into SQL. A divergence makes the
+#: Desk *hide* work the pipeline would happily draft, with no error.
 #:
-#: Deliberately NOT shared with `refresh.core`, `surfaces.viewer.app`, `serving.publish` or
-#: `live.poll`, which each hold their own. Those are separate contexts, and under
-#: ADR 0031 a context does not import another's internals to save four strings.
-#:
-#: A tuple, not a set: it is passed to psycopg as `= ANY(%s)` (via `list(...)`) and
-#: printed in operator-facing refusals, both of which want a stable order.
-FINAL_STATUSES = ("FT", "AET", "PEN")
+#: This note used to say the tuple was deliberately NOT shared with `refresh.core`,
+#: `surfaces.viewer.app`, `serving.publish` or `live.poll`, on the grounds that "a context
+#: does not import another's internals to save four strings" (ADR 0031). That is right
+#: about contexts and wrong about this one: `football.status` is the **kernel**, which
+#: ADR 0031 calls "what everything imports", and it imports nothing itself. Six copies of
+#: one CONTEXT.md definition was the larger risk.
+from football.status import FINAL as FINAL_STATUSES  # noqa: E402
