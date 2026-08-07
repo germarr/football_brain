@@ -433,13 +433,22 @@ def _build_venues(session: Session, client: CachedClient,
             provider_ids[key] = provider_ids.get(key) or (fx["fixture"].get("venue") or {}).get("id")
 
     id_map = venues.mint(provider_ids) if register else venues.load()
+    display = venues.displays()
     venue_ids: dict[tuple[str, str | None], int] = {}
-    for (name, city) in provider_ids:
-        sid = id_map.get((name, city))
+    rows: dict[int, int | None] = {}
+    for key in provider_ids:
+        sid = id_map.get(key)
         if sid is None:            # read-only build meeting an unregistered ground
             continue
-        venue_ids[(name, city)] = sid
-        session.add(Venue(id=sid, name=name, city=city, provider_id=provider_ids[(name, city)]))
+        venue_ids[key] = sid
+        # Several spellings of one ground share a canonical id (ADR 0042), so the Venue row
+        # is emitted once per id — adding one per key would collide on the primary key. Its
+        # strings come from the registry's canonical display, not from whichever spelling
+        # this build happened to sweep first; its provider_id from the first that has one.
+        rows[sid] = rows.get(sid) or provider_ids[key]
+    for sid, provider_id in rows.items():
+        name, city = display.get(sid, next(k for k, v in venue_ids.items() if v == sid))
+        session.add(Venue(id=sid, name=name, city=city, provider_id=provider_id))
     session.commit()
     session.expunge_all()
     return venue_ids

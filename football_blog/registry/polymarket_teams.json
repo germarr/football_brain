@@ -1,0 +1,474 @@
+{
+  "_comment": "Polymarket team registry (ADR 0043). '<league>:<polymarket team id>' -> our team id. The key carries the league because a Polymarket team id is per league, not per club — CF Monterrey is 115320 in mex and 3268366 in lec. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each polymarket_name and our_name name the same club.",
+  "leagues": {
+    "lec": {
+      "competition_id": 772,
+      "series_slug": "soccer-lec"
+    },
+    "mex": {
+      "competition_id": 262,
+      "series_slug": "mex-2025"
+    },
+    "mls": {
+      "competition_id": 253,
+      "series_slug": "mls-2025"
+    }
+  },
+  "teams": {
+    "lec:3282357": {
+      "team_id": 2312,
+      "polymarket_name": "Atlante FC",
+      "our_name": "Atlante FC"
+    },
+    "lec:3268363": {
+      "team_id": 2283,
+      "polymarket_name": "Atlas FC",
+      "our_name": "Atlas"
+    },
+    "lec:3268382": {
+      "team_id": 2314,
+      "polymarket_name": "Atlético San Luis",
+      "our_name": "Atletico San Luis"
+    },
+    "lec:3282997": {
+      "team_id": 16489,
+      "polymarket_name": "Austin FC",
+      "our_name": "Austin"
+    },
+    "lec:3268364": {
+      "team_id": 2278,
+      "polymarket_name": "CD Guadalajara",
+      "our_name": "Guadalajara Chivas"
+    },
+    "lec:3268365": {
+      "team_id": 2287,
+      "polymarket_name": "CF América",
+      "our_name": "Club America"
+    },
+    "lec:3268371": {
+      "team_id": 2295,
+      "polymarket_name": "CF Cruz Azul",
+      "our_name": "Cruz Azul"
+    },
+    "lec:3268366": {
+      "team_id": 2282,
+      "polymarket_name": "CF Monterrey",
+      "our_name": "Monterrey"
+    },
+    "lec:3268356": {
+      "team_id": 1614,
+      "polymarket_name": "CF Montréal",
+      "our_name": "CF Montreal"
+    },
+    "lec:3268367": {
+      "team_id": 2292,
+      "polymarket_name": "CF Pachuca",
+      "our_name": "CF Pachuca"
+    },
+    "lec:3268386": {
+      "team_id": 18310,
+      "polymarket_name": "Charlotte FC",
+      "our_name": "Charlotte"
+    },
+    "lec:3282996": {
+      "team_id": 1607,
+      "polymarket_name": "Chicago Fire FC",
+      "our_name": "Chicago Fire"
+    },
+    "lec:3268368": {
+      "team_id": 2289,
+      "polymarket_name": "Club León FC",
+      "our_name": "Leon"
+    },
+    "lec:3268377": {
+      "team_id": 2288,
+      "polymarket_name": "Club Necaxa",
+      "our_name": "Necaxa"
+    },
+    "lec:3268373": {
+      "team_id": 2291,
+      "polymarket_name": "Club Puebla",
+      "our_name": "Puebla"
+    },
+    "lec:3268369": {
+      "team_id": 2285,
+      "polymarket_name": "Club Santos Laguna",
+      "our_name": "Santos Laguna"
+    },
+    "lec:3268370": {
+      "team_id": 2280,
+      "polymarket_name": "Club Tijuana",
+      "our_name": "Club Tijuana"
+    },
+    "lec:3268352": {
+      "team_id": 1610,
+      "polymarket_name": "Colorado Rapids SC",
+      "our_name": "Colorado Rapids"
+    },
+    "lec:3268353": {
+      "team_id": 1613,
+      "polymarket_name": "Columbus Crew",
+      "our_name": "Columbus Crew"
+    },
+    "lec:3268372": {
+      "team_id": 2281,
+      "polymarket_name": "Deportivo Toluca FC",
+      "our_name": "Toluca"
+    },
+    "lec:3268381": {
+      "team_id": 2242,
+      "polymarket_name": "FC Cincinnati",
+      "our_name": "FC Cincinnati"
+    },
+    "lec:3282779": {
+      "team_id": 1597,
+      "polymarket_name": "FC Dallas",
+      "our_name": "FC Dallas"
+    },
+    "lec:3268383": {
+      "team_id": 2298,
+      "polymarket_name": "FC Juárez",
+      "our_name": "FC Juarez"
+    },
+    "lec:3268354": {
+      "team_id": 1600,
+      "polymarket_name": "Houston Dynamo",
+      "our_name": "Houston Dynamo"
+    },
+    "lec:3268384": {
+      "team_id": 9568,
+      "polymarket_name": "Inter Miami CF",
+      "our_name": "Inter Miami"
+    },
+    "lec:3268380": {
+      "team_id": 1616,
+      "polymarket_name": "Los Angeles FC",
+      "our_name": "Los Angeles FC"
+    },
+    "lec:3268355": {
+      "team_id": 1605,
+      "polymarket_name": "Los Angeles Galaxy",
+      "our_name": "Los Angeles Galaxy"
+    },
+    "lec:3268385": {
+      "team_id": 14002,
+      "polymarket_name": "Mazatlán FC",
+      "our_name": "Mazatlán"
+    },
+    "lec:3268379": {
+      "team_id": 1612,
+      "polymarket_name": "Minnesota United FC",
+      "our_name": "Minnesota United FC"
+    },
+    "lec:3282780": {
+      "team_id": 9569,
+      "polymarket_name": "Nashville SC",
+      "our_name": "Nashville SC"
+    },
+    "lec:3268357": {
+      "team_id": 1604,
+      "polymarket_name": "New York City FC",
+      "our_name": "New York City FC"
+    },
+    "lec:3268358": {
+      "team_id": 1602,
+      "polymarket_name": "New York Red Bulls",
+      "our_name": "New York Red Bulls"
+    },
+    "lec:3268359": {
+      "team_id": 1598,
+      "polymarket_name": "Orlando City SC",
+      "our_name": "Orlando City SC"
+    },
+    "lec:3282995": {
+      "team_id": 1599,
+      "polymarket_name": "Philadelphia Union",
+      "our_name": "Philadelphia Union"
+    },
+    "lec:3268360": {
+      "team_id": 1617,
+      "polymarket_name": "Portland Timbers",
+      "our_name": "Portland Timbers"
+    },
+    "lec:3268374": {
+      "team_id": 2286,
+      "polymarket_name": "Pumas de la UNAM",
+      "our_name": "U.N.A.M. - Pumas"
+    },
+    "lec:3268375": {
+      "team_id": 2290,
+      "polymarket_name": "Querétaro FC",
+      "our_name": "Club Queretaro"
+    },
+    "lec:3268361": {
+      "team_id": 1606,
+      "polymarket_name": "Real Salt Lake",
+      "our_name": "Real Salt Lake"
+    },
+    "lec:3268387": {
+      "team_id": 25484,
+      "polymarket_name": "San Diego FC",
+      "our_name": "San Diego"
+    },
+    "lec:3268362": {
+      "team_id": 1595,
+      "polymarket_name": "Seattle Sounders FC",
+      "our_name": "Seattle Sounders"
+    },
+    "lec:3268376": {
+      "team_id": 2279,
+      "polymarket_name": "Tigres de la UANL",
+      "our_name": "Tigres UANL"
+    },
+    "lec:3282356": {
+      "team_id": 1603,
+      "polymarket_name": "Vancouver Whitecaps FC",
+      "our_name": "Vancouver Whitecaps"
+    },
+    "mex:3280985": {
+      "team_id": 2312,
+      "polymarket_name": "Atlante FC",
+      "our_name": "Atlante FC"
+    },
+    "mex:115314": {
+      "team_id": 2283,
+      "polymarket_name": "Atlas FC",
+      "our_name": "Atlas"
+    },
+    "mex:115335": {
+      "team_id": 2314,
+      "polymarket_name": "Atlético San Luis",
+      "our_name": "Atletico San Luis"
+    },
+    "mex:115316": {
+      "team_id": 2278,
+      "polymarket_name": "CD Guadalajara",
+      "our_name": "Guadalajara Chivas"
+    },
+    "mex:115318": {
+      "team_id": 2287,
+      "polymarket_name": "CF América",
+      "our_name": "Club America"
+    },
+    "mex:115326": {
+      "team_id": 2295,
+      "polymarket_name": "CF Cruz Azul",
+      "our_name": "Cruz Azul"
+    },
+    "mex:115320": {
+      "team_id": 2282,
+      "polymarket_name": "CF Monterrey",
+      "our_name": "Monterrey"
+    },
+    "mex:115321": {
+      "team_id": 2292,
+      "polymarket_name": "CF Pachuca",
+      "our_name": "CF Pachuca"
+    },
+    "mex:115323": {
+      "team_id": 2289,
+      "polymarket_name": "Club León FC",
+      "our_name": "Leon"
+    },
+    "mex:115333": {
+      "team_id": 2288,
+      "polymarket_name": "Club Necaxa",
+      "our_name": "Necaxa"
+    },
+    "mex:115329": {
+      "team_id": 2291,
+      "polymarket_name": "Club Puebla",
+      "our_name": "Puebla"
+    },
+    "mex:115324": {
+      "team_id": 2285,
+      "polymarket_name": "Club Santos Laguna",
+      "our_name": "Santos Laguna"
+    },
+    "mex:115325": {
+      "team_id": 2280,
+      "polymarket_name": "Club Tijuana",
+      "our_name": "Club Tijuana"
+    },
+    "mex:115327": {
+      "team_id": 2281,
+      "polymarket_name": "Deportivo Toluca FC",
+      "our_name": "Toluca"
+    },
+    "mex:115336": {
+      "team_id": 2298,
+      "polymarket_name": "FC Juárez",
+      "our_name": "FC Juarez"
+    },
+    "mex:115337": {
+      "team_id": 14002,
+      "polymarket_name": "Mazatlán FC",
+      "our_name": "Mazatlán"
+    },
+    "mex:115330": {
+      "team_id": 2286,
+      "polymarket_name": "Pumas de la UNAM",
+      "our_name": "U.N.A.M. - Pumas"
+    },
+    "mex:115331": {
+      "team_id": 2290,
+      "polymarket_name": "Querétaro FC",
+      "our_name": "Club Queretaro"
+    },
+    "mex:115332": {
+      "team_id": 2279,
+      "polymarket_name": "Tigres de la UANL",
+      "our_name": "Tigres UANL"
+    },
+    "mls:115075": {
+      "team_id": 1608,
+      "polymarket_name": "Atlanta United FC",
+      "our_name": "Atlanta United FC"
+    },
+    "mls:115081": {
+      "team_id": 16489,
+      "polymarket_name": "Austin FC",
+      "our_name": "Austin"
+    },
+    "mls:115062": {
+      "team_id": 1614,
+      "polymarket_name": "CF Montréal",
+      "our_name": "CF Montreal"
+    },
+    "mls:115082": {
+      "team_id": 18310,
+      "polymarket_name": "Charlotte FC",
+      "our_name": "Charlotte"
+    },
+    "mls:115055": {
+      "team_id": 1607,
+      "polymarket_name": "Chicago Fire FC",
+      "our_name": "Chicago Fire"
+    },
+    "mls:115056": {
+      "team_id": 1610,
+      "polymarket_name": "Colorado Rapids SC",
+      "our_name": "Colorado Rapids"
+    },
+    "mls:115057": {
+      "team_id": 1613,
+      "polymarket_name": "Columbus Crew",
+      "our_name": "Columbus Crew"
+    },
+    "mls:115058": {
+      "team_id": 1615,
+      "polymarket_name": "D.C. United SC",
+      "our_name": "DC United"
+    },
+    "mls:115078": {
+      "team_id": 2242,
+      "polymarket_name": "FC Cincinnati",
+      "our_name": "FC Cincinnati"
+    },
+    "mls:115059": {
+      "team_id": 1597,
+      "polymarket_name": "FC Dallas",
+      "our_name": "FC Dallas"
+    },
+    "mls:115060": {
+      "team_id": 1600,
+      "polymarket_name": "Houston Dynamo",
+      "our_name": "Houston Dynamo"
+    },
+    "mls:115079": {
+      "team_id": 9568,
+      "polymarket_name": "Inter Miami CF",
+      "our_name": "Inter Miami"
+    },
+    "mls:115077": {
+      "team_id": 1616,
+      "polymarket_name": "Los Angeles FC",
+      "our_name": "Los Angeles FC"
+    },
+    "mls:115061": {
+      "team_id": 1605,
+      "polymarket_name": "Los Angeles Galaxy",
+      "our_name": "Los Angeles Galaxy"
+    },
+    "mls:115076": {
+      "team_id": 1612,
+      "polymarket_name": "Minnesota United FC",
+      "our_name": "Minnesota United FC"
+    },
+    "mls:115080": {
+      "team_id": 9569,
+      "polymarket_name": "Nashville SC",
+      "our_name": "Nashville SC"
+    },
+    "mls:115063": {
+      "team_id": 1609,
+      "polymarket_name": "New England Revolution",
+      "our_name": "New England Revolution"
+    },
+    "mls:115064": {
+      "team_id": 1604,
+      "polymarket_name": "New York City FC",
+      "our_name": "New York City FC"
+    },
+    "mls:115065": {
+      "team_id": 1602,
+      "polymarket_name": "New York Red Bulls",
+      "our_name": "New York Red Bulls"
+    },
+    "mls:115066": {
+      "team_id": 1598,
+      "polymarket_name": "Orlando City SC",
+      "our_name": "Orlando City SC"
+    },
+    "mls:115067": {
+      "team_id": 1599,
+      "polymarket_name": "Philadelphia Union",
+      "our_name": "Philadelphia Union"
+    },
+    "mls:115068": {
+      "team_id": 1617,
+      "polymarket_name": "Portland Timbers",
+      "our_name": "Portland Timbers"
+    },
+    "mls:115069": {
+      "team_id": 1606,
+      "polymarket_name": "Real Salt Lake",
+      "our_name": "Real Salt Lake"
+    },
+    "mls:115084": {
+      "team_id": 25484,
+      "polymarket_name": "San Diego FC",
+      "our_name": "San Diego"
+    },
+    "mls:115070": {
+      "team_id": 1596,
+      "polymarket_name": "San Jose Earthquakes",
+      "our_name": "San Jose Earthquakes"
+    },
+    "mls:115071": {
+      "team_id": 1595,
+      "polymarket_name": "Seattle Sounders FC",
+      "our_name": "Seattle Sounders"
+    },
+    "mls:115072": {
+      "team_id": 1611,
+      "polymarket_name": "Sporting Kansas City",
+      "our_name": "Sporting Kansas City"
+    },
+    "mls:115083": {
+      "team_id": 20787,
+      "polymarket_name": "St. Louis City SC",
+      "our_name": "St. Louis City"
+    },
+    "mls:115073": {
+      "team_id": 1601,
+      "polymarket_name": "Toronto FC",
+      "our_name": "Toronto FC"
+    },
+    "mls:115074": {
+      "team_id": 1603,
+      "polymarket_name": "Vancouver Whitecaps FC",
+      "our_name": "Vancouver Whitecaps"
+    }
+  }
+}

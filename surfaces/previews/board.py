@@ -17,11 +17,11 @@ there — rather than ~40 games a week that would never stop arriving.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from football_blog import kalshi
+from football_blog import kalshi, polymarket, track
 from football_blog.preview import SCHEDULED, WINDOW_DAYS
 from football_blog.pocketbase import PocketBaseClient
 from football_blog.postgres import get_conn
@@ -46,19 +46,17 @@ class PreviewCard:
     #: None when the builder has not written this Fixture yet — a gap, not an absence.
     record_id: Optional[str] = None
     lifecycle: Optional[str] = None
-    market_state: Optional[str] = None
-    market_reason: Optional[str] = None
     football_computed_at: Optional[str] = None
-    quote_read_at: Optional[str] = None
 
     home_table: bool = False
     away_table: bool = False
     home_leaders: int = 0
     away_leaders: int = 0
-    home_probability: Optional[float] = None
-    draw_probability: Optional[float] = None
-    away_probability: Optional[float] = None
-    market_volume: Optional[float] = None
+
+    #: One per **Exchange**, never merged into a single set of percentages
+    #: (ADR 0043). Each carries its own state, read time and volume unit, because
+    #: either, both or neither Winner Market may exist for a Fixture.
+    markets: dict[str, dict] = field(default_factory=dict)
 
     @property
     def present(self) -> bool:
@@ -74,7 +72,24 @@ class PreviewCard:
 
     @property
     def has_market(self) -> bool:
-        return self.market_state == "quoted"
+        """Quoted on **at least one** Exchange.
+
+        Not both: Polymarket does not cover every Competition Kalshi does, and the
+        reverse will happen too. Requiring both would mark a card incomplete for a
+        gap that is permanent and that nobody can close (ADR 0043).
+        """
+        return any(m.get("state") == "quoted" for m in self.markets.values())
+
+    @property
+    def exchanges(self) -> list[dict]:
+        """Both Exchanges in a fixed order, present or not — Kalshi first, then Polymarket.
+
+        Fixed so a card's two rows never swap places between renders: colour and
+        position follow the Exchange, never its rank or whether it happens to be
+        quoted this minute.
+        """
+        return [dict(self.markets.get(name) or {"state": "absent"}, exchange=name)
+                for name in ("kalshi", "polymarket")]
 
     @property
     def complete(self) -> bool:
@@ -96,8 +111,8 @@ class PreviewCard:
         if not self.has_leaders:
             out.append("leaders")
         if not self.has_market:
-            out.append({"absent": "market", "listed_unquoted": "market prices"}.get(
-                self.market_state or "", "market"))
+            states = {m.get("state") for m in self.markets.values()}
+            out.append("market prices" if "listed_unquoted" in states else "market")
         return out
 
 
@@ -151,26 +166,52 @@ def list_cards(pb: PocketBaseClient, *, days: int = WINDOW_DAYS,
             card.record_id = rec["id"]
             card.local_date = rec.get("local_date")
             card.lifecycle = rec.get("lifecycle")
-            card.market_state = rec.get("market_state")
             card.football_computed_at = rec.get("football_computed_at") or None
-            card.quote_read_at = rec.get("quote_read_at") or None
             home, away = rec.get("home") or {}, rec.get("away") or {}
             card.home_table = (home.get("table") or {}).get("state") == "present"
             card.away_table = (away.get("table") or {}).get("state") == "present"
             card.home_leaders = len(home.get("leaders") or [])
             card.away_leaders = len(away.get("leaders") or [])
-            market = rec.get("market") or {}
-            card.market_reason = market.get("reason")
-            for o in market.get("outcomes") or []:
-                if o.get("side") == "home":
-                    card.home_probability = o.get("market_probability")
-                    card.market_volume = (o.get("quote") or {}).get("volume")
-                elif o.get("side") == "draw":
-                    card.draw_probability = o.get("market_probability")
-                elif o.get("side") == "away":
-                    card.away_probability = o.get("market_probability")
+            card.markets = _markets_of(rec)
         cards.append(card)
     return cards
+
+
+#: Where each Exchange's half of the record lives. Named rather than derived so a
+#: field rename fails at one line instead of silently reading `None` everywhere.
+_MARKET_FIELDS = {
+    "kalshi": ("market_kalshi", "quote_read_at_kalshi"),
+    "polymarket": ("market_polymarket", "quote_read_at_polymarket"),
+}
+
+
+def _markets_of(rec: dict) -> dict[str, dict]:
+    """Flatten one record's two Winner Markets into `{exchange: {…}}` for the card.
+
+    Volume is read off the **home** outcome and kept with its unit. Kalshi counts
+    contracts and Polymarket counts dollars, so the two numbers never share a scale
+    and a card that renders them alike is lying by omission (CONTEXT.md).
+    """
+    out: dict[str, dict] = {}
+    for exchange, (block_field, read_field) in _MARKET_FIELDS.items():
+        block = rec.get(block_field) or {}
+        if not block:
+            continue
+        row = {"state": block.get("state"), "reason": block.get("reason"),
+               "read_at": rec.get(read_field) or None,
+               "overround": block.get("overround"),
+               "home": None, "draw": None, "away": None,
+               "volume": None, "volume_unit": None}
+        for o in block.get("outcomes") or []:
+            side = o.get("side")
+            if side in ("home", "draw", "away"):
+                row[side] = o.get("market_probability")
+            if side == "home":
+                quote = o.get("quote") or {}
+                row["volume"] = quote.get("volume")
+                row["volume_unit"] = quote.get("volume_unit") or "contracts"
+        out[exchange] = row
+    return out
 
 
 def summary(cards: list[PreviewCard]) -> dict[str, int]:
@@ -214,3 +255,140 @@ def unmapped_teams() -> dict[str, Any]:
     teams = [{**row, "series": sorted(row["series"])} for row in seen.values()]
     teams.sort(key=lambda r: (r["kalshi_name"] or ""))
     return {"teams": teams, "markets_refused": affected}
+
+
+def unmapped_polymarket_teams() -> dict[str, Any]:
+    """Polymarket Teams no registry entry names — the same gap, on the other Exchange.
+
+    Kept as its own function rather than a parameterised one because the two Exchanges
+    are refused for different reasons and the operator needs to see which: a Kalshi row
+    is a club we have not mapped, a Polymarket row is a club we have not mapped *in that
+    league*, since a Polymarket team id is per league (ADR 0043).
+    """
+    registry = polymarket.load_registry()
+    client = polymarket.PolymarketClient()
+    seen: dict[str, dict] = {}
+    affected = 0
+    try:
+        for league in registry.league_keys:
+            series_slug = registry.series_slug(league)
+            if not series_slug:
+                continue
+            events = client.events(series_slug)
+            _index, unmapped = polymarket.index_by_team_pair(events, league, registry)
+            affected += len({u["event_slug"] for u in unmapped})
+            for u in unmapped:
+                key = polymarket.registry_key(u["league"], u["polymarket_team"])
+                row = seen.setdefault(key, {"key": key,
+                                            "polymarket_team": u["polymarket_team"],
+                                            "polymarket_name": u["polymarket_name"],
+                                            "league": u["league"], "events": 0})
+                row["events"] += 1
+    finally:
+        client.close()
+    teams = sorted(seen.values(), key=lambda r: (r["league"], r["polymarket_name"] or ""))
+    return {"teams": teams, "markets_refused": affected}
+
+
+# --------------------------------------------------------------------------- #
+# Market Tracks — the two graphs                                               #
+# --------------------------------------------------------------------------- #
+def _fixture_row(fixture_id: int) -> Optional[tuple]:
+    with get_conn().cursor() as cur:
+        cur.execute(
+            "SELECT f.id, f.league_id, f.date, f.home_team_id, f.away_team_id, "
+            "       f.home_team_name, f.away_team_name "
+            "FROM fixture f WHERE f.id = %s", (fixture_id,))
+        return cur.fetchone()
+
+
+def market_tracks(pb: PocketBaseClient, fixture_id: int) -> dict[str, Any]:
+    """Both Exchanges' **Market Tracks** for one Fixture, on one shared axis (ADR 0043).
+
+    Six GETs and nothing stored. This is deliberately a per-Fixture endpoint rather than
+    something the card list carries: forty cards would be 240 requests, and a Track is
+    what you ask for when you want to look at one match, not something every row pays for.
+
+    Each Exchange is resolved independently and reports its own absence in its own words.
+    **not_covered** is a Competition that Exchange does not list at all — permanent, and
+    nothing a human can close; **not_listed** is a market it has not opened yet;
+    **unmapped** is a club missing from that Exchange's registry, the one state anybody
+    can act on.
+    """
+    row = _fixture_row(fixture_id)
+    if row is None:
+        return {"error": f"no fixture {fixture_id}"}
+    fid, league_id, kickoff, home_id, away_id, home_name, away_name = row
+    fid, league_id = int(fid), int(league_id)
+    home_id, away_id = int(home_id), int(away_id)
+    if kickoff.tzinfo is None:
+        kickoff = kickoff.replace(tzinfo=timezone.utc)
+
+    publications = _publications(pb)
+    display_tz = (publications.get(league_id) or {}).get("display_timezone") or "UTC"
+
+    # Prefer the identifiers the record already holds. Resolution sweeps only *open*
+    # markets, so a few hours after kickoff neither Exchange's sweep can see this
+    # Fixture any more — a settled Match Preview would lose its graph exactly when the
+    # graph becomes the only place its history survives.
+    record = pb.list_previews_by_fixture_ids([fid]).get(fid) or {}
+    k_stored = track.stored_market(record.get("market_kalshi"))
+    p_stored = track.stored_market(record.get("market_polymarket"))
+
+    k_track = (track.kalshi_track(k_stored) if k_stored
+               else _kalshi_track(league_id, home_id, away_id, kickoff, display_tz))
+    p_track = (track.polymarket_track(p_stored) if p_stored
+               else _polymarket_track(league_id, home_id, away_id, kickoff))
+
+    pair = track.TrackPair(fixture_id=fid, kickoff=int(kickoff.timestamp()),
+                           kalshi=k_track, polymarket=p_track)
+    return {**pair.as_dict(), "home_name": home_name, "away_name": away_name,
+            "kickoff_iso": kickoff.isoformat()}
+
+
+def _kalshi_track(league_id: int, home_id: int, away_id: int,
+                  kickoff, display_tz: str) -> track.MarketTrack:
+    registry = kalshi.load_registry()
+    series = [s for s, cid in registry.series.items() if cid == league_id]
+    if not series:
+        return track.MarketTrack(exchange="kalshi", state="not_covered")
+    client = kalshi.KalshiClient()
+    try:
+        for series_ticker in series:
+            index, _unmapped = kalshi.index_by_team_pair(
+                client.markets(series_ticker), series_ticker, registry)
+            market = kalshi.attach(home_id, away_id, kickoff, display_tz, index)
+            if market is not None:
+                return track.kalshi_track(kalshi.label_sides(market, home_id, away_id))
+    finally:
+        client.close()
+    return track.MarketTrack(exchange="kalshi", state="not_listed")
+
+
+def _polymarket_track(league_id: int, home_id: int, away_id: int,
+                      kickoff) -> track.MarketTrack:
+    registry = polymarket.load_registry()
+    if not registry.covers(league_id):
+        return track.MarketTrack(exchange="polymarket", state="not_covered")
+    leagues = [k for k in registry.league_keys
+               if registry.competition_for(k) == league_id]
+    client = polymarket.PolymarketClient()
+    unmapped_here = False
+    try:
+        for league in leagues:
+            series_slug = registry.series_slug(league)
+            if not series_slug:
+                continue
+            index, unmapped = polymarket.index_by_team_pair(
+                client.events(series_slug), league, registry)
+            market = polymarket.attach(home_id, away_id, kickoff, index)
+            if market is not None:
+                return track.polymarket_track(
+                    polymarket.label_sides(market, home_id, away_id))
+            unmapped_here = unmapped_here or bool(unmapped)
+    finally:
+        client.close()
+    # A refusal somewhere in this league is the likelier explanation than "not opened
+    # yet", and it is the only one a human can do anything about — so say so.
+    return track.MarketTrack(exchange="polymarket",
+                             state="unmapped" if unmapped_here else "not_listed")

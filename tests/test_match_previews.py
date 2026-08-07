@@ -6,11 +6,12 @@ of failure this suite exists for.
 
 Four of them are worth stating outright, because each was a real fork in the design:
 
-  **The freeze must not rewrite the market half.** A settled Match Preview is the one
-  record here that starts derived and stops being so: its football half stays computable
-  forever, but nothing reconstructs what the market thought an hour before kickoff. A
-  freeze that also refreshed the Quote would silently replace the interesting artifact
-  with a post-hoc one, and the card would look completely normal afterwards.
+  **The freeze must not rewrite the market half.** A Quote does not stop at kickoff — it
+  converges on the result and settles at 1 and 0. A freeze that also refreshed the Quote
+  would silently replace a forecast with an outcome, both spelled as three percentages,
+  and the card would look completely normal afterwards. (The history itself *is*
+  recoverable — `football_blog.track` recovers it from either Exchange — which is ADR
+  0043 correcting the reason ADR 0040 gave, not the behaviour.)
 
   **A half-resolved Winner Market must be refused whole.** Attaching the one side that
   mapped, and inferring the other from the ticker or the date, is exactly the guess ADR
@@ -355,8 +356,12 @@ def _record(rid, fixture_id, kickoff, lifecycle="upcoming"):
     return {"id": rid, "postgres_fixture_id": fixture_id,
             "kickoff_utc": kickoff.isoformat().replace("+00:00", "Z"),
             "lifecycle": lifecycle,
-            "market": {"state": "quoted", "outcomes": [{"market_probability": 0.61}]},
-            "quote_read_at": "2026-08-06T21:00:00Z"}
+            "market_kalshi": {"state": "quoted",
+                              "outcomes": [{"market_probability": 0.61}]},
+            "quote_read_at_kalshi": "2026-08-06T21:00:00Z",
+            "market_polymarket": {"state": "quoted",
+                                  "outcomes": [{"market_probability": 0.59}]},
+            "quote_read_at_polymarket": "2026-08-06T21:00:00Z"}
 
 
 def test_only_kicked_off_previews_freeze():
@@ -371,23 +376,26 @@ def test_only_kicked_off_previews_freeze():
 
 
 def test_the_freeze_writes_nothing_but_the_lifecycle():
-    """The whole point of the freeze.
+    """The whole point of the freeze, and it must hold for **both** Exchanges.
 
-    A settled card keeps the last Quote read before kickoff, and nothing reconstructs
-    it — Kalshi's candlesticks come back empty for these series. A freeze that also
-    refreshed the market would replace the interesting artifact with a post-hoc one, and
+    A settled card keeps the last Quote read before kickoff on each Exchange. A Quote
+    does not stop at kickoff — it converges on the result and settles at 1 and 0 — so a
+    freeze that also refreshed the market would replace a forecast with an outcome, and
     the card would look entirely normal afterwards.
     """
     from football_blog.preview import freeze_kicked_off
     now = datetime(2026, 8, 6, 22, 0, tzinfo=timezone.utc)
     pb = _FakePB([_record("a", 1, now - timedelta(hours=2))])
-    before = json.dumps(pb.records[0]["market"], sort_keys=True)
+    before = {f: json.dumps(pb.records[0][f], sort_keys=True)
+              for f in ("market_kalshi", "market_polymarket")}
 
     freeze_kicked_off(pb, now)
 
     assert pb.patched == [], "the freeze must not upsert a payload"
-    assert json.dumps(pb.records[0]["market"], sort_keys=True) == before
-    assert pb.records[0]["quote_read_at"] == "2026-08-06T21:00:00Z"
+    for f, was in before.items():
+        assert json.dumps(pb.records[0][f], sort_keys=True) == was, f
+    assert pb.records[0]["quote_read_at_kalshi"] == "2026-08-06T21:00:00Z"
+    assert pb.records[0]["quote_read_at_polymarket"] == "2026-08-06T21:00:00Z"
 
 
 def test_an_already_settled_preview_is_not_refrozen():

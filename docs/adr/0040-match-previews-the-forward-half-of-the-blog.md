@@ -49,6 +49,15 @@ Six decisions were not obvious.
   and it is the reason the archive is a state rather than a place: there is nothing to move,
   only something to stop touching.
 
+  > **Corrected by ADR 0043.** The parenthetical is false. Kalshi's candlesticks return
+  > hourly bid/ask OHLC for these series, on open and settled markets alike, and Polymarket
+  > serves its own history after close — so what the market thought an hour before kickoff
+  > *is* reconstructible (a **Market Track** reconstructs it). **The freeze stands; only
+  > this reason is withdrawn.** Its replacement: a Quote does not stop at kickoff, it
+  > converges on the result and settles at 1 and 0, so re-running a settled Fixture would
+  > overwrite a *forecast* with an *outcome* — both spelled as three percentages, with
+  > nothing on the card to say which was stored.
+
 - **The two halves rebuild on two cadences and carry two timestamps.** The football half
   depends on a quota-bound **Refresh** and only changes when a Fixture goes Final, so it
   recomputes nightly at 04:00 behind the existing sequence. The market half is three

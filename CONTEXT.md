@@ -49,13 +49,23 @@ expecting the Champions League's continent to be `"Europe"` (a `"World"` cup is
 
 **Registry**:
 A small committed file naming the entities the recurring jobs must cover. There are
-four: the **Competition registry** — the single source of truth for every Competition
+five: the **Competition registry** — the single source of truth for every Competition
 we collect, league and cup alike (ADR 0019); the **Venue registry**, an
 append-only `(name, city) → stable id` map that gives the same ground the same id in
 every store (ADR 0028); the **Venue merge list**, which records the entries judged to
-be one ground where no rule can decide it (ADR 0042); and the **Kalshi team registry**, a `Kalshi team UUID → our
-team id` map (plus series → Competition) that is the sole basis on which a **Winner
-Market** is attached to a Fixture.
+be one ground where no rule can decide it (ADR 0042); and one **Exchange team
+registry** per **Exchange** — the **Kalshi team registry**, a `Kalshi team UUID → our
+team id` map (plus series → Competition), and the **Polymarket team registry**, a
+`Polymarket team id → our team id` map (plus league → Competition) — each the sole
+basis on which that Exchange's **Winner Market** is attached to a Fixture.
+The two are separate files, not one file with an Exchange column, because the bridge
+they cross is different at both ends: the keys are different kinds of identifier and
+the match rules they feed are different rules (local date against kickoff instant).
+They are also keyed differently, and the difference is a property of the Exchanges
+rather than a style choice. A Kalshi team UUID is **one per club**, the same across every
+series it appears in. A Polymarket team id is **one per club per league**, so a club
+contesting both its domestic league and the Leagues Cup holds two — which makes the
+Polymarket key `(league, team id)` and the file about 98 rows rather than one per club.
 A Registry is **input** to the pipeline, never its output: alone among the data here
 it is *decided* rather than fetched or derived, so it has no rebuild path from the raw
 cache, and every change to it is reviewed as a diff. Nothing is collected, parsed or
@@ -662,50 +672,126 @@ _Avoid_: post (the PocketBase instance also serves a personal site with its own,
 entirely unrelated `posts` collection — hence `match_post`); article; treating the slug
 as its identity (the Fixture id is — the slug is derived and could change).
 
+**Exchange**:
+A prediction market we read a **Winner Market** from. There are two, **Kalshi** and
+**Polymarket**, and every Quote, Market Probability and Market Track is qualified by
+which one it came from — they are never averaged, blended or reconciled into a single
+number. Both are peer-to-peer venues with no house taking the other side, which is why
+their three legs sum to roughly 1 rather than to a bookmaker's margin.
+An Exchange is not a **Provider**: a Provider supplies the football (fixtures, events,
+statistics) and there is one canonical answer it is authoritative for; two Exchanges
+answer the *same* question and are expected to disagree, and the disagreement is the
+point.
+_Avoid_: venue (that is the ground a Fixture is played at); book, bookmaker (neither
+takes the other side of a bet); source, feed (those are a **Provider**); treating the
+two as interchangeable, or picking a "primary" one.
+
 **Winner Market**:
-The three mutually exclusive contracts **Kalshi** lists on one Fixture's result — home,
-away, and the **draw** — and the only Kalshi product we take. The qualifier is load-
-bearing: Kalshi also runs spread, total, both-teams-to-score, first-team-to-score,
-correct-score, method-of-victory and first-half series on the *same* Fixture, so "the
-market for this game" names a dozen things and "the Winner Market" names one.
+The three mutually exclusive contracts an **Exchange** lists on one Fixture's result —
+home, away, and the **draw** — and the only product we take from either. The qualifier is
+load-bearing: both Exchanges also run spread, total, both-teams-to-score,
+first-team-to-score, correct-score, method-of-victory and first-half markets on the
+*same* Fixture, so "the market for this game" names a dozen things and "the Winner
+Market" names one. There is at most one per Fixture **per Exchange**, and the two are
+independent facts: either, both or neither may exist.
 Three properties matter and none is guessable:
-- **It settles on regulation, we score on extra time.** Kalshi resolves *"after 90
-  minutes plus stoppage time (does not include extra time or penalties)"*, while a
+- **It settles on regulation, we score on extra time.** Both Exchanges resolve on the
+  first 90 minutes plus stoppage time, excluding extra time and penalties, while a
   Fixture's `home_goals`/`away_goals` are the on-pitch result **after extra time**
   (ADR 0012). For a knockout tie that goes past 90 the two disagree about who won —
-  legitimately, about different questions.
+  legitimately, about different questions. This is the one property the two Exchanges
+  share exactly, and it is what makes them comparable at all.
 - **The draw is a contract, not a residual.** It is not `100 − home − away`; it trades
-  on its own, and it carries a Kalshi team UUID like the two clubs do (a constant one,
-  shared across every Winner Market), so it is recognised structurally rather than by
-  matching the word "Tie".
-- **A Team is identified by UUID, never by name.** Kalshi's own names disagree with ours
-  about half the time in ways no canonical comparison reconciles — `Tigres UANL` against
-  `Tigres`, `Guadalajara Chivas` against `Guadalajara`, `Club Tijuana` against `Tijuana
-  de Caliente`. The **Kalshi team registry** is the only bridge, and a Winner Market
-  whose two clubs do not *both* resolve through it is **refused**, never half-attached.
-Which Winner Market belongs to which Fixture is settled by the **local match date** — the
-kickoff in the Publication's display timezone, the same date that fixes a **Match Post**'s
-slug — because Kalshi's ticker is dated locally (a 01:00 UTC kickoff is the previous day's
-market). Kalshi's own `occurrence_datetime` is *not* the kickoff: it equals the expected
-settlement, some hours later, and is a sanity band rather than an anchor.
+  on its own. Kalshi gives it a team UUID like the two clubs (a constant one, shared
+  across every Winner Market); Polymarket gives it no team at all, so it is the leg of
+  a three-leg event that names neither club. Either way it is recognised
+  **structurally**, never by matching the words "Tie" or "Draw".
+- **A Team is identified by the Exchange's own id, never by name.** Three vocabularies
+  disagree and no canonical comparison reconciles them — our `Tigres UANL` is Kalshi's
+  `Tigres` and Polymarket's `Tigres de la UANL`; our `Toluca` is Polymarket's
+  `Deportivo Toluca FC`. The matching **Exchange team registry** is the only bridge,
+  and a Winner Market whose two clubs do not *both* resolve through it is **refused**,
+  never half-attached.
+Which Winner Market belongs to which Fixture is settled differently by each Exchange,
+and the rules are not interchangeable.
+- **Kalshi: the local match date** — the kickoff in the Publication's display timezone,
+  the same date that fixes a **Match Post**'s slug — because Kalshi's ticker is dated
+  locally (a 01:00 UTC kickoff is the previous day's market). Kalshi's own
+  `occurrence_datetime` is *not* the kickoff: it equals the expected settlement, some
+  hours later, and is a sanity band rather than an anchor.
+- **Polymarket: the exact kickoff instant in UTC**, which its `startTime` carries and
+  which matches ours to the minute. Its *slug* is dated too and must not be used — a
+  Polymarket event survives a postponement by design, keeping its birth date in the slug
+  while `startTime` moves, so the two dates routinely disagree. That same rule makes the
+  instant match **more** durable than Kalshi's: a rescheduled Fixture keeps its
+  Polymarket Winner Market and loses its Kalshi one.
+Neither time resolves anything alone — **the time narrows and the registry-resolved team
+pair decides.** Six pairs of Leagues Cup Fixtures kick off at the same instant in a single
+week, so a finer timestamp reads like a stronger key and is not one.
+Polymarket additionally states which club is at home (`ordering`), which Kalshi does not.
+That is a **check, not a source**: a Winner Market whose home side contradicts the
+Fixture's is refused, but the sides are always assigned from the registry.
 A Winner Market is read through two numbers that must not be confused.
-A **Quote** is what Kalshi published for one outcome — bid, ask, last trade, and the
-**volume** behind them — and it is a provider fact, kept verbatim. Volume is the honest
-depth signal (`liquidity` reads `0.0000` on markets with tens of thousands of contracts
-traded, so it says nothing): a 34,197-contract Quote and a 162-contract Quote are not the
-same claim, and a card that renders them alike is lying by omission.
-A **Market Probability** is **ours** — the mid of bid and ask, normalised across the three
-outcomes so they sum to 1. Kalshi never publishes it. The raw mids sum to roughly 1.005–1.025
-(the overround), so the normalisation is what lets three percentages on a card add to 100
-without appearing broken; the Quote is retained beside it so the overround stays auditable.
+A **Quote** is what one **Exchange** published for one outcome — bid, ask, last trade, and
+the **volume** behind them — and it is a provider fact, kept verbatim. Volume is the honest
+depth signal (`liquidity` reads `0.0000` on Kalshi markets with tens of thousands of
+contracts traded, so it says nothing): a 34,197-contract Quote and a 162-contract Quote are
+not the same claim, and a card that renders them alike is lying by omission.
+**Volume is not comparable across Exchanges.** Kalshi counts **contracts** and Polymarket
+counts **dollars traded**, so `139` and `41,814` on the same Fixture are two different
+measurements with no conversion between them. Each is shown in its own units, labelled,
+and never on a shared axis.
+A **Market Probability** is **ours** — the mid of bid and ask, normalised across one
+Exchange's three outcomes so they sum to 1. Neither Exchange publishes it, and it is
+normalised **within** an Exchange and never across the two. The raw mids sum to roughly
+1.005–1.025 on Kalshi but 0.995–1.065 on Polymarket — a sum *below* 1 is ordinary there,
+so "overround" is kept as the name of the figure while no longer describing its sign. The
+normalisation is what lets three percentages on a card add to 100 without appearing
+broken; the Quote is retained beside it so the sum stays auditable.
 Derived, in the same sense as **Age** and a Competition's **continent**.
-_Avoid_: calling a Market Probability a price or an exchange figure (Kalshi never published
-it); reading a Quote's bid as the probability; comparing Market Probabilities across
-Fixtures without regard to volume; calling Kalshi's container an **Event** (that is a goal, card, substitution or VAR
+_Avoid_: calling a Market Probability a price or an exchange figure (neither Exchange
+published it); reading a Quote's bid as the probability; comparing Market Probabilities
+across Fixtures without regard to volume; comparing volume across Exchanges (different
+units); averaging or blending the two Exchanges into one number; calling either
+Exchange's container an **Event** (that is a goal, card, substitution or VAR
 decision in a Fixture — a different provider and a different thing entirely); "the market"
-unqualified (there are a dozen per Fixture); treating the draw as a leftover; matching a
-Winner Market to a Fixture by team name or by UTC date; reading its settlement as our
+unqualified (there are a dozen per Fixture, on each of two Exchanges); treating the draw
+as a leftover; matching a Winner Market to a Fixture by team name, by Polymarket's slug
+date, or by applying one Exchange's date rule to the other; reading its settlement as our
 scoreline.
+
+**Market Track**:
+The ordered hourly series of one **Exchange**'s **Market Probabilities** for one
+**Winner Market**, running from the hour that Exchange listed the Fixture to kickoff.
+There is one per Winner Market, so at most two per Fixture, and they are shown side by
+side and never merged.
+It is **fetched, never stored**. Both Exchanges serve their own history on demand and
+keep serving it after settlement, so nothing here collects, accumulates or backfills
+one; a Market Track has no record, no cadence and no freeze. This is the one fact that
+distinguishes it from every other derived thing in this project, which are all rebuilt
+from a cache we hold.
+What *does* expire is the **pointer**: an Exchange stops listing a market once it
+settles, so for a Fixture already played the Track is built from the identifiers the
+frozen **Match Preview** holds rather than by resolving the Fixture again. The history
+outlives the listing; the way to find it does not.
+It is built to the same rule as the number on the card, so the two are the same
+measurement rather than two takes on it — a Track's last *closed hour* can still trail
+a live Quote by up to an hour, which is lag and not disagreement. Legs are bucketed
+**to the hour** (Kalshi's are hour-aligned already,
+Polymarket's drift by minutes and never share an exact timestamp), and an hour missing
+any of the three legs is a **gap in the line**, not an interpolation. Normalising over
+two of three legs would invent a distribution nobody quoted — the same refusal a live
+Market Probability already makes.
+The two Exchanges' Tracks are not the same length and the difference is structural, not
+a fault: Polymarket lists a Fixture around four weeks out and Kalshi two to five days,
+so a Kalshi Track is routinely hours old beside a Polymarket Track of a month. Both are
+drawn on **one shared time axis** and the interval before an Exchange listed the Fixture
+is marked **not listed**, because when an Exchange began having an opinion is itself
+part of what the pair shows.
+_Avoid_: history, price history (a Market Probability is not a price); candlesticks
+(that is Kalshi's transport, not the concept); chart, graph, series (those are the
+rendering); implying we recorded it; drawing the two on separate axes; carrying a value
+across a gap; comparing a Track's length to another Fixture's as if it meant confidence.
 
 **Match Preview**:
 The card the blog shows for a Fixture that has **not been played yet** — the
@@ -713,8 +799,15 @@ forward-looking counterpart to a **Match Post**, and its opposite in the way tha
 matters most. A Match Post is **authored**: its **Narrative** is written by a model,
 edited by hand, and no re-run recovers the edit. A Match Preview is **derived**: every
 field on it — each Team's position and points in the table, its leading scorer and
-assister, and the market's view of the result — falls out of a rebuild, and losing the
-whole collection costs one run.
+assister, and each **Exchange**'s view of the result — falls out of a rebuild, and losing
+the whole collection costs one run.
+It carries **one Winner Market per Exchange**, side by side and never merged into a
+single set of percentages. The two are independent: either, both or neither may be
+quoted, and a card is complete on **one** of them, because an Exchange that does not
+cover a Competition is a gap nobody can close. Each carries its own read timestamp, and
+each shows its own **volume in its own unit** — a quoted market with nothing traded
+behind it says *no depth* rather than showing blank, because a blank reads as "no
+information" and the truth is the opposite claim.
 There is at most one per Fixture, keyed on the Fixture id exactly as a Match Post is, and
 it exists only for a Fixture kicking off within the next **seven days** whose Competition
 has a **Publication**. A Match Preview carries **no prose**: it is data for a card, and
@@ -728,12 +821,14 @@ not describe.
 It has two states and one transition. **upcoming** — rewritten on every run,
 because table positions, leaders and prices all move. **settled** — the Fixture has
 kicked off; the record is frozen and never rewritten again. The freeze is not
-bookkeeping. A Match Preview's football half stays derivable forever (it is only
-history), but its market half is a **point-in-time** read: nothing rebuilds what the
-market thought an hour before kickoff. So a settled Match Preview is the one record here
-that *starts* derived and stops being so — which is why it is frozen in place rather than
-archived elsewhere. There is no second collection: the lifecycle field is what changes,
-and the record never moves.
+bookkeeping, but not for the reason once given: both **Exchanges** do serve their history
+after settlement, so what the market thought an hour before kickoff *is* recoverable — a
+**Market Track** recovers it. What is not recoverable is the record's meaning. A Winner
+Market's **Quote** does not stop at kickoff; it converges on the result and settles at
+1 and 0. Re-running a settled Fixture would therefore overwrite a **forecast** with an
+**outcome**, both spelled as three percentages, and nothing on the card would show which
+had been stored. The freeze preserves the distinction, not the data. There is no second
+collection: the lifecycle field is what changes, and the record never moves.
 _Avoid_: preview article, prose, copy (a Match Preview carries no writing — that is a
 **Match Post**'s Narrative); old preview, archive (a settled Match Preview does not move
 anywhere); treating an `upcoming` record as durable (it is overwritten on the next run);

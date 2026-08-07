@@ -50,7 +50,8 @@ from football import config as football_config
 from football_blog.kalshi import REGISTRY_FILE
 from football_blog.pocketbase import PocketBaseClient
 
-from .board import list_cards, summary, unmapped_teams
+from .board import (list_cards, market_tracks, summary, unmapped_polymarket_teams,
+                    unmapped_teams)
 
 _HERE = Path(__file__).resolve().parent
 LOG_DIR = _HERE / "logs"
@@ -138,6 +139,8 @@ ACTIONS = {
                [sys.executable, "-m", "football_blog.preview", "--quotes"]),
     "propose": ("Propose Kalshi registry entries",
                 [sys.executable, "-m", "football_blog.kalshi", "--propose"]),
+    "propose_polymarket": ("Propose Polymarket registry entries",
+                           [sys.executable, "-m", "football_blog.polymarket", "--propose"]),
 }
 
 
@@ -179,6 +182,33 @@ def api_unmapped():
     except FileNotFoundError as e:
         return JSONResponse({"error": str(e), "teams": [], "markets_refused": 0},
                             status_code=200)
+
+
+@app.get("/api/unmapped_polymarket")
+def api_unmapped_polymarket():
+    """Polymarket Teams needing a registry entry. Separate endpoint because it hits Gamma."""
+    try:
+        return JSONResponse(unmapped_polymarket_teams())
+    except FileNotFoundError as e:
+        return JSONResponse({"error": str(e), "teams": [], "markets_refused": 0},
+                            status_code=200)
+
+
+@app.get("/api/track/{fixture_id}")
+def api_track(fixture_id: int):
+    """Both Exchanges' **Market Tracks** for one Fixture (ADR 0043).
+
+    Per-Fixture on purpose: six GETs each, so forty cards would be 240 requests. Nothing
+    is stored — the Exchanges keep the history and we re-ask, which is also why this
+    still answers for a settled Match Preview.
+    """
+    pb = PocketBaseClient()
+    try:
+        return JSONResponse(market_tracks(pb, fixture_id))
+    except FileNotFoundError as e:
+        return JSONResponse({"error": str(e)}, status_code=200)
+    finally:
+        pb.close()
 
 
 @app.get("/api/health")

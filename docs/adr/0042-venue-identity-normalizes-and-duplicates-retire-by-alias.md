@@ -76,7 +76,9 @@ exists to prevent.
 - **A merged Venue supplies its id, but not necessarily its name.** In 89 of 129 spelling
   clusters the lowest id holds the *mangled* spelling, so lowest-id-wins would fix the merge
   and visibly degrade the Viewer — `Arena do Gremio`, `Besiktas Park`. The display strings
-  therefore come from the richest spelling in the group (most non-ASCII characters), with an
+  therefore come from the richest spelling in the group — most non-ASCII characters, then
+  the one that is not shouted (`SIGNAL IDUNA PARK` and `Signal Iduna Park` are equally rich,
+  and five Bundesliga grounds turn on it), ties to the lowest id — with an
   optional `display` override on a merge row for the cases the heuristic misses: for
   `Doosan Arena` / `Doosan Aréna` / `Plzeň` it picks the city correctly and the name wrongly,
   since only the city takes the háček. The asymmetry is deliberate — an **id** is

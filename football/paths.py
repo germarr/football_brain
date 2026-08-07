@@ -45,3 +45,7 @@ COMPETITIONS_FILE = REGISTRY_DIR / "competitions.json"
 #: The append-only ``(name, city) -> stable id`` map that gives the same stadium the
 #: same id in every store (ADR 0028).
 VENUES_FILE = REGISTRY_DIR / "venues.json"
+
+#: The Venue merge list: entries judged to be one ground where no rule can decide it
+#: (ADR 0042). Spelling duplicates need no row here — they are derived by the fold.
+VENUE_MERGES_FILE = REGISTRY_DIR / "venue_merges.json"

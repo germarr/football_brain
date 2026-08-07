@@ -12,20 +12,36 @@ keyed on the Fixture id and on nothing else.
 ## Two modes, because the halves have different economics
 
 The football half sits behind a quota-bound **Refresh** and only moves when a Fixture goes
-Final, so `--full` runs nightly. The market half is three unauthenticated GETs and moves
-continuously, so `--quotes` runs hourly and touches only `market`, `market_state` and
-`quote_read_at`. The record carries **two timestamps** because its halves are true as of
+Final, so `--full` runs nightly. The market half is a handful of unauthenticated GETs and
+moves continuously, so `--quotes` runs hourly and touches only the per-**Exchange** market
+fields — `market_kalshi` / `market_polymarket` and their `market_state_*` and
+`quote_read_at_*`. The record carries **two timestamps** because its halves are true as of
 two different moments; one `updated` field would misdate whichever it did not describe.
+
+## Two Exchanges, never merged
+
+A Match Preview carries one **Winner Market** per Exchange (ADR 0043). They are resolved
+independently — Kalshi on the local match date, Polymarket on the exact kickoff instant —
+and a failure on one must not cost the card the other, so the Polymarket half is wrapped
+and degrades to a Kalshi-only card rather than taking the run down. Nothing here averages,
+blends or picks between them: that is the reader's job, and the `/previews` board draws
+both.
 
 ## The freeze
 
 At kickoff a Match Preview stops being rewritten, and `--full` and `--quotes` both run the
-freeze pass before anything else. This is not tidiness: the football half stays derivable
-forever (it is only history), but a **Quote** is a point-in-time read and nothing
-reconstructs what the market thought an hour before kickoff — Kalshi's candlesticks come
-back empty for these series. So the last Quote read before kickoff is the one that stays,
-and `settle_preview` patches `lifecycle` alone so the freeze cannot become an occasion to
-overwrite it.
+freeze pass before anything else. This is not tidiness — but not for the reason once given
+here. Both **Exchanges** serve their history after settlement, so what the market thought
+an hour before kickoff *is* recoverable: `football_blog.track` recovers it, and Kalshi's
+candlesticks return hourly bid/ask OHLC rather than coming back empty (ADR 0043 corrects
+ADR 0040 on this).
+
+What is not recoverable is the record's meaning. A **Quote** does not stop at kickoff; it
+converges on the result and settles at 1 and 0. Re-running a settled Fixture would
+overwrite a *forecast* with an *outcome*, both spelled as three percentages, and nothing
+on the card would say which had been stored. So the last Quote read before kickoff is the
+one that stays, and `settle_preview` patches `lifecycle` alone so the freeze cannot become
+an occasion to overwrite it.
 
 ## What refuses, and what merely thins
 
@@ -47,7 +63,7 @@ from zoneinfo import ZoneInfo
 from football import standings as standings_mod
 from football.status import FINAL
 
-from . import kalshi
+from . import kalshi, polymarket
 from .pocketbase import PocketBaseClient
 from .postgres import get_conn
 
@@ -218,6 +234,29 @@ def _market_block(market: Optional[kalshi.WinnerMarket], reason: str) -> dict:
     }
 
 
+def _polymarket_block(market: Optional[polymarket.WinnerMarket], reason: str) -> dict:
+    """The same shape for the second **Exchange**, and deliberately its own function.
+
+    A shared builder would have to be told which Exchange it is building for, and the
+    two blocks do not carry the same facts: Kalshi's identifiers are a series and an
+    event ticker, Polymarket's is an event slug, and only Polymarket's quotes carry a
+    volume unit (its volume is dollars, Kalshi's is contracts — ADR 0043).
+    """
+    if market is None:
+        return {"state": "absent", "reason": reason, "source": "polymarket"}
+    return {
+        "state": market.state,
+        "source": "polymarket",
+        "league": market.league,
+        "event_slug": market.event_slug,
+        # Polymarket resolves on "the first 90 minutes of regular play plus stoppage
+        # time" — Kalshi's rule word for word, which is what makes the two comparable.
+        "settles_on": "regulation",
+        "overround": market.overround,
+        "outcomes": market.outcomes,
+    }
+
+
 # --------------------------------------------------------------------------- #
 # The run                                                                      #
 # --------------------------------------------------------------------------- #
@@ -292,6 +331,29 @@ def _market_index(registry: kalshi.Registry) -> tuple[dict, list[dict]]:
     return index, unmapped
 
 
+def _polymarket_index(registry: polymarket.Registry) -> tuple[dict, list[dict]]:
+    """`{(team pair, kickoff instant): WinnerMarket}` across every covered league.
+
+    Keyed on the **instant**, where Kalshi's index is keyed on the local match date —
+    two different rules for the same question, which is why the two indexes are built
+    separately and never merged (ADR 0043).
+    """
+    client = polymarket.PolymarketClient()
+    index, unmapped = {}, []
+    try:
+        for league in registry.league_keys:
+            series_slug = registry.series_slug(league)
+            if not series_slug:
+                continue
+            events = client.events(series_slug)
+            idx, un = polymarket.index_by_team_pair(events, league, registry)
+            index.update(idx)
+            unmapped.extend(un)
+    finally:
+        client.close()
+    return index, unmapped
+
+
 def upcoming_fixtures(cur, competition_ids: list[int], now: datetime,
                       days: int = WINDOW_DAYS) -> list[tuple]:
     cur.execute(
@@ -329,6 +391,20 @@ def build(full: bool = True, dry_run: bool = False, publish: bool = True,
         registry = kalshi.load_registry()
         index, unmapped = _market_index(registry)
         counts["unmapped_teams"] = len({u["kalshi_team"] for u in unmapped})
+
+        # The second Exchange is resolved independently and is allowed to fail on its
+        # own: a Polymarket outage must not cost the card its Kalshi half, and the two
+        # Winner Markets are independent facts (CONTEXT.md).
+        pm_registry, pm_index, pm_unmapped = None, {}, []
+        try:
+            pm_registry = polymarket.load_registry()
+            pm_index, pm_unmapped = _polymarket_index(pm_registry)
+            counts["unmapped_teams_polymarket"] = len(
+                {(u["league"], u["polymarket_team"]) for u in pm_unmapped})
+        except FileNotFoundError:
+            log.warning("No Polymarket registry — building Kalshi-only previews.")
+        except Exception as exc:                       # noqa: BLE001 — see above
+            log.warning("Polymarket unavailable (%s) — building Kalshi-only previews.", exc)
 
         conn = get_conn()
         with conn.cursor() as cur:
@@ -406,6 +482,25 @@ def build(full: bool = True, dry_run: bool = False, publish: bool = True,
                 market_block = _market_block(market, reason)
                 counts[f"market_{market_block['state']}"] += 1
 
+                pm_market = (polymarket.attach(home_id, away_id, kickoff_utc, pm_index)
+                             if pm_index else None)
+                if pm_market is not None:
+                    pm_market = polymarket.label_sides(pm_market, home_id, away_id)
+                    pm_reason = ""
+                elif pm_registry is None:
+                    pm_reason = "not_covered"
+                elif not pm_registry.covers(lid):
+                    # Permanent, and nothing a human can close — a different thing from
+                    # a market this Exchange has not opened yet (ADR 0043).
+                    pm_reason = "not_covered"
+                elif any(u["league"] in _pm_leagues_of(pm_registry, lid)
+                         for u in pm_unmapped):
+                    pm_reason = "unmapped_team"
+                else:
+                    pm_reason = "not_listed"
+                pm_block = _polymarket_block(pm_market, pm_reason)
+                counts[f"polymarket_{pm_block['state']}"] += 1
+
                 if not full:
                     if record is None:
                         counts["skipped_no_record"] += 1
@@ -413,10 +508,15 @@ def build(full: bool = True, dry_run: bool = False, publish: bool = True,
                     # Only stamp a read time when something was actually quoted. A
                     # Fixture whose Winner Market is not listed has never been quoted,
                     # and saying so beats dating a read that did not happen — the same
-                    # rule the `--full` payload follows.
-                    payload = {"market": market_block,
-                               "market_state": market_block["state"],
-                               "quote_read_at": now.isoformat() if market else None}
+                    # rule the `--full` payload follows. Each Exchange is stamped
+                    # separately: one may be quoted while the other is not listed.
+                    payload = {"market_kalshi": market_block,
+                               "market_state_kalshi": market_block["state"],
+                               "quote_read_at_kalshi": now.isoformat() if market else None,
+                               "market_polymarket": pm_block,
+                               "market_state_polymarket": pm_block["state"],
+                               "quote_read_at_polymarket":
+                                   now.isoformat() if pm_market else None}
                     if not dry_run:
                         pb.upsert_preview({**payload, "postgres_fixture_id": fid}, record)
                     counts["quotes_updated"] += 1
@@ -454,11 +554,14 @@ def build(full: bool = True, dry_run: bool = False, publish: bool = True,
                     "local_date": kalshi.local_match_date(kickoff_utc, tz).isoformat(),
                     "lifecycle": "upcoming",
                     "football_computed_at": now.isoformat(),
-                    "quote_read_at": now.isoformat() if market else None,
-                    "market_state": market_block["state"],
+                    "quote_read_at_kalshi": now.isoformat() if market else None,
+                    "market_state_kalshi": market_block["state"],
+                    "quote_read_at_polymarket": now.isoformat() if pm_market else None,
+                    "market_state_polymarket": pm_block["state"],
                     "home": home_block,
                     "away": away_block,
-                    "market": market_block,
+                    "market_kalshi": market_block,
+                    "market_polymarket": pm_block,
                 }
                 if not dry_run:
                     pb.upsert_preview(payload, record)
@@ -473,6 +576,17 @@ def _series_of(registry: kalshi.Registry, competition_id: int) -> Optional[str]:
         if comp == competition_id:
             return series
     return None
+
+
+def _pm_leagues_of(registry: polymarket.Registry, competition_id: int) -> set[str]:
+    """Every Polymarket league key mapping to this Competition — usually one.
+
+    A set rather than a value because the mapping is not guaranteed one-to-one: the
+    same Competition could be listed under two league keys, and picking the first
+    would silently ignore refusals in the other.
+    """
+    return {k for k in registry.league_keys
+            if registry.competition_for(k) == competition_id}
 
 
 def main(argv: list[str] | None = None) -> int:

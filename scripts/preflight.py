@@ -42,6 +42,12 @@ def check_registries() -> list[str]:
             "football.config", fromlist=["config"]).COMPETITIONS_FILE),
         ("Venue registry", lambda: __import__(
             "football.build.venues", fromlist=["venues"]).REGISTRY_FILE),
+        # The Venue merge list (ADR 0042) fails the same silent way and worse: `load_merges`
+        # returns `[]` for an absent file, so a merge list at the wrong path does not error —
+        # it quietly *un-merges* every ground it decided, moving ids that are already
+        # published. Checked here for exactly the reason the other three are.
+        ("Venue merge list", lambda: __import__(
+            "football.build.venues", fromlist=["venues"]).MERGES_FILE),
         # The third Registry (ADR 0041). Its own failure is loud — `load_registry` raises
         # rather than returning empty — but it is checked here for the same reason as the
         # other two: a Registry at the wrong path is the class of fault that should stop a

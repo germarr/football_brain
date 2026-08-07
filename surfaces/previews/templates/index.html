@@ -48,6 +48,22 @@
   .bit.no{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
   .vol{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 
+  /* One row per Exchange. The three probability columns line up with the three
+     team rows above, so a column is an outcome and a row is an Exchange. */
+  table.xrows{width:100%;border-collapse:collapse;font-size:12px;
+    font-variant-numeric:tabular-nums}
+  table.xrows td{padding:2px 0;text-align:right}
+  table.xrows td.ex{text-align:left;color:var(--muted);font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.04em;font-weight:700;width:34%}
+  table.xrows td.dep{text-align:right;color:var(--muted);font-size:10.5px;
+    padding-left:8px}
+  table.xrows tr.quiet td{color:var(--muted)}
+  /* A quoted row with no depth behind it: the percentages are real but nothing
+     traded, so they are shown recessed rather than as confidently as a deep book. */
+  table.xrows td.nodepth{font-style:italic;opacity:.75}
+  table.xrows tr:has(td.nodepth) td:not(.ex){color:var(--muted);font-weight:600}
+  table.xrows tr:not(.quiet) td:not(.ex):not(.dep){font-weight:700;color:var(--accent)}
+
   .btn{background:var(--accent);color:#fff;padding:6px 12px;font-size:12.5px;
     border:none;border-radius:8px;font-weight:640;cursor:pointer;font-family:var(--sans)}
   .btn.ghost{background:transparent;color:var(--accent);
@@ -60,6 +76,43 @@
   table.unmapped td{padding:6px 8px;border-bottom:1px solid var(--line)}
   table.unmapped code{font-size:11.5px;color:var(--muted)}
   .loading{font-size:12.5px;color:var(--muted)}
+
+  /* ---- Market Tracks (ADR 0043) -------------------------------------------
+     Categorical slots 1–3 of the reference palette, validated against this
+     surface in both modes (worst adjacent CVD ΔE 9.2 light / 9.4 dark). Aqua
+     sits at 2.82:1 on the light panel, so every line is *directly labelled* —
+     the relief rule, not a decoration. */
+  .viz{ --s-home:#2a78d6; --s-draw:#eb6834; --s-away:#1baf7a;
+        --grid:#e4e7ec; --axis:#5b6572; }
+  @media (prefers-color-scheme:dark){
+    .viz{ --s-home:#3987e5; --s-draw:#d95926; --s-away:#199e70;
+          --grid:#283040; --axis:#9aa4b2; } }
+
+  #tracks{position:fixed;inset:0;background:rgba(8,11,16,.55);z-index:20;
+    display:none;align-items:center;justify-content:center;padding:24px}
+  #tracks.on{display:flex}
+  .tk{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    width:min(1080px,100%);max-height:90vh;overflow:auto;padding:18px 20px 22px}
+  .tk h3{margin:0 0 2px;font-size:16px}
+  .tk .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+  .panel h4{margin:0 0 1px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);font-weight:700}
+  .panel .meta{font-size:11.5px;color:var(--muted);margin-bottom:6px;
+    font-variant-numeric:tabular-nums}
+  .panel svg{width:100%;height:auto;display:block;overflow:visible}
+  .panel .read{font-size:11.5px;color:var(--muted);min-height:17px;margin-top:4px;
+    font-variant-numeric:tabular-nums}
+  .panel .read b{color:var(--ink);font-weight:640}
+  .panel .read span{font-weight:640}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);
+    margin-top:6px}
+  .legend i{width:12px;height:2.5px;border-radius:2px;display:inline-block;
+    vertical-align:middle;margin-right:5px}
+  .empty{display:flex;align-items:center;justify-content:center;min-height:150px;
+    border:1px dashed var(--line);border-radius:10px;font-size:12.5px;color:var(--muted);
+    text-align:center;padding:14px;line-height:1.5}
+  .tkclose{position:sticky;top:0;float:right}
 
   #log{position:fixed;left:0;right:0;bottom:0;max-height:46vh;overflow:auto;
     background:#0b0f14;color:#d7e3f4;font-family:var(--mono,ui-monospace,monospace);
@@ -96,6 +149,14 @@
   </section>
 
   <section>
+    <h2>Unmapped Polymarket Teams</h2>
+    {# Same gap, other Exchange — but the unit differs. A Polymarket team id is per
+       *league*, not per club (CF Monterrey is 115320 in mex and 3268366 in lec), so a
+       row here is a club unmapped in one league and possibly mapped in another (ADR 0043). #}
+    <div id="unmapped-pm"><p class="loading">Checking Polymarket…</p></div>
+  </section>
+
+  <section>
     <h2>Next seven days</h2>
     {% if not cards %}
       <p class="note">Nothing scheduled in the window for a published Publication.</p>
@@ -113,45 +174,72 @@
           <div class="side">
             {% if c.home_logo %}<img src="{{ c.home_logo }}" alt="">{% endif %}
             <span>{{ c.home_name }}</span>
-            {% if c.home_probability is not none %}
-              <span class="p">{{ '%.0f'|format(c.home_probability * 100) }}%</span>{% endif %}
           </div>
-          {% if c.draw_probability is not none %}
-          <div class="side drawrow">
-            <span>Draw</span>
-            <span class="p">{{ '%.0f'|format(c.draw_probability * 100) }}%</span>
-          </div>
-          {% endif %}
+          <div class="side drawrow"><span>Draw</span></div>
           <div class="side">
             {% if c.away_logo %}<img src="{{ c.away_logo }}" alt="">{% endif %}
             <span>{{ c.away_name }}</span>
-            {% if c.away_probability is not none %}
-              <span class="p">{{ '%.0f'|format(c.away_probability * 100) }}%</span>{% endif %}
           </div>
         </div>
 
-        {% if c.market_volume %}
-        {# Depth, because a 34,197-contract Quote and a 162-contract one are not the same
-           claim and a card that renders them alike is lying by omission (CONTEXT.md). #}
-        <div class="vol">{{ '{:,.0f}'.format(c.market_volume) }} contracts traded</div>
-        {% endif %}
+        {# One row per **Exchange**, always both, always in the same order — never
+           merged into a single set of percentages and never averaged (ADR 0043).
+           Volume is labelled with its unit because Kalshi counts contracts and
+           Polymarket counts dollars, and rendering them alike is lying by omission. #}
+        <table class="xrows">
+          {% for m in c.exchanges %}
+          <tr class="{{ 'quiet' if m.state != 'quoted' }}">
+            <td class="ex">{{ m.exchange }}</td>
+            {% if m.state == 'quoted' %}
+              <td>{{ '%.0f'|format(m.home * 100) }}%</td>
+              <td>{{ '%.0f'|format(m.draw * 100) }}%</td>
+              <td>{{ '%.0f'|format(m.away * 100) }}%</td>
+              {# A blank depth reads as "no information" when it means "no depth", and
+                 the two are opposite claims. Every divergence above 10 percentage
+                 points between the Exchanges today sits on an untraded book, so the
+                 zero is said out loud (CONTEXT.md: volume is the honest depth signal). #}
+              <td class="dep{% if not m.volume %} nodepth{% endif %}">
+                {%- if not m.volume -%}
+                  no depth
+                {%- elif m.volume_unit == 'usd' -%}
+                  ${{ '{:,.0f}'.format(m.volume) }}
+                {%- else -%}
+                  {{ '{:,.0f}'.format(m.volume) }} contracts
+                {%- endif -%}
+              </td>
+            {% else %}
+              <td colspan="4" class="dep">{{ m.reason or m.state or 'no market' }}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </table>
 
         <div class="bits">
           {% if c.present %}
             <span class="bit {% if c.has_table %}ok{% else %}no{% endif %}">table</span>
             <span class="bit {% if c.has_leaders %}ok{% else %}no{% endif %}">leaders</span>
             <span class="bit {% if c.has_market %}ok{% else %}no{% endif %}">
-              {%- if c.has_market %}market{% else %}{{ c.market_reason or c.market_state or 'no market' }}{% endif -%}
+              {%- if c.has_market %}market{% else %}no market{% endif -%}
             </span>
           {% else %}
             <span class="bit no">not built</span>
           {% endif %}
+          {# Six GETs, so it is asked for per Fixture rather than carried by every card
+             (ADR 0043). Works on a settled Preview too: the Exchanges keep the history. #}
+          <button class="btn ghost" style="margin-left:auto;padding:2px 9px;font-size:11px"
+                  data-track="{{ c.fixture_id }}">Tracks</button>
         </div>
       </article>
       {% endfor %}
     </div>
   </section>
 </main>
+
+<div id="tracks"><div class="tk">
+  <button class="btn ghost tkclose" id="tkclose">close</button>
+  <h3 id="tktitle"></h3><div class="sub" id="tksub"></div>
+  <div class="panels viz" id="tkpanels"></div>
+</div></div>
 
 <div id="log"><div class="hd"><strong id="logtitle"></strong>
   <span id="logstatus"></span><span style="margin-left:auto"></span>
@@ -194,6 +282,37 @@ async function loadUnmapped(){
   }
 }
 
+async function loadUnmappedPolymarket(){
+  const box = document.getElementById('unmapped-pm');
+  try{
+    const r = await fetch(BASE + '/api/unmapped_polymarket');
+    const d = await r.json();
+    if (d.error){ box.innerHTML = '<p class="note">' + esc(d.error) + '</p>'; return; }
+    if (!d.teams.length){
+      box.innerHTML = '<p class="note">Every Polymarket Team in the open markets ' +
+        'resolves through the registry. Nothing to map.</p>';
+      return;
+    }
+    let h = '<p class="note"><strong>' + d.teams.length + ' Team(s)</strong> have no ' +
+      'registry entry, so <strong>' + d.markets_refused + '</strong> Winner Market(s) are ' +
+      'refused rather than half-attached. A row is a club unmapped <em>in one league</em> — ' +
+      'a Polymarket team id is per league, not per club.</p>' +
+      '<table class="unmapped"><thead><tr><th>Polymarket name</th><th>Key</th>' +
+      '<th>League</th><th>Markets</th></tr></thead><tbody>';
+    for (const t of d.teams){
+      h += '<tr><td><strong>' + esc(t.polymarket_name || '—') + '</strong></td>' +
+           '<td><code>' + esc(t.key) + '</code></td>' +
+           '<td>' + esc(t.league) + '</td><td>' + t.events + '</td></tr>';
+    }
+    h += '</tbody></table><p style="margin-top:12px">' +
+      '<button class="btn" data-action="propose_polymarket">Propose registry entries' +
+      '</button></p>';
+    box.innerHTML = h;
+  }catch(e){
+    box.innerHTML = '<p class="note">Could not reach Polymarket: ' + esc(String(e)) + '</p>';
+  }
+}
+
 async function run(action, label){
   const log = document.getElementById('log');
   document.getElementById('logtitle').textContent = label;
@@ -221,7 +340,220 @@ async function run(action, label){
   };
 }
 
+/* ---- Market Tracks -------------------------------------------------------
+   Two panels, one per Exchange, on ONE shared axis. The axes are shared
+   deliberately: the two Tracks are routinely 190x different in span, and drawing
+   a month-long drift and a four-hour wobble at the same width invites the false
+   read the glossary forbids for volume (ADR 0043). The span before an Exchange
+   listed the Fixture is drawn as a hatched "not listed" region — absence, said
+   out loud, rather than blank space. */
+const SIDES = [['home','--s-home'], ['draw','--s-draw'], ['away','--s-away']];
+const W = 470, H = 190, PAD = {t:14, r:52, b:26, l:34};
+
+function fmtDay(ts){
+  return new Date(ts*1000).toLocaleDateString(undefined,
+    {day:'2-digit', month:'short', timeZone:'UTC'});
+}
+
+function yScale(pair){
+  // One y range across BOTH panels — a per-panel scale would make two different
+  // pictures of the same number. The step is chosen from a round set so the axis
+  // reads 20/30/40%, not 15/29/42%: an unreadable tick is a defect, not a detail.
+  let lo = 1, hi = 0;
+  for (const tr of [pair.kalshi, pair.polymarket])
+    for (const p of tr.points)
+      for (const [s] of SIDES){ lo = Math.min(lo, p[s]); hi = Math.max(hi, p[s]); }
+  if (hi <= lo) return [0, 1, 0.25];
+  for (const step of [0.05, 0.1, 0.2, 0.25]){
+    const a = Math.floor(lo/step)*step, b = Math.ceil(hi/step)*step;
+    if (Math.round((b-a)/step) <= 5)
+      return [Math.max(0, a), Math.min(1, b), step];
+  }
+  return [0, 1, 0.25];
+}
+
+function panel(tr, pair, yr){
+  const label = tr.exchange === 'kalshi' ? 'Kalshi' : 'Polymarket';
+  const REASON = {
+    not_covered: 'This Exchange does not list this Competition at all. Permanent — ' +
+                 'nothing to map, nothing to wait for.',
+    not_listed:  'This Exchange has not opened a Winner Market for this Fixture yet.',
+    unmapped:    'A club here has no entry in this Exchange’s registry, so the ' +
+                 'Winner Market is refused rather than half-attached.',
+  };
+  if (!tr.points.length){
+    return '<div class="panel"><h4>' + label + '</h4><div class="meta">' +
+      esc(tr.state.replace('_',' ')) + '</div><div class="empty">' +
+      esc(REASON[tr.state] || 'No Market Track.') + '</div></div>';
+  }
+
+  const t0 = pair.t_from, t1 = pair.t_to;
+  const x = t => PAD.l + (t1===t0 ? 0 : (t-t0)/(t1-t0)) * (W-PAD.l-PAD.r);
+  const y = v => PAD.t + (1 - (v-yr[0])/(yr[1]-yr[0])) * (H-PAD.t-PAD.b);
+
+  let s = '<div class="panel"><h4>' + label + '</h4>' +
+    '<div class="meta">' + tr.points.length + ' hourly points · spans ' +
+    tr.span_hours + 'h' + (tr.gaps ? ' · ' + tr.gaps + ' gap' + (tr.gaps>1?'s':'') : '') +
+    '</div><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+    label + ' Market Track">';
+
+  // Recessive grid on round steps, labelled in percent.
+  for (let v = yr[0]; v <= yr[1] + 1e-9; v += yr[2]){
+    const yy = y(v);
+    s += '<line x1="'+PAD.l+'" x2="'+(W-PAD.r)+'" y1="'+yy+'" y2="'+yy+
+         '" stroke="var(--grid)" stroke-width="1"/>' +
+         '<text x="'+(PAD.l-6)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9.5" ' +
+         'fill="var(--axis)">'+Math.round(v*100)+'%</text>';
+  }
+
+  // "not listed" — the interval before this Exchange had any opinion.
+  if (tr.listed_from > t0){
+    const xw = x(tr.listed_from) - PAD.l;
+    s += '<defs><pattern id="h'+tr.exchange+'" width="6" height="6" ' +
+         'patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+         '<line x1="0" y1="0" x2="0" y2="6" stroke="var(--grid)" stroke-width="2"/>' +
+         '</pattern></defs>' +
+         '<rect x="'+PAD.l+'" y="'+PAD.t+'" width="'+xw+'" height="'+(H-PAD.t-PAD.b)+
+         '" fill="url(#h'+tr.exchange+')" opacity=".8"/>';
+    if (xw > 54)
+      s += '<text x="'+(PAD.l+xw/2)+'" y="'+(PAD.t+(H-PAD.t-PAD.b)/2)+
+           '" text-anchor="middle" font-size="9.5" fill="var(--axis)">not listed</text>';
+  }
+
+  // One 2px path per side, broken wherever an hour is missing — a gap is never
+  // bridged, because carrying a value across it draws a probability nobody quoted.
+  for (const [side, varname] of SIDES){
+    let d = '', prev = null;
+    for (const p of tr.points){
+      d += (prev === null || p.t - prev > 3600 ? 'M' : 'L') + x(p.t).toFixed(1) +
+           ' ' + y(p[side]).toFixed(1) + ' ';
+      prev = p.t;
+    }
+    const last = tr.points[tr.points.length-1];
+    s += '<path d="'+d.trim()+'" fill="none" stroke="var('+varname+')" ' +
+         'stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+         // Direct label: required relief for the light-mode contrast WARN, and
+         // it means identity is never carried by colour alone.
+         '<text x="'+(x(last.t)+6)+'" y="'+(y(last[side])+3.5)+'" font-size="10" ' +
+         'font-weight="640" fill="var('+varname+')">'+Math.round(last[side]*100)+'%</text>';
+  }
+
+  // Kickoff, and the two ends of the shared axis.
+  if (pair.kickoff && pair.kickoff <= t1){
+    const kx = x(pair.kickoff);
+    s += '<line x1="'+kx+'" x2="'+kx+'" y1="'+PAD.t+'" y2="'+(H-PAD.b)+
+         '" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3"/>';
+  }
+  s += '<line x1="'+PAD.l+'" x2="'+(W-PAD.r)+'" y1="'+(H-PAD.b)+'" y2="'+(H-PAD.b)+
+       '" stroke="var(--grid)" stroke-width="1"/>' +
+       '<text x="'+PAD.l+'" y="'+(H-PAD.b+13)+'" font-size="9.5" fill="var(--axis)">' +
+       fmtDay(t0)+'</text>' +
+       '<text x="'+(W-PAD.r)+'" y="'+(H-PAD.b+13)+'" text-anchor="end" font-size="9.5" ' +
+       'fill="var(--axis)">kickoff</text>' +
+       // Crosshair, driven by whichever panel the pointer is over. Both panels
+       // share the axis, so both move together — reading the two Exchanges at one
+       // instant is the entire question this page is here to answer.
+       '<g class="xh" style="display:none"><line class="xhl" y1="'+PAD.t+'" y2="'+(H-PAD.b)+
+       '" stroke="var(--axis)" stroke-width="1"/>' +
+       SIDES.map(([,v]) => '<circle class="xhd" r="3.5" fill="var('+v+')" ' +
+         'stroke="var(--panel)" stroke-width="2"/>').join('') + '</g>' +
+       '<rect class="hit" x="'+PAD.l+'" y="'+PAD.t+'" width="'+(W-PAD.l-PAD.r)+
+       '" height="'+(H-PAD.t-PAD.b)+'" fill="transparent" style="cursor:crosshair"/>' +
+       '</svg><div class="read" data-ex="'+tr.exchange+'"></div></div>';
+  return s;
+}
+
+function wireHover(pair, yr){
+  const root = document.getElementById('tkpanels');
+  const t0 = pair.t_from, t1 = pair.t_to;
+  const x = t => PAD.l + (t1===t0 ? 0 : (t-t0)/(t1-t0)) * (W-PAD.l-PAD.r);
+  const y = v => PAD.t + (1 - (v-yr[0])/(yr[1]-yr[0])) * (H-PAD.t-PAD.b);
+  const tracks = {kalshi: pair.kalshi, polymarket: pair.polymarket};
+
+  const nearest = (tr, t) => {
+    if (!tr.points.length) return null;
+    let best = tr.points[0];
+    for (const p of tr.points) if (Math.abs(p.t-t) < Math.abs(best.t-t)) best = p;
+    // Beyond an hour from any sample there is nothing to report — a gap reads as
+    // a gap rather than snapping to a value from the other side of it.
+    return Math.abs(best.t - t) <= 3600 ? best : null;
+  };
+
+  const move = (ev) => {
+    const svg = ev.currentTarget.ownerSVGElement;
+    const box = svg.getBoundingClientRect();
+    const px = PAD.l + (ev.clientX - box.left) / box.width * W - PAD.l;
+    const frac = Math.min(1, Math.max(0, px / (W-PAD.l-PAD.r)));
+    const t = t0 + frac * (t1-t0);
+    for (const panel of root.querySelectorAll('.panel')){
+      const g = panel.querySelector('.xh');
+      const read = panel.querySelector('.read');
+      if (!g || !read) continue;
+      const p = nearest(tracks[read.dataset.ex], t);
+      if (!p){ g.style.display='none'; read.textContent=''; continue; }
+      g.style.display = '';
+      g.querySelector('.xhl').setAttribute('x1', x(p.t));
+      g.querySelector('.xhl').setAttribute('x2', x(p.t));
+      g.querySelectorAll('.xhd').forEach((c, i) => {
+        c.setAttribute('cx', x(p.t)); c.setAttribute('cy', y(p[SIDES[i][0]]));
+      });
+      read.innerHTML = '<b>' + new Date(p.t*1000).toUTCString().slice(5,22) + ' UTC</b> · ' +
+        SIDES.map(([sd,v]) => '<span style="color:var('+v+')">' + sd + ' ' +
+          (p[sd]*100).toFixed(1) + '%</span>').join(' · ');
+    }
+  };
+  const leave = () => root.querySelectorAll('.panel').forEach(p => {
+    const g = p.querySelector('.xh'), r = p.querySelector('.read');
+    if (g) g.style.display='none';
+    if (r) r.textContent='';
+  });
+
+  root.querySelectorAll('.hit').forEach(h => {
+    h.addEventListener('mousemove', move);
+    h.addEventListener('mouseleave', leave);
+  });
+}
+
+async function showTracks(fixtureId, title){
+  const box = document.getElementById('tracks');
+  document.getElementById('tktitle').textContent = title;
+  document.getElementById('tksub').textContent = 'Fetching both Exchanges…';
+  document.getElementById('tkpanels').innerHTML = '';
+  box.classList.add('on');
+  try{
+    const d = await (await fetch(BASE + '/api/track/' + fixtureId)).json();
+    if (d.error){ document.getElementById('tksub').textContent = d.error; return; }
+    document.getElementById('tktitle').textContent = d.home_name + ' v ' + d.away_name;
+    document.getElementById('tksub').textContent =
+      'Kickoff ' + new Date(d.kickoff_iso).toUTCString().slice(0,22) + ' UTC · ' +
+      'Market Probability, hour by hour · fetched from each Exchange, never stored';
+    const yr = yScale(d);
+    document.getElementById('tkpanels').innerHTML =
+      panel(d.kalshi, d, yr) + panel(d.polymarket, d, yr) +
+      '<div class="legend" style="grid-column:1/-1">' +
+      SIDES.map(([s,v]) => '<span><i style="background:var('+v+')"></i>' + s + '</span>').join('') +
+      '<span style="margin-left:auto">shared axis · hatching marks the span before ' +
+      'an Exchange listed this Fixture</span></div>';
+    wireHover(d, yr);
+  }catch(e){
+    document.getElementById('tksub').textContent = 'Could not reach an Exchange: ' + e;
+  }
+}
+
+document.getElementById('tkclose').onclick = () =>
+  document.getElementById('tracks').classList.remove('on');
+document.getElementById('tracks').addEventListener('click', (e) => {
+  if (e.target.id === 'tracks') e.currentTarget.classList.remove('on');
+});
+
 document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-track]');
+  if (t){
+    const card = t.closest('.card');
+    showTracks(t.dataset.track,
+      card.querySelectorAll('.side span')[0].textContent.trim());
+    return;
+  }
   const b = e.target.closest('[data-action]');
   if (!b) return;
   run(b.dataset.action, b.textContent.trim());
@@ -230,6 +562,7 @@ document.getElementById('logclose').onclick = () =>
   document.getElementById('log').classList.remove('on');
 
 loadUnmapped();
+loadUnmappedPolymarket();
 </script>
 </body>
 </html>
