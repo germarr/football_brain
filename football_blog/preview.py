@@ -222,14 +222,14 @@ def _market_block(market: Optional[kalshi.WinnerMarket], reason: str) -> dict:
 # The run                                                                      #
 # --------------------------------------------------------------------------- #
 def _publications(pb: PocketBaseClient) -> dict[int, dict]:
-    """Published Publications only, by Competition.
+    """Published Publications only, by Competition (ADR 0040).
 
-    Deliberately unlike `candidates.py`, which passes `only_published=False`. The Desk's
-    board is an internal work list where the gate is irrelevant; this feed is read by the
-    public site, where the gate is the entire point (ADR 0040).
+    Thin alias for the client method, which is where the definition now lives — the Match
+    Bundle builder needs the same set for the same reason, and two copies of "which
+    Competitions are public" is exactly the kind of agreeing-until-it-doesn't duplication
+    `football/status.py` was written to end.
     """
-    return {int(p["postgres_competition_id"]): p
-            for p in pb.list_publications(only_published=True)}
+    return pb.published_publications()
 
 
 def refresh_published_store(pb: PocketBaseClient) -> list[int]:

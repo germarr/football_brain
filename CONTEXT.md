@@ -570,10 +570,14 @@ derived**, and so the only one with a half that has no rebuild path: there is no
 re-parse that reconstructs a Narrative and no raw cache behind it. Losing it loses the
 writing.
 It is not *wholly* authored, and the split is **per-collection, not per-store**: it also
-carries **Match Previews**, which are derived, rewritten on every run, and cost one
-rebuild to lose. So "back this up" is true of the store while "cannot be regenerated" is
-true only of its authored half — and a **settled** Match Preview sits between the two
+carries **Match Previews**, **Match Bundles** and **Fixture Rows**, all derived, rewritten
+on every run, and costing one rebuild to lose. So "back this up" is true of the store while
+"cannot be regenerated" is true only of its authored half — a fraction that has got smaller
+with every feature added to it — and a **settled** Match Preview sits between the two
 (derived, but frozen around a market read no rebuild recovers).
+Since ADR 0044 it is also the **only** store the blog reads. The facts a post page renders
+used to come straight from the **Published Store** over a Postgres driver that cannot run
+on the site's edge runtime; they are now copied here.
 It is also the only **co-tenanted** store: the same instance serves a personal site
 whose `posts`, `pages`, `projects`, `profile` and `users` collections are nothing to
 do with football. The pipeline never reads or writes those, but they share one
@@ -735,6 +739,44 @@ _Avoid_: preview article, prose, copy (a Match Preview carries no writing — th
 anywhere); treating an `upcoming` record as durable (it is overwritten on the next run);
 expecting a settled one to be refreshed or re-derived; keying it on anything but the
 Fixture id.
+
+**Match Bundle**:
+Everything the blog needs to **render one played Fixture**: the Fixture itself, its event
+timeline, both squads, the team match stats, both **Team Profiles**, the **Venue**, every
+**Player** named anywhere in it, and each side's last five results. One per Fixture, keyed
+on the Fixture id, held in the **Editorial Store** and **derived** — it is a copy of what
+the **Published Store** already holds, made because the blog cannot reach that store from
+its edge runtime (ADR 0044).
+There is one **only for a Fixture that has a Match Post**, and that scoping is the whole
+design, not an optimisation. A bundle is ~30 KB; the Published Store holds ~9,500 Fixtures
+against ~40 Match Posts, and the only page that renders a bundle is a post page. So a Match
+Bundle answers *"render this Fixture"* and cannot answer *"which Fixtures?"* — that is a
+**Fixture Row**'s question, and asking it here returns a short answer rather than an error.
+Its last-five strips are **stored rather than queried**, for the same reason: recent form is
+the one thing that reads arbitrary past Fixtures, and answering it by query is precisely
+what would have required every Fixture to have a bundle.
+_Avoid_: match data, payload, blob; treating it as a store of record (the **Published
+Store** is that — a Match Bundle is a copy, and losing every one costs a rebuild); filtering
+it by date or by team; expecting one for a Fixture with no Match Post; expecting it to carry
+**Commentary Lines** (those are drafting input and are stripped on the way out).
+
+**Fixture Row**:
+One Fixture as it appears **in a list** rather than on its own page: two crests, two names,
+a kickoff, a status, a score. What the blog's persistent ribbon and its upcoming-week table
+draw. Derived, held in the **Editorial Store**, keyed on the Fixture id, and about 300 bytes
+(ADR 0044).
+It is a **window, not an archive** — roughly −3 to +14 days around the run — and the pass
+that writes it **deletes what has fallen out**. So absence means "outside the window", never
+"no such Fixture". This matters more than it sounds: a skipped delete raises nothing and
+produces no wrong number, it just grows the collection into the full-history table the
+split with **Match Bundle** exists to avoid.
+It carries no live minute, because nothing could fill one: the Published Store has no live
+timeline and its scores move only on the nightly **Refresh**, while the **Live Mirror** that
+does hold in-progress data is published nowhere.
+_Avoid_: fixture (that is the thing itself; a Fixture Row is one denormalised view of it);
+today's fixtures, scoreboard (the window is wider than a day and includes played matches);
+reading its `computed_at` as the age of the *score* (it is the age of the copy); expecting
+it to hold a timeline, a squad or stats.
 
 **Team Leaders**:
 A Team's leading scorer and leading assister as a **Match Preview** carries them —

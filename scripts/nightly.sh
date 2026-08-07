@@ -52,3 +52,14 @@ VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE
 # have their own hourly crontab entry; a nightly-only price would be presented as current
 # while being up to a day old.
 "$PY" -m football_blog.preview --full >> refresh/logs/preview-cron.out 2>&1
+
+# The **Match Bundle** behind every Match Post — the rendering facts the blog used to read
+# straight out of Postgres (ADR 0044). After `preview --full`, and that order is not
+# cosmetic: preview's `refresh_published_store()` is the only thing on any schedule that
+# actually delta-publishes the Publications' Competitions, so running this first would
+# bundle yesterday's store.
+#
+# The **Fixture Row** window is NOT here. It is a cheap copy that reflects whatever the
+# store holds, and its consumers — the ribbon on every page, the homepage's upcoming
+# table — want it more often than once a night, so it has its own crontab entry.
+"$PY" -m football_blog.bundle --bundles >> refresh/logs/bundle-cron.out 2>&1

@@ -360,6 +360,44 @@ COMMANDS: list[Command] = [
     ),
 
     Command(
+        key="bundle", group="Refresh", title="Build the blog's read-feeds",
+        module="football_blog.bundle",
+        summary="Copy the facts the blog renders from the Published Store into the Editorial Store.",
+        detail="The blog used to read these straight out of Postgres, which is what kept "
+               "it off Cloudflare Workers (ADR 0044). Two feeds, two shapes. A MATCH "
+               "BUNDLE is the full rendering payload for one played Fixture — timeline, "
+               "both squads, team stats, profiles, Venue, every Player named in it, and "
+               "each side's last five results — and exists only for a Fixture that has a "
+               "Match Post, because a post page is the only thing that renders one. A "
+               "FIXTURE ROW is the narrow card the ribbon and the upcoming-week table "
+               "draw, over a moving window of roughly -3 to +14 days; that pass also "
+               "DELETES what has left the window. Both are DERIVED, so re-running is "
+               "always safe. Neither delta-publishes: run the Match Previews first, or "
+               "let the nightly do it, since that is what pushes a re-dated Fixture to "
+               "the Published Store.",
+        example="Tick Fixture rows to refresh the ribbon — a second, ~94 rows, no quota; "
+                "that is what the quarter-hourly cron runs. Leave it unticked to rebuild "
+                "every Match Bundle, which is what the nightly does after the Previews. "
+                "Note what this CANNOT do: in-progress scores. The Published Store has "
+                "no live timeline and its scores only move on the nightly Refresh, so "
+                "running this more often re-copies identical rows.",
+        scope="Match Bundles: every Match Post · Fixture Rows: -3 to +14 days",
+        network=True,
+        params=[
+            Param("rows", "Fixture rows only (the frequent pass)", "bool", "--rows",
+                  help="Refresh the ribbon's moving window and nothing else — leaves "
+                       "every Match Bundle untouched. Cheap: one Postgres SELECT and a "
+                       "PocketBase upsert per row, no API-Football quota."),
+            Param("bundles", "Match Bundles (the nightly pass)", "bool", "--bundles",
+                  help="Rebuild the full rendering payload for every Fixture that has a "
+                       "Match Post. Pick exactly one of this and Fixture rows."),
+            Param("dry_run", "Dry run (write nothing)", "bool", "--dry-run",
+                  help="Assemble everything and report the tallies without touching the "
+                       "Editorial Store."),
+        ],
+    ),
+
+    Command(
         key="onboard_blog", group="Onboard", title="Onboard a Competition to the blog",
         module="football_blog.onboard",
         summary="Publish a Competition to the Published Store, verify it, and create its Publication.",

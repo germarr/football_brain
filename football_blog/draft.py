@@ -87,6 +87,9 @@ from typing import Optional
 from anthropic import Anthropic
 
 from . import FINAL_STATUSES
+# Aliased: `bundle` is taken throughout this module by the local FullFixture variable,
+# and a shadowed module import fails at the call, not at the import.
+from . import bundle as bundle_mod
 from .config import require_env
 from .loader import load_post_bundles
 from .pocketbase import PocketBaseClient
@@ -192,7 +195,7 @@ def draft_fixture(
 
     post_slug = fixture_slug(home_slug, away_slug, bundle.fixture.date, tz)
 
-    return pb.upsert_post({
+    record = pb.upsert_post({
         "postgres_fixture_id": fixture_id,
         "publication": publication["id"],
         "slug": post_slug,
@@ -211,6 +214,26 @@ def draft_fixture(
         "author": "Gerardo M.",
         "published_at": None,
     })
+
+    # The Match Bundle this post renders from (ADR 0044). Written here rather than left
+    # to the nightly pass because a post without one renders an empty page, and the gap
+    # would sit until 04:00 — long enough for the operator who just drafted it to open
+    # it, see nothing, and conclude the drafter failed.
+    #
+    # After the post, not before: a bundle for a post that was never written is an orphan
+    # nothing cleans up, while a post without a bundle is a gap the nightly pass closes.
+    # And wrapped, because the two halves are worth very different amounts — the
+    # Narrative cost a model call and, where `instruction` was given, an operator's steer
+    # that nothing reconstructs; the bundle costs one rebuild. A failure here must not
+    # take the post down with it.
+    try:
+        bundle_mod.build_bundles(pb, [fixture_id])
+    except Exception as exc:                       # noqa: BLE001 — see above
+        log.warning("draft_fixture: Match Post %s written, but its Match Bundle failed "
+                    "(%s). The nightly --bundles pass will close the gap.",
+                    fixture_id, exc)
+
+    return record
 
 
 # --------------------------------------------------------------------------- #
