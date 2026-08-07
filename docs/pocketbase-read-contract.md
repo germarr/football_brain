@@ -15,8 +15,9 @@ regenerate them.
 
 - Collections: `docs/adr/0044-the-blog-reads-one-store.md` for *why* this shape
 - Glossary: **Match Bundle**, **Fixture Row**, **Editorial Store** in `CONTEXT.md`
-- Schema source: `pb_migrations/*_created_match_bundle.js` / `*_created_fixture_row.js`
-  in the `personal_site` repo
+- Schema: `football_blog/migrations/` — the two migrations defining these collections,
+  with a README on why they are copies and `tests/test_pocketbase_schema.py` checking
+  them against the live instance. PocketBase itself reads `personal_site`'s copy
 
 ---
 
@@ -395,9 +396,11 @@ work, and its own ADR.
 - The **Published Store** remains the store of record. A Match Bundle is a copy, and
   losing every one of them costs a rebuild.
 
-⚠ The two collections were created by migrations in the `personal_site` repo, which
-currently has **no commits at all** — every file there is untracked, so the schema is not
-versioned anywhere yet.
+The two collections are defined by migrations that now live in **both** repos:
+`football_blog/migrations/` here (the copy, with the README explaining why) and
+`personal_site/pocketbase/pb_migrations/` (the one PocketBase actually reads and applies).
+Edit there, then copy back — `tests/test_pocketbase_schema.py` fails if they drift, or if
+either drifts from the live instance.
 
 ---
 

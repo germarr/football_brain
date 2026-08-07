@@ -161,3 +161,24 @@ Four decisions were not obvious.
   decline to write for an unpublished Publication, and both collections carry
   `publication.published = true` as their list and view rule. The second half is what
   still holds if a Publication is un-published later, leaving records behind.
+
+- **The schema lives in two repos, and the copy here is guarded rather than trusted.**
+  This ADR originally recorded that the migrations defining both collections sat in
+  `personal_site`, a repo with no commits at all — so the contract had no history
+  anywhere. That is now fixed at both ends: `personal_site` has an initial commit, and
+  `football_blog/migrations/` holds the two files that define these collections, because
+  they are this package's feature and a schema whose only definition lived in another repo
+  was a contract with no home.
+
+  That is a duplication, and this project's rule is that duplication which *agrees until
+  it doesn't* is the dangerous kind. PocketBase reads `personal_site`'s copy, not this
+  one, so editing the file here changes nothing — the README beside it says so, and
+  `tests/test_pocketbase_schema.py` is what stops the copy quietly becoming false.
+
+  It checks against the **live instance**, not against the other repo's file, and that is
+  the sharper choice: a field renamed in the PocketBase admin UI touches no migration file
+  anywhere, so a file-to-file comparison would pass while the schema had moved underneath
+  the builder. It matters because **PocketBase ignores unknown keys on write** — a field
+  that disappears does not fail the builder, the PATCH returns 200, the run reports
+  `written`, and the value is simply absent from the page. The test skips when PocketBase
+  is unreachable, so the rest of the suite stays runnable offline.
