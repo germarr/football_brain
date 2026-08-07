@@ -45,12 +45,27 @@ Neither delta-publishes, and that is deliberate: the store's own scores only mov
 nightly **Refresh** runs, so a `--rows` pass that published first would spend quota every
 fifteen minutes to re-read what it already had. It follows `--quotes`' precedent.
 
-The honest consequence, worth stating because the cadence invites the opposite reading: a
-fresh `computed_at` on a Fixture Row means the row was copied recently, **not** that the
-scoreline is current. In-progress scores are not available at all — the Published Store
-has no live timeline (ADR 0020), and the provisional Live Mirror that does is never
-published. That is why `fixture_row` has no `live_minute` field: nothing could fill it,
-and a permanently-null field reads as "not in play" rather than "never measured".
+## Writes only what changed
+
+Both passes compare before they PATCH, so a run where nothing moved writes nothing. On the
+quarter-hourly pass that is almost every run — the store underneath only advances on the
+nightly Refresh — which took `fixture_row` from ~9,000 writes a day to approximately none.
+
+The comparison is against what PocketBase will have **coerced** our payload into rather
+than against what we sent (see `_pb_equal`); three of its coercions would otherwise make
+every record look permanently dirty, and the symptom would have been no symptom at all —
+the skip simply never firing.
+
+The consequence to know is a change of meaning. `computed_at`, `football_computed_at` and
+PocketBase's own `updated` now mark when a record last **changed**, not when it was last
+rebuilt. That makes `updated` a genuine change signal a consumer can cache against, which
+it was not before. What it stops answering is "is the job still running" — that question
+now belongs to the cron logs, where it always belonged.
+
+In-progress scores are not available at all, on any cadence: the Published Store has no
+live timeline (ADR 0020), and the provisional Live Mirror that does is never published.
+That is why `fixture_row` has no `live_minute` field — nothing could fill it, and a
+permanently-null field reads as "not in play" rather than "never measured".
 """
 from __future__ import annotations
 
@@ -64,7 +79,7 @@ from typing import Any, Iterable, Optional
 from football.status import FINAL
 
 from .loader import load_post_bundles
-from .pocketbase import PocketBaseClient
+from .pocketbase import PocketBaseClient, unchanged
 from .postgres import get_conn
 
 log = logging.getLogger(__name__)
@@ -222,8 +237,8 @@ def build_bundles(pb: PocketBaseClient, fixture_ids: Optional[Iterable[int]] = N
     it has just drafted, rather than leaving it bundle-less until 04:00.
     """
     now = now or datetime.now(timezone.utc)
-    counts: dict[str, int] = {"posts": 0, "written": 0, "skipped_unpublished": 0,
-                              "missing_in_store": 0}
+    counts: dict[str, int] = {"posts": 0, "written": 0, "unchanged": 0,
+                              "skipped_unpublished": 0, "missing_in_store": 0}
 
     publications = pb.published_publications()
     if not publications:
@@ -259,10 +274,18 @@ def build_bundles(pb: PocketBaseClient, fixture_ids: Optional[Iterable[int]] = N
                 counts["skipped_unpublished"] += 1
                 continue
             payload = bundle_payload(cur, full, publication["id"], now)
+            record = existing.get(fid)
+            # `football_computed_at` moves every run by construction, so it cannot be part
+            # of the comparison — see `unchanged`. The consequence is that it, and
+            # PocketBase's own `updated`, now mark when the bundle last *changed* rather
+            # than when it was last rebuilt.
+            if unchanged(payload, record, ignore=("football_computed_at",)):
+                counts["unchanged"] += 1
+                continue
             if dry_run:
                 counts["written"] += 1
                 continue
-            pb.upsert_bundle(payload, existing.get(fid))
+            pb.upsert_bundle(payload, record)
             counts["written"] += 1
     return counts
 
@@ -306,7 +329,7 @@ def build_rows(pb: PocketBaseClient, dry_run: bool = False,
     the entire time, because every record in it is individually valid.
     """
     now = now or datetime.now(timezone.utc)
-    counts: dict[str, int] = {"in_window": 0, "written": 0, "deleted": 0}
+    counts: dict[str, int] = {"in_window": 0, "written": 0, "unchanged": 0, "deleted": 0}
 
     publications = pb.published_publications()
     if not publications:
@@ -346,8 +369,16 @@ def build_rows(pb: PocketBaseClient, dry_run: bool = False,
             "penalty_away": pen_away,
             "computed_at": stamp,
         }
+        record = existing.get(fid)
+        # The quarter-hourly pass exists to catch a score or a kickoff moving, and on a
+        # quiet run nothing has. `computed_at` is excluded from the comparison because it
+        # moves every run by construction; it therefore now marks when the row last
+        # *changed*, not when it was last checked — see the module docstring.
+        if unchanged(payload, record, ignore=("computed_at",)):
+            counts["unchanged"] += 1
+            continue
         if not dry_run:
-            pb.upsert_row(payload, existing.get(fid))
+            pb.upsert_row(payload, record)
         counts["written"] += 1
 
     keep = {int(f[0]) for f in fixtures}

@@ -39,6 +39,9 @@ from football_blog.bundle import (
     WINDOW_AFTER_DAYS, WINDOW_BEFORE_DAYS, _iso_z, build_rows, recent_form,
     serialize_bundle,
 )
+# Lives on the client, not the builder: what it encodes is how PocketBase stores what you
+# send it, and `preview.py` needs the same three coercions.
+from football_blog.pocketbase import unchanged
 from football_blog.types import (
     CommentaryLine, FixtureRow, FullFixture, MatchEventRow, PlayerRow,
     SquadEntryRow, TeamMatchStatRow, TeamProfileRow, VenueRow,
@@ -386,6 +389,95 @@ def test_a_dry_run_writes_and_deletes_nothing(monkeypatch):
     counts = build_rows(pb, dry_run=True, now=now)
     assert pb.upserted == [] and pb.deleted == []
     assert counts["written"] == 1 and counts["deleted"] == 1
+
+
+# --------------------------------------------------------------------------- #
+# Compare-before-PATCH                                                         #
+# --------------------------------------------------------------------------- #
+# Every test here guards the same pair of opposite failures, and both are silent:
+# a comparison that never matches quietly rewrites everything and saves nothing, while
+# one that always matches quietly stops publishing corrections. The three coercions
+# below are each enough on their own to cause the first.
+def test_a_null_number_matches_the_zero_pocketbase_stores():
+    """PocketBase has no nullable number: an unplayed Fixture's goals come back as `0`."""
+    assert unchanged({"home_goals": None}, {"home_goals": 0})
+
+
+def test_a_null_text_matches_the_empty_string_pocketbase_stores():
+    assert unchanged({"home_logo": None}, {"home_logo": ""})
+
+
+def test_a_timestamp_matches_across_pocketbases_reserialization():
+    """We send `...T23:00:00Z`; PocketBase returns `... 23:00:00.000Z`. Same instant."""
+    assert unchanged({"kickoff_utc": "2026-08-15T23:00:00Z"},
+                     {"kickoff_utc": "2026-08-15 23:00:00.000Z"})
+
+
+def test_a_real_difference_is_still_detected():
+    assert not unchanged({"home_goals": 2}, {"home_goals": 1})
+    assert not unchanged({"status": "FT"}, {"status": "NS"})
+    assert not unchanged({"kickoff_utc": "2026-08-15T23:00:00Z"},
+                         {"kickoff_utc": "2026-08-15 21:00:00.000Z"})
+
+
+def test_a_zero_is_not_confused_with_a_null():
+    """A real 0–0 must not read as "no score" — the coercion goes one way only."""
+    assert not unchanged({"home_goals": 0}, {"home_goals": 3})
+
+
+def test_a_changed_json_field_is_detected():
+    assert not unchanged({"events": [{"event_index": 1}]}, {"events": []})
+    assert unchanged({"events": [{"event_index": 1}]}, {"events": [{"event_index": 1}]})
+
+
+def test_an_absent_record_is_never_unchanged():
+    assert not unchanged({"home_goals": 0}, None)
+
+
+def test_ignored_timestamps_do_not_defeat_the_comparison():
+    """`computed_at` moves every run by construction; comparing it means never matching."""
+    payload = {"status": "NS", "computed_at": "2026-08-07T03:00:00Z"}
+    record = {"status": "NS", "computed_at": "2026-08-07 02:00:00.000Z"}
+    assert unchanged(payload, record, ignore=("computed_at",))
+    assert not unchanged(payload, record)
+
+
+def test_pocketbases_own_columns_are_not_counted_as_differences():
+    """Only keys we send are compared, so `id`/`created`/`updated` cannot force a write."""
+    assert unchanged({"status": "NS"},
+                     {"status": "NS", "id": "abc", "created": "…", "updated": "…"})
+
+
+def test_an_unchanged_window_writes_nothing(monkeypatch):
+    now = datetime(2026, 8, 7, 2, 0, tzinfo=timezone.utc)
+    row = _window_row(1, now, "FT", hg=2, ag=1)
+    stored = {
+        "id": "keep", "postgres_fixture_id": 1, "publication": "PUB",
+        "kickoff_utc": now.strftime("%Y-%m-%d %H:%M:%S.000Z"),
+        "league_id": 262, "league_name": "Liga MX",
+        "home_team_id": 11, "home_team_name": "Home FC",
+        "home_logo": "https://example.test/11.png",
+        "away_team_id": 22, "away_team_name": "Away FC",
+        "away_logo": "https://example.test/22.png",
+        "status": "FT", "home_goals": 2, "away_goals": 1,
+        "penalty_home": 0, "penalty_away": 0,
+        "computed_at": "2026-08-07 01:00:00.000Z",
+    }
+    pb = _FakePB({262: {"id": "PUB"}}, rows=[stored])
+    counts, _ = _run_rows(monkeypatch, pb, [row], now)
+    assert pb.upserted == [], "an identical row must not be rewritten"
+    assert counts == {"in_window": 1, "written": 0, "unchanged": 1, "deleted": 0}
+
+
+def test_a_changed_score_still_writes(monkeypatch):
+    """The opposite failure: a comparison that always matches stops publishing scores."""
+    now = datetime(2026, 8, 7, 2, 0, tzinfo=timezone.utc)
+    stored = {"id": "keep", "postgres_fixture_id": 1, "status": "NS",
+              "home_goals": 0, "away_goals": 0}
+    pb = _FakePB({262: {"id": "PUB"}}, rows=[stored])
+    counts, _ = _run_rows(monkeypatch, pb, [_window_row(1, now, "FT", hg=2, ag=1)], now)
+    assert len(pb.upserted) == 1
+    assert counts["written"] == 1 and counts["unchanged"] == 0
 
 
 def test_no_published_publication_is_a_no_op_not_a_wipe(monkeypatch):

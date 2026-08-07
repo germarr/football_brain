@@ -83,11 +83,44 @@ Four decisions were not obvious.
 
 **Consequences:**
 
-- **A Fixture Row's `computed_at` says when it was copied, not when the score was true.**
-  The quarter-hourly cadence invites the opposite reading, and it is wrong: the store
-  underneath moves once a night. This is stated on the field, in the crontab entry, and
-  here, because the natural fix for "the ribbon is stale" is to raise the frequency, which
-  would spend runs re-copying identical rows and change nothing.
+- **Both passes compare before they PATCH, and that changes what the timestamps mean.**
+  The quarter-hourly pass ran 94 unconditional PATCHes against a store that only advances
+  once a night — ~9,000 writes a day, almost all of them rewriting identical bytes. It now
+  writes only what moved, which on a quiet run is nothing.
+
+  The comparison is against what PocketBase will have **coerced** the payload into, not
+  against what was sent. A null number returns as `0` (PocketBase has no nullable number),
+  a null text as `""`, and a timestamp comes back space-separated with milliseconds — each
+  enough on its own to make every record compare unequal forever. That failure would have
+  been invisible: the skip never firing looks exactly like the skip not existing.
+
+  So `computed_at`, `football_computed_at` and PocketBase's own `updated` now mark when a
+  record last **changed**, not when it was last rebuilt. Two consequences, one gained and
+  one lost. Gained: `updated` becomes a genuine change signal a consumer can cache
+  against, which it was not before. Lost: none of them answers "is the job still running"
+  — a `computed_at` from yesterday is now the *normal* state of a Fixture whose score has
+  not moved, and liveness belongs to the cron logs.
+
+  Neither timestamp ever dated the scoreline itself. The store underneath moves once a
+  night, so the natural fix for "the ribbon is stale" — raising the frequency — was always
+  going to re-copy identical rows and change nothing. It now does so more cheaply.
+
+- **`match_preview` takes the same treatment on one half only, and the asymmetry is the
+  finding.** `--full` now compares its football half — table position, Team Leaders — and
+  drops it from the payload when nothing moved. Its market half is always written.
+
+  The obvious symmetry was rejected on measurement. Across one hourly interval all 33
+  quoted markets had moved, because a Winner Market block carries `volume` and
+  `open_interest` that tick with every trade — so a skip on `--quotes`, which is 792 of
+  that collection's 825 daily writes, would have fired essentially never. And it would
+  have cost something real: `quote_read_at` is rendered on the card, so freezing it would
+  understate how current a forecast is, which is precisely the misdating ADR 0040 gave the
+  record two timestamps to prevent.
+
+  The result is that ADR 0040's two-timestamp design now shows through in the data rather
+  than only in the code: `football_computed_at` sits at the last run that changed the
+  football half while `quote_read_at_*` moves hourly. That is the intended reading of the
+  record, and until now both stamps moved together and hid it.
 
 - **`fixture_row` is a window, and the pass deletes what has left it.** This is the one
   failure mode here that looks *more* correct the longer it runs: every record left behind

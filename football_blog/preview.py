@@ -27,6 +27,20 @@ and degrades to a Kalshi-only card rather than taking the run down. Nothing here
 blends or picks between them: that is the reader's job, and the `/previews` board draws
 both.
 
+## One half skips, the other never does
+
+`--full` compares the football half before writing it and drops it from the payload when a
+table position and a Team Leader have not moved — which, on a night with no results for
+that Competition, is all of them. `football_computed_at` rides with the half it dates, so
+an unchanged card keeps the stamp of the run that last actually changed it.
+
+The market half is **always** written, and the asymmetry is the point rather than an
+oversight. A **Quote**'s `quote_read_at` is rendered on the card, so skipping would freeze
+a displayed freshness claim and understate how current a forecast is — the misdating this
+record carries two timestamps to avoid. It would also buy nothing: measured across one
+hourly interval, all 33 quoted markets had moved, because a block carries `volume` and
+`open_interest` that tick with every trade.
+
 ## The freeze
 
 At kickoff a Match Preview stops being rewritten, and `--full` and `--quotes` both run the
@@ -64,7 +78,7 @@ from football import standings as standings_mod
 from football.status import FINAL
 
 from . import kalshi, polymarket
-from .pocketbase import PocketBaseClient
+from .pocketbase import PocketBaseClient, unchanged
 from .postgres import get_conn
 
 log = logging.getLogger(__name__)
@@ -546,23 +560,44 @@ def build(full: bool = True, dry_run: bool = False, publish: bool = True,
                 away_block = _team_block(away_id, profiles.get(away_id, {}),
                                          table_cache[scope], scopes_for(away_id))
 
-                payload = {
-                    "postgres_fixture_id": fid,
+                # The football half: a table position and a Team Leader either moved or
+                # they did not, and on a night with no results for this Competition they
+                # did not. Kept as its own dict so it can be compared and dropped.
+                football = {
                     "publication": pub["id"],
                     "postgres_competition_id": lid,
                     "kickoff_utc": kickoff_utc.isoformat(),
                     "local_date": kalshi.local_match_date(kickoff_utc, tz).isoformat(),
                     "lifecycle": "upcoming",
-                    "football_computed_at": now.isoformat(),
+                    "home": home_block,
+                    "away": away_block,
+                }
+                # The market half is *always* written, and that asymmetry is deliberate.
+                # A **Quote** is a point-in-time read whose `quote_read_at` is rendered on
+                # the card, so skipping the write would freeze a displayed freshness claim
+                # and quietly understate how current a forecast is — exactly the misdating
+                # ADR 0040 gave the record two timestamps to avoid. It would also buy
+                # nothing: measured over one hourly interval, all 33 quoted markets had
+                # moved, because a block carries `volume` and `open_interest` that tick
+                # with every trade.
+                markets = {
                     "quote_read_at_kalshi": now.isoformat() if market else None,
                     "market_state_kalshi": market_block["state"],
                     "quote_read_at_polymarket": now.isoformat() if pm_market else None,
                     "market_state_polymarket": pm_block["state"],
-                    "home": home_block,
-                    "away": away_block,
                     "market_kalshi": market_block,
                     "market_polymarket": pm_block,
                 }
+
+                payload = {"postgres_fixture_id": fid, **markets}
+                if unchanged(football, record):
+                    counts["football_unchanged"] += 1
+                else:
+                    # `football_computed_at` rides with the half it dates, so an unchanged
+                    # card keeps the stamp of the run that last actually changed it.
+                    payload |= football | {"football_computed_at": now.isoformat()}
+                    counts["football_written"] += 1
+
                 if not dry_run:
                     pb.upsert_preview(payload, record)
                 counts["written"] += 1

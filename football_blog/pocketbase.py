@@ -19,6 +19,7 @@ The three collections we own are `publication`, `team_slug` and `match_post` —
   and the World Cup is one of the three Competitions published here: a record
   named `league` would have configured a cup. See ADR 0029.
 """
+from datetime import datetime
 from typing import Any, Optional
 
 import httpx
@@ -39,6 +40,67 @@ PREVIEW_COLLECTION = "match_preview"
 #: filtering `match_bundle` by date assumes a history that is deliberately not there.
 BUNDLE_COLLECTION = "match_bundle"
 ROW_COLLECTION = "fixture_row"
+
+
+# --------------------------------------------------------------------------- #
+# Change detection                                                             #
+# --------------------------------------------------------------------------- #
+# Lives here rather than with any one builder because what it encodes is how *PocketBase*
+# stores what you send it. Every writer that wants to skip an unchanged record needs the
+# same three coercions, and a second copy would be a second place to get them wrong.
+def _as_dt(value: Any) -> Optional[datetime]:
+    """Parse a timestamp we sent or PocketBase returned, or None if it is not one.
+
+    The two spellings differ and must still compare equal: we send
+    `2026-08-15T23:00:00Z`, PocketBase hands back `2026-08-15 23:00:00.000Z`.
+    """
+    if not isinstance(value, str) or len(value) < 19:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _pb_equal(sent: Any, stored: Any) -> bool:
+    """Is the value we are about to send already what PocketBase holds?
+
+    Compares against what PocketBase will have *coerced* our value into, not against what
+    we sent, because the two differ in three ways that would otherwise each make every
+    record look permanently dirty:
+
+    - **A null number comes back as `0`.** PocketBase has no nullable number, so an
+      unplayed Fixture's `home_goals` is stored `0` where Postgres held NULL.
+    - **A null text comes back as `""`.**
+    - **A timestamp is reserialized** space-separated with milliseconds.
+
+    Each of those would compare unequal forever, and the symptom would be no symptom at
+    all: the skip would simply never fire and every record would keep being rewritten.
+    """
+    if sent is None:
+        return stored in (0, "", None, False)
+    a, b = _as_dt(sent), _as_dt(stored)
+    if a is not None and b is not None:
+        return a == b
+    return sent == stored
+
+
+def unchanged(payload: dict[str, Any], record: Optional[dict[str, Any]],
+              ignore: tuple[str, ...] = ()) -> bool:
+    """Does this record already hold every field of `payload`?
+
+    `ignore` carries the timestamps that move on every run by construction — comparing
+    them would mean nothing ever matches.
+
+    Only keys present in `payload` are compared, so PocketBase's own `id`/`created`/
+    `updated` and any field a future migration adds are ignored rather than counted as a
+    difference. That is also what lets a caller compare a *subset* of a payload, which is
+    how `preview.py` skips its football half while still writing its market half.
+    """
+    if record is None:
+        return False
+    return all(_pb_equal(v, record.get(k))
+               for k, v in payload.items() if k not in ignore)
 
 
 class PocketBaseClient:
