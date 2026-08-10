@@ -8495,5 +8495,11 @@
 {"id":8494,"name":"Ølstykke Stadion","city":"Ølstykke"},
 {"id":8495,"name":"Øster Hornum Hallen","city":"Støvring"},
 {"id":8496,"name":"Østerbro Stadion","city":null},
-{"id":8497,"name":"Østerbro Stadion","city":"København"}
+{"id":8497,"name":"Østerbro Stadion","city":"København"},
+{"id":8498,"name":"Estadio Metropolitano de Futbol de Lara","city":"Caracas"},
+{"id":8499,"name":"Estádio Dom Afonso Henriques","city":"Guimaraes"},
+{"id":8500,"name":"Estádio Municipal Carlos Zamith","city":"Manaus"},
+{"id":8501,"name":"Lotto Park","city":"Brussels"},
+{"id":8502,"name":"Parque de Jogos Comendador Joaquim de Almeida Freitas","city":"Moreira de Cónegos"},
+{"id":8503,"name":"Stayen","city":"Sint- Truiden"}
 ]
