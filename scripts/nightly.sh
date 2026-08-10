@@ -34,6 +34,13 @@ PY=.venv/bin/python
 VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE)') || exit 1
 
 "$PY" -m refresh >> refresh/logs/cron.out
+
+# Which Competitions could take the provider's newer Season today (ADR 0045). Read-only
+# by design: the Competition registry is committed input, so a cron job may say "this one
+# is ready" but not append the Season itself. Costs no API call — it reads the /leagues
+# records and fixture lists the Refresh above just force-refreshed. After the Refresh so
+# it judges tonight's data, and its own log so the verdicts are greppable across nights.
+"$PY" -m football.onboard.rollover >> refresh/logs/rollover-cron.out 2>&1
 "$PY" -m football.publish.pg --heal-venues >> refresh/logs/heal.out 2>&1
 { git add "$VENUES"; git diff --cached --quiet || git commit -m "venues: nightly registry append [cron]"; } >> refresh/logs/venues.out 2>&1
 "$PY" -m serving.publish >> serving/logs/publish-cron.out 2>&1

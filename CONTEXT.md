@@ -95,8 +95,24 @@ The provider's season for a Competition, identified by a single year (e.g.
 `2024`). For European leagues and Liga MX this is the **starting** year of a
 campaign that straddles two calendar years (2024/25). For calendar-year leagues
 (Brasileirão) the Season **is** that one calendar year — so its label is `"2024"`,
-not `"2024/25"`. A Season contains one or more **Tournaments**.
-_Avoid_: year (ambiguous); labelling a calendar-year Season as "YYYY/YY".
+not `"2024/25"`. A Season contains one or more **Tournaments**. The newest Season a
+Competition lists in the **Competition registry** is its **pin** — the only Season the
+nightly Refresh touches, and the thing a **Season Rollover** moves.
+_Avoid_: year (ambiguous); labelling a calendar-year Season as "YYYY/YY"; "current
+season" for the pin (the provider marks a Season `current` months before it starts,
+which is a different claim).
+
+**Season Rollover**:
+Adding the provider's newly-opened Season to a Competition in the registry, moving its
+**pin** (ADR 0045). It is judged nightly and applied by hand: a Registry is committed
+input, so the Refresh reports which Competitions are ready and
+`python -m football.onboard.rollover --apply` is the only writer. Ready means two things
+at once — the new Season starts within three weeks (so its opening matchday can still get
+a **Match Preview**), *and* the outgoing Season has no unplayed Fixture left to strand,
+because after the roll nothing recurring ever reads that Season again.
+_Avoid_: treating the provider's `current` flag as "the Season has begun"; waiting for a
+Final in the new Season (that blacks out matchday one); calling it onboarding — the
+Competition was admitted long ago, this moves which Season is collected.
 
 **Coverage**:
 What the provider exposes for a given Season — which classes of data exist to

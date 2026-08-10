@@ -166,56 +166,70 @@ then per Competition: **Updated** teams (each new Final with opponent, date, sco
 
 ---
 
-## ⚠ "NEW SEASON AVAILABLE" — what it means and what to do
+## ⚠ "NEW SEASON READY" — season rollover
 
-Sometime around the start of a season you'll see this at the top of the log (and the run
-summary):
+Refresh targets `max(seasons)` from each Competition's registry entry — its **pin** — and
+the parser only models seasons the registry lists. So when the provider opens a season
+your registry doesn't have yet, that season is **collected into cache but never appears in
+`football.db`**: a silent gap. Refresh reports it rather than acting, because the
+Competition registry is committed input and every change to it is reviewed as a diff.
+
+Since ADR 0045 the report says whether taking that season is safe *today*, one line per
+Competition, ready ones first:
 
 ```
-⚠ NEW SEASON AVAILABLE: La Liga 2026 — add to config (currently pinned to 2025)
+⚠ NEW SEASON READY: Süper Lig 2026 (starts 2026-08-14) — pinned to 2025; roll with `python -m football.onboard.rollover 203 --apply`
+· new season pending: A-League 2026 starts 2026-10-16 — not rolling before 2026-09-25
+⚠ NEW SEASON BLOCKED: FA Cup 2026 — season 2025 still has unplayed fixtures; rolling now would strand them
 ```
 
-**What it means.** Refresh targets `max(seasons)` from each Competition's config. The parser
-only models seasons that are in config. So when the provider opens a season your config
-doesn't list yet, that season would be **collected into cache but never appear in
-`football.db`** — a silent gap. Rollover is deliberately **not automatic** (a cron job
-should not rewrite your source and start pulling a possibly preseason/friendly-only season
-with no human in the loop), so Refresh warns instead of acting.
+- **READY** — both gates pass. Roll it when you like.
+- **pending** — the provider has opened the season but its first match is more than three
+  weeks out. Nothing to do; the date given is when it becomes ready.
+- **BLOCKED** — the season you'd be leaving still has unplayed fixtures. This is the one
+  worth reading carefully: Refresh only ever touches the pin, so rolling **abandons** the
+  outgoing season and those matches are collected by nothing, ever again.
 
-**Nothing is broken and nothing is lost** while the warning stands — Refresh keeps
-correctly refreshing the *old* current season (2025 here). You just aren't collecting the
-new one yet. Act when you're ready for the new season to start flowing in.
+**Nothing is broken and nothing is lost** while any of these stand — Refresh keeps
+correctly refreshing the old pin. You just aren't collecting the new season yet.
 
 ### What you do
 
-Every Competition — league *and* cup — lives in the single competitions file
-[`football/competitions.json`](../football/competitions.json) (ADR 0019); there is no longer
-a built-in/registered split. Find the Competition by `league_id` and append the new year to
-its `"seasons"` list (it's an explicit list of integers, so just add the value):
-
-```json
-// before — max is 2025
-{ "league_id": 140, "name": "La Liga", "seasons": [2015, ..., 2025], ... }
-// after — now includes 2026
-{ "league_id": 140, "name": "La Liga", "seasons": [2015, ..., 2025, 2026], ... }
+```bash
+uv run python -m football.onboard.rollover              # review everything (read-only, no API calls)
+uv run python -m football.onboard.rollover --apply      # append the season for every READY Competition
+uv run python -m football.onboard.rollover 203 --apply  # just this one
 ```
 
-Then collect it. Either is fine:
+That writes [`football/registry/competitions.json`](../football/registry/competitions.json)
+— one added integer per Competition, file order preserved, so the diff is the review.
+Commit it. Then collect the season; either is fine:
 
 ```bash
-uv run python -m refresh                        # next run picks 2026 as current, backfills its Finals so far, rebuilds
+uv run python -m refresh                                # next run picks 2026 as the pin, backfills its Finals so far, rebuilds
 uv run python -m football.onboard.orchestrate 140       # heavier one-shot backfill of the whole new season, then rebuild
 uv run python -m football.onboard.cups <id>             # for a cup, use the cups collector instead
 ```
 
 Use `orchestrate` (or `cups`) if you want the new season's already-played matches pulled in
-one go right now; otherwise the next nightly Refresh does it incrementally. Either way the
-warning stops once `max(seasons)` matches the provider.
+one go right now; otherwise the next nightly Refresh does it incrementally.
+
+You can also edit the `"seasons"` list by hand — it is just a list of integers and nothing
+stops you. Prefer the command: it force-fetches the new season's fixture list *before*
+writing, and a registry season with no cached fixture list aborts the whole 13-minute
+`parse.build()` rebuild.
+
+If the gate is wrong — a bad provider start date, or a fixture nobody will ever settle —
+override it:
+
+```bash
+uv run python -m football.onboard.rollover --force 45 2026 --apply
+```
 
 > **Heads-up on season numbering.** The season integer is the *provider's* own. Straddling
 > leagues (La Liga, Premier League, …) label `2025` as "2025/26"; calendar-year leagues
-> (Brasileirão, Liga MX Femenil, …) label `2026` as "2026". The warning prints the provider's
-> integer — use exactly that value in the config.
+> (Brasileirão, Liga MX Femenil, …) label `2026` as "2026". The verdict prints the
+> provider's integer — use exactly that value.
 
 ---
 

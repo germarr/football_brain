@@ -7,7 +7,8 @@ immutable past or breaking the cache-first contract everything else relies on.
 For every Competition (leagues *and* cups) it touches only the **current Season**
 (`max(config seasons)`), and within it only the two things cache-first would freeze:
   1. the /leagues record (force-refreshed — refreshes provider metadata and exposes
-     the provider's latest season, so we can warn when config needs a new one),
+     the provider's latest season, which `football.onboard.rollover` judges against
+     config so the log says whether that Season may be taken today, ADR 0045),
   2. the current Season's fixture list (force-refreshed — otherwise a match played
      since the list was first cached never surfaces).
 From the fresh list it collects per-fixture data only for **Final** (FT/AET/PEN)
@@ -50,7 +51,7 @@ from typing import NamedTuple
 from football import config, fetch, status
 from football.build import parse, scope
 from football.collect import teams
-from football.onboard import orchestrate
+from football.onboard import orchestrate, rollover
 from football.client import CachedClient, QuotaExceeded
 
 # A Fixture is Final (CONTEXT.md) — played to completion with per-fixture data to
@@ -160,7 +161,7 @@ class CompResult(NamedTuple):
     all_teams: dict[int, str]                     # every current-Season team id -> name
     updated_teams: dict[int, list[FixtureUpdate]]  # team id -> its new Final fixtures
     new_finals: int                               # count of newly-collected Final fixtures
-    newer_season: int | None                      # provider season > config, else None
+    rollover: rollover.Verdict | None             # set when the provider is ahead of config
 
 
 # --- collection ------------------------------------------------------------
@@ -247,14 +248,10 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
 
     # 1. /leagues record (force) — provider metadata, coverage, latest-season check.
     record = client.get("leagues", {"id": league_id}, force=True).get("response") or []
-    newer_season: int | None = None
+    rec = record[0] if record else None
     coverage = orchestrate.SeasonCoverage(current, False, False)
     expected = {"players": False, "fixture_stats": False}
-    if record:
-        rec = record[0]
-        provider_years = [s.get("year") for s in rec.get("seasons", []) if s.get("year")]
-        if provider_years and max(provider_years) > current:
-            newer_season = max(provider_years)
+    if rec:
         cur_cov = orchestrate._seasons(rec, current, current)
         if cur_cov:
             coverage = cur_cov[0]
@@ -266,6 +263,13 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
     fixtures = client.get(
         "fixtures", {"league": league_id, "season": current}, force=True
     ).get("response") or []
+
+    # 2b. Rollover verdict — judged from the two payloads above and nothing else, so it
+    #     costs no call (ADR 0045). Still advisory: Refresh reports it and keeps refreshing
+    #     the Season config names. `python -m football.onboard.rollover --apply` is the
+    #     only writer, because the Competition registry is committed input (ADR 0018).
+    verdict = rollover.classify(comp, rec, fixtures, today)
+
     all_teams: dict[int, str] = {}
     for f in fixtures:
         for side in ("home", "away"):
@@ -370,7 +374,8 @@ def _refresh_competition(client: CachedClient, comp: dict, ledger: Ledger,
     return CompResult(
         name=name, comp_type=comp.get("type", "league"), current_season=current,
         all_teams=all_teams, updated_teams=dict(updated),
-        new_finals=len(collected_fids), newer_season=newer_season,
+        new_finals=len(collected_fids),
+        rollover=verdict if verdict.action != "pinned" else None,
     )
 
 
@@ -409,14 +414,13 @@ def _write_log(path: Path, started: datetime, finished: datetime,
         f"duration {dur // 60}m {dur % 60:02d}s   ·   outcome: {outcome}"
     )
 
-    warnings = [r for r in results if r.newer_season is not None]
-    if warnings:
+    # Rollover verdicts, ready first: a Competition whose new Season may be taken today
+    # is a call to action, one that is merely announced for October is not (ADR 0045).
+    pending = [r.rollover for r in results if r.rollover is not None]
+    if pending:
         lines.append("")
-        for r in warnings:
-            lines.append(
-                f"⚠ NEW SEASON AVAILABLE: {r.name} {r.newer_season} — "
-                f"add to config (currently pinned to {r.current_season})"
-            )
+        for v in sorted(pending, key=lambda v: (v.action != "roll", v.due or "", v.name)):
+            lines.append(v.line())
 
     for r in results:
         lines.append("")
@@ -574,7 +578,8 @@ def main(argv: list[str] | None = None) -> None:
                 continue
             _attribute(per_comp_calls, res.name, before, client)
             results.append(res)
-            flag = f"  ⚠ new season {res.newer_season}" if res.newer_season else ""
+            flag = (f"  ⚠ season {res.rollover.newer} ready to roll"
+                    if res.rollover and res.rollover.action == "roll" else "")
             print(f"  {res.name}: {res.new_finals} new Final(s), "
                   f"{len(res.updated_teams)} team(s) updated{flag}")
     finally:

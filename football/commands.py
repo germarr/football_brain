@@ -281,6 +281,36 @@ COMMANDS: list[Command] = [
     ),
 
     Command(
+        key="rollover", group="Refresh", title="Season rollover review",
+        module="football.onboard.rollover",
+        summary="Say which Competitions may take the provider's newer Season today.",
+        detail="Reads the /leagues records and current-season fixture lists the nightly "
+               "Refresh already cached — zero API calls — and judges each Competition "
+               "against two gates (ADR 0045): the new Season starts within three weeks, "
+               "and the outgoing Season has no unplayed fixtures left to strand. "
+               "Read-only until you tick Apply, which appends the Season to the "
+               "Competition registry. Nothing collects it until the next Refresh.",
+        example="Run it in August: Süper Lig and Liga MX Femenil come back 'ready to roll' "
+                "(they kick off within days), while the A-League's 2026 season is reported "
+                "as pending until 2026-09-25 and the Spanish Super Cup until 2027-01-12. "
+                "Tick Apply to write those two into football/registry/competitions.json, "
+                "then commit the diff and run the nightly Refresh to collect them.",
+        scope="all competitions · the season pin",
+        params=[
+            Param("league_ids", "Competitions", "competitions", None,
+                  help="Review only these Competitions. Leave empty for all of them."),
+            Param("apply", "Apply — write the registry", "bool", "--apply",
+                  help="Without this the command only reports. With it, every Competition "
+                       "judged ready gets the new Season appended to the registry — a "
+                       "committed file, so review and commit the diff afterwards."),
+            Param("lead_days", "Roll this many days before kickoff", "int", "--lead-days",
+                  advanced=True, placeholder="21",
+                  help="How early a Season may be taken. Below 7 the opening matchday "
+                       "cannot get a Match Preview (ADR 0040)."),
+        ],
+    ),
+
+    Command(
         key="candidates", group="Refresh", title="Refresh Candidates",
         module="football_blog.candidates",
         summary="Pull every Publication's Competition frontier, then list what can be drafted.",

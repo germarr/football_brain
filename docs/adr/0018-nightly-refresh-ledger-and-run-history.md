@@ -299,6 +299,13 @@ the current Season of every Competition — and leaves immutable past Seasons un
   in the loop. Warn-and-wait keeps rollover deliberate; true auto-rollover first needs
   the built-ins migrated into the writable registry (deferred).
 
+  **Superseded in part by ADR 0045.** The conclusion holds — the write is still manual,
+  because a Registry is committed input — but the warning it settled for was
+  unactionable, and the stated worry was the wrong one. A new Season's fixture list is
+  the published calendar, not friendlies; the actual hazard is that rolling *abandons*
+  the outgoing Season, since this ADR's frontier is only ever `max(seasons)`. ADR 0045
+  keeps warn-and-wait and makes the warning say whether taking the Season is safe today.
+
 - **Incremental parse instead of a nightly full rebuild.** Rejected: `parse.build()` is
   a battle-tested zero-API full re-parse that every collector already ends with; a
   few minutes at 04:00 is a non-problem. An incremental parser is real complexity and
