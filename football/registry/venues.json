@@ -8501,5 +8501,9 @@
 {"id":8500,"name":"Estádio Municipal Carlos Zamith","city":"Manaus"},
 {"id":8501,"name":"Lotto Park","city":"Brussels"},
 {"id":8502,"name":"Parque de Jogos Comendador Joaquim de Almeida Freitas","city":"Moreira de Cónegos"},
-{"id":8503,"name":"Stayen","city":"Sint- Truiden"}
+{"id":8503,"name":"Stayen","city":"Sint- Truiden"},
+{"id":8504,"name":"Estadio Banorte","city":"Ciudad de Mexico"},
+{"id":8505,"name":"Estadio Centenario","city":"Cuernavaca"},
+{"id":8506,"name":"Corum Stadyumu","city":"Corum"},
+{"id":8507,"name":"Diyarbakir Stadium","city":null}
 ]
