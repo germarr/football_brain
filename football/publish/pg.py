@@ -39,6 +39,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import sqlite3
@@ -248,15 +249,30 @@ def _sq_cols(sq: sqlite3.Connection, table: str) -> list[str]:
     return [r[1] for r in sq.execute(f"PRAGMA table_info({table})")]
 
 
+#: Serial number for staging tables, so two stagings of the same table never collide.
+#: `_apply_delta` is one transaction and its temp tables are `ON COMMIT DROP`, so nothing
+#: is dropped until that transaction commits — and it stages `fixture` twice, once for the
+#: changed Finals and again inside `_replace_scheduled`. A name derived from the table alone
+#: made the second `CREATE TEMP TABLE` collide with the first (DuplicateTable). Latent for as
+#: long as it was: it needs a non-empty `changed` set, since that is what creates the first
+#: `_stg_fixture`, so a night with no new Final never reached it.
+_STG_SEQ = itertools.count()
+
+
 def _stage(sq: sqlite3.Connection, pg: psycopg.Connection, table: str,
            where_col: str | None = None, where_vals: list[int] | None = None) -> tuple[str, list[str], int]:
     """COPY rows of a temp-SQLite `table` (optionally filtered to `where_col IN where_vals`)
     into a fresh Postgres TEMP table shaped like `public.<table>`, dropped at COMMIT. Returns
     (temp_name, columns, rows_staged). Column names come from SQLite, robust to column-order
-    divergence (the same reason _copy_table and web.publish read PRAGMA table_info)."""
+    divergence (the same reason _copy_table and web.publish read PRAGMA table_info).
+
+    The temp name carries a serial (see `_STG_SEQ`) rather than being `_stg_<table>`: callers
+    only ever use the name this returns, so uniqueness costs nothing and staging the same
+    table twice in one transaction is legal. Reusing the name via `DROP TABLE IF EXISTS`
+    would also run, but it would silently inherit a table staged for another purpose."""
     cols = _sq_cols(sq, table)
     collist = ", ".join(f'"{c}"' for c in cols)
-    stg = f"_stg_{table}"
+    stg = f"_stg_{table}_{next(_STG_SEQ)}"
     pg.execute(f"CREATE TEMP TABLE {stg} (LIKE public.{table}) ON COMMIT DROP")
     sql, params = f"SELECT {collist} FROM {table}", ()
     if where_col is not None:
