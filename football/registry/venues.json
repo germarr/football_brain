@@ -8505,5 +8505,6 @@
 {"id":8504,"name":"Estadio Banorte","city":"Ciudad de Mexico"},
 {"id":8505,"name":"Estadio Centenario","city":"Cuernavaca"},
 {"id":8506,"name":"Corum Stadyumu","city":"Corum"},
-{"id":8507,"name":"Diyarbakir Stadium","city":null}
+{"id":8507,"name":"Diyarbakir Stadium","city":null},
+{"id":8508,"name":"Estadio de São Miguel","city":"Ponta Delgada"}
 ]
