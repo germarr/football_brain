@@ -106,11 +106,17 @@ class MarketTrack:
                 "points": [p.as_dict() for p in self.points]}
 
 
-def _build(mids_by_side: dict[str, dict[int, float]]) -> tuple[list[TrackPoint], int]:
-    """Three per-side `{hour: mid}` maps -> normalised points, and the gap count.
+def normalise(mids_by_side: dict[str, dict[int, float]]) -> tuple[list[TrackPoint], int]:
+    """Three per-side `{bucket: mid}` maps -> normalised points, and the gap count.
 
-    An hour missing any leg is dropped. Normalising over two of three legs would invent
+    A bucket missing any leg is dropped. Normalising over two of three legs would invent
     a distribution nobody quoted — the same refusal the live Market Probability makes.
+
+    Bucket-size-agnostic on purpose: the keys are whatever the caller bucketed to, so the
+    hourly Track this module fetches and the per-minute one `markets.api` reads out of the
+    **Market Store** (ADR 0046) share one implementation of the gap rule. There must not
+    be two — the project has `football/status.py` because six copies of four strings
+    agreed right up until two drifted.
     """
     hours = sorted(set().union(*(set(m) for m in mids_by_side.values())) if mids_by_side else [])
     points: list[TrackPoint] = []
@@ -220,7 +226,7 @@ def kalshi_track(market, *, client: Optional[httpx.Client] = None,
         if owns:
             client.close()
 
-    points, gaps = _build(mids)
+    points, gaps = normalise(mids)
     return MarketTrack(exchange="kalshi", points=points, gaps=gaps,
                        state="tracked" if points else "not_listed",
                        listed_from=points[0].t if points else None)
@@ -267,7 +273,7 @@ def polymarket_track(market, *, client: Optional[httpx.Client] = None) -> Market
         if owns:
             client.close()
 
-    points, gaps = _build(mids)
+    points, gaps = normalise(mids)
     return MarketTrack(exchange="polymarket", points=points, gaps=gaps,
                        state="tracked" if points else "not_listed",
                        listed_from=points[0].t if points else None)

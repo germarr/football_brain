@@ -210,7 +210,7 @@ H = track.HOUR
 
 
 def test_an_hour_missing_a_leg_is_a_gap_not_an_interpolation():
-    points, gaps = track._build({
+    points, gaps = track.normalise({
         "home": {0: 0.40, H: 0.40, 2 * H: 0.42},
         "draw": {0: 0.28, H: 0.28, 2 * H: 0.27},
         "away": {0: 0.32, 2 * H: 0.31},          # hour H is silent
@@ -220,7 +220,7 @@ def test_an_hour_missing_a_leg_is_a_gap_not_an_interpolation():
 
 
 def test_every_point_sums_to_one():
-    points, _ = track._build({"home": {0: 0.395}, "draw": {0: 0.275}, "away": {0: 0.325}})
+    points, _ = track.normalise({"home": {0: 0.395}, "draw": {0: 0.275}, "away": {0: 0.325}})
     p = points[0]
     assert p.home + p.draw + p.away == pytest.approx(1.0)
     assert p.home == pytest.approx(0.395 / 0.995)
@@ -228,7 +228,7 @@ def test_every_point_sums_to_one():
 
 def test_hours_before_an_exchange_listed_anything_are_absence_not_gaps():
     """A Kalshi Track starting four hours before kickoff has not "missed" a month."""
-    points, gaps = track._build({
+    points, gaps = track.normalise({
         "home": {5 * H: 0.40, 6 * H: 0.40},
         "draw": {5 * H: 0.28, 6 * H: 0.28},
         "away": {5 * H: 0.32, 6 * H: 0.32},

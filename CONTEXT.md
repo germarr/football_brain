@@ -553,8 +553,10 @@ in it; keeping a poll's row once the Refresh has written the Final record.
 
 **Published Store**:
 The **remote Postgres** replica of a chosen subset of Competitions **plus the whole
-commentary store** — the only store that is not a local SQLite file, and the one other
-tools and people query over the network rather than by opening a file on this box. It is
+commentary store** — one other tools and people query over the network rather than by
+opening a file on this box. It shares a database with the **Market Store** and shares
+nothing else: those tables are in no publish path, and a publish neither touches nor
+restores them. It is
 **derived, never authored**, kept current two ways (ADR 0028): a fast **delta publish**
 (the default `refresh_pg` path) applies only the Finals whose data actually changed —
 new or Coverage-re-healed — and a **wholesale** rebuild-and-swap (`publish_pg`, the
@@ -777,27 +779,28 @@ date, or by applying one Exchange's date rule to the other; reading its settleme
 scoreline.
 
 **Market Track**:
-The ordered hourly series of one **Exchange**'s **Market Probabilities** for one
-**Winner Market**, running from the hour that Exchange listed the Fixture to kickoff.
-There is one per Winner Market, so at most two per Fixture, and they are shown side by
-side and never merged.
-It is **fetched, never stored**. Both Exchanges serve their own history on demand and
-keep serving it after settlement, so nothing here collects, accumulates or backfills
-one; a Market Track has no record, no cadence and no freeze. This is the one fact that
-distinguishes it from every other derived thing in this project, which are all rebuilt
-from a cache we hold.
-What *does* expire is the **pointer**: an Exchange stops listing a market once it
-settles, so for a Fixture already played the Track is built from the identifiers the
-frozen **Match Preview** holds rather than by resolving the Fixture again. The history
-outlives the listing; the way to find it does not.
-It is built to the same rule as the number on the card, so the two are the same
-measurement rather than two takes on it — a Track's last *closed hour* can still trail
-a live Quote by up to an hour, which is lag and not disagreement. Legs are bucketed
-**to the hour** (Kalshi's are hour-aligned already,
-Polymarket's drift by minutes and never share an exact timestamp), and an hour missing
-any of the three legs is a **gap in the line**, not an interpolation. Normalising over
-two of three legs would invent a distribution nobody quoted — the same refusal a live
-Market Probability already makes.
+The ordered series of one **Exchange**'s **Market Probabilities** for one **Winner
+Market**, running from the moment that Exchange listed the Fixture through kickoff to
+settlement. There is one per Winner Market, so at most two per Fixture, and they are
+shown side by side and never merged.
+A Track is **derived at read time and never stored** — it is the mid of each leg,
+normalised across one Exchange's three — but the rows it is derived *from* are stored,
+in the **Market Store** (ADR 0046). Which rows depends on what is being asked for: a
+**Market Candle** where the Exchange publishes its own history, a **Market Observation**
+where it does not. So a Track carries a **resolution** (one minute inside the **In-Play
+Window**, one hour across the run-up) and it is worth knowing which, because the two are
+different measurements of the same thing rather than the same measurement at two zooms.
+What expires is the **pointer**: an Exchange stops listing a market once it settles, so a
+Track for a played Fixture is built from identifiers captured **before** kickoff — the
+**Winner Market** row's `series_ticker` plus each leg's `market_ticker`, or its
+`event_slug` plus each leg's `token_id`. The history outlives the listing; the way to
+find it does not. A Fixture never enrolled cannot be tracked afterwards at any price.
+It is built to the same rule as the number on a **Match Preview** card, so the two are the
+same measurement rather than two takes on it. Legs are **bucketed** before normalising
+(Kalshi's timestamps are period-aligned already, Polymarket's drift by seconds and never
+share an exact one), and a bucket missing any of the three legs is a **gap in the line**,
+not an interpolation. Normalising over two of three legs would invent a distribution
+nobody quoted — the same refusal a live Market Probability already makes.
 The two Exchanges' Tracks are not the same length and the difference is structural, not
 a fault: Polymarket lists a Fixture around four weeks out and Kalshi two to five days,
 so a Kalshi Track is routinely hours old beside a Polymarket Track of a month. Both are
@@ -805,9 +808,74 @@ drawn on **one shared time axis** and the interval before an Exchange listed the
 is marked **not listed**, because when an Exchange began having an opinion is itself
 part of what the pair shows.
 _Avoid_: history, price history (a Market Probability is not a price); candlesticks
-(that is Kalshi's transport, not the concept); chart, graph, series (those are the
-rendering); implying we recorded it; drawing the two on separate axes; carrying a value
-across a gap; comparing a Track's length to another Fixture's as if it meant confidence.
+(that is Kalshi's transport — a **Market Candle** — not the concept); chart, graph
+(those are the rendering); drawing the two on separate axes; carrying a value across a
+gap; comparing a Track's length to another Fixture's as if it meant confidence; saying
+a Track is *stored* (the rows under it are, the Track is not).
+
+**Market Observation**:
+One **Exchange**'s read of all three legs of one **Winner Market** at one instant — three
+**Quotes**, kept verbatim, stamped with when *we* read them rather than when the Exchange
+changed. The atom the in-play poller writes.
+It is **write-once and unrecoverable**, and that is its whole reason for existing. Neither
+Exchange serves its order book retrospectively: Kalshi's top-of-book **sizes** appear in no
+candlestick, and Polymarket's `bestBid`, `bestAsk`, `spread` and `liquidity` are published
+only as they stand. A missed minute is missed forever, where a missed **Market Candle** is
+re-fetchable. Everything the Exchange published is taken — for Kalshi that includes the
+`no` side of the book and both top-of-book sizes, which the **Match Preview**'s Quote does
+not carry.
+Three legs or none. A partial Observation cannot be normalised into a **Market
+Probability**, so it is not a smaller Observation, it is not one.
+_Avoid_: snapshot, tick, sample (each implies a regular cadence the Exchange set — we set
+it); calling it a Quote (a Quote is one outcome; an Observation is one instant's three);
+treating a missing leg as a null leg; assuming it can be backfilled.
+
+**Market Candle**:
+One leg's history over one period, **as the Exchange publishes it**. Kalshi publishes the
+OHLC of both sides of the book plus volume and open interest per period, at one-minute,
+one-hour or one-day granularity; Polymarket publishes a single mid per point and nothing
+else. The columns say which, and a Polymarket Candle is mostly empty because Polymarket
+publishes mostly nothing — not because a read failed.
+It is **re-fetchable forever**, on open and settled markets alike, which is what makes the
+backfill idempotent: running it twice changes nothing, and running it after a gap repairs
+the gap. The period is part of the identity, so the same minute may be held at both
+one-minute and one-hour resolution without either overwriting the other.
+Kalshi's Candle is read from the **book**, never from its `price` block: `price` is `{}` on
+any period with no trade, which is most periods on these series, while the book is quoted
+throughout. Reading `price` yields an empty Track that looks exactly like *not listed yet*.
+_Avoid_: candlestick as a name for a **Market Track** (this is the transport, that is the
+concept); bar, OHLC (those name a rendering and a shape, not the record); expecting
+Polymarket to fill the OHLC columns; treating an empty `price` block as no data.
+
+**In-Play Window**:
+Kickoff − 15 minutes to kickoff + 150 minutes: the interval the in-play poller collects
+**Market Observations** over, and the span a **Market Track** is held at one-minute
+resolution.
+It ends long after the 90 minutes a **Winner Market** settles on, deliberately. Settlement
+is not instant, and a Quote's convergence to 1 and 0 is part of what the dashboard shows
+rather than noise after the fact — it is the same convergence ADR 0040's freeze exists to
+keep off a card, drawn here at the timestamps it actually happened.
+_Avoid_: match window, live window (the **Live Poll** and **Live Mirror** are a different
+system, on a different provider, published nowhere); assuming it ends at full time;
+assuming a Fixture inside it is being played (a postponement leaves the window running
+over a match nobody turned up for, which the Track will show as a flat line).
+
+**Market Store**:
+The Postgres tables holding **Winner Market** identities, **Market Observations** and
+**Market Candles** — one **Winner Market** row per Fixture per **Exchange**, its three legs
+beside it, and the two kinds of time series under those.
+It lives in the same database as the **Published Store** and is not part of it. None of its
+tables appear in any publish path, and it references a Fixture by integer and by nothing
+else: the wholesale publish drops `fixture` with `CASCADE`, which would take a foreign key
+here with it and leave the schema quietly weaker than it reads. A Fixture id here is a
+**bridge, never a key**, exactly as on a **Narrated Match**.
+It is the first thing in Postgres that is **not rebuildable**. Everything the Published
+Store holds can be re-derived from the raw cache; half of this cannot be re-derived from
+anywhere, because nobody serves an order book after the fact. That puts it beside
+`commentary.db` rather than beside the tables it sits next to.
+_Avoid_: calling it part of the Published Store (that one is derived, never authored, and
+a re-run makes it match; this one a re-run cannot restore); warehouse, archive; assuming a
+publish or a rebuild touches it either way.
 
 **Match Preview**:
 The card the blog shows for a Fixture that has **not been played yet** — the

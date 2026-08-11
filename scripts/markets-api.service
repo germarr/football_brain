@@ -1,0 +1,47 @@
+# The Market Store read API (ADR 0046), as a service.
+#
+#   sudo cp scripts/markets-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now markets-api
+#
+# Versioned here for the same reason scripts/nightly.sh is (ADR 0032): the unit and the
+# code it runs move together, and a copy that lives only in /etc/systemd/system drifts
+# silently. The copy step is manual because installing it needs root and this repo does
+# not otherwise ask for any.
+#
+# **It binds to loopback.** That is not a leftover from development. What makes this app
+# safe to expose is that it has no write route, spawns nothing, and holds no credential a
+# reader can reach (see markets/api.py) — and it is reached from outside through
+# cloudflared, which terminates TLS and forwards to this port. Binding 0.0.0.0 would put
+# it on the LAN with none of that in front, which is a different decision.
+#
+# Nothing else in this repo runs as a service. Every app under surfaces/ is started by
+# hand and must stay that way: they spend API-Football quota and Anthropic tokens and
+# write the Editorial Store, so an always-on copy of one is a bill, not a convenience.
+
+[Unit]
+Description=La Cancha market API (ADR 0046)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=azureuser
+Group=azureuser
+WorkingDirectory=/home/azureuser/alt_data
+ExecStart=/home/azureuser/alt_data/.venv/bin/python -m markets --host 127.0.0.1 --port 8010
+Restart=on-failure
+RestartSec=5s
+
+# Read-only over the whole filesystem bar its own logs. The process only ever SELECTs
+# from Postgres and reads the project's .env; it has no reason to write a file, and the
+# one route a reader controls is a path parameter that is cast to int.
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+
+StandardOutput=append:/home/azureuser/alt_data/refresh/logs/market-api.out
+StandardError=append:/home/azureuser/alt_data/refresh/logs/market-api.out
+
+[Install]
+WantedBy=multi-user.target

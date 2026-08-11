@@ -70,3 +70,14 @@ VENUES=$("$PY" -c 'from football.build import venues; print(venues.REGISTRY_FILE
 # store holds, and its consumers — the ribbon on every page, the homepage's upcoming
 # table — want it more often than once a night, so it has its own crontab entry.
 "$PY" -m football_blog.bundle --bundles >> refresh/logs/bundle-cron.out 2>&1
+
+# The repairable half of the **Market Store** (ADR 0046): every Exchange's own published
+# history for the Winner Markets `markets.watch` enrolled. Idempotent by construction, so
+# a night that fails costs nothing — the next one refetches the same bars and fills
+# whatever was missed. Last because it is the only step here that no other step waits on.
+#
+# The **Market Observations** are NOT here, in either direction. The hourly ones have their
+# own crontab entry beside the quotes pass, and the in-play ones run every minute: a book
+# is the one thing neither Exchange serves retrospectively, so a nightly-only read would
+# not be a coarser record of it, it would be no record of it.
+"$PY" -m markets.backfill >> refresh/logs/market-backfill.out 2>&1

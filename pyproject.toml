@@ -9,6 +9,11 @@ dependencies = [
     "anthropic>=0.116.0",
     "duckdb>=1.5.4",
     "fastapi>=0.139.0",
+    # Direct, not incidental. Nine modules import it, and one requirement is specific:
+    # the Polymarket CLOB sits behind Cloudflare and 403s a `Python-urllib` user agent
+    # while httpx's default header set passes (ADR 0043). It arrived here as a transitive
+    # dependency of `anthropic`, which would have removed it silently.
+    "httpx>=0.28.1",
     "ipykernel>=7.3.0",
     "jinja2>=3.1.6",
     "marimo[sql]>=0.23.13",
