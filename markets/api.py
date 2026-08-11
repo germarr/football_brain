@@ -75,7 +75,12 @@ MARKER_TYPES = ("Goal", "Card", "Var")
 app = FastAPI(
     title="La Cancha — prediction markets",
     description="Read-only Market Store: what Kalshi and Polymarket thought, over time.",
+    # Everything this service exposes lives under /api/, including its own documentation,
+    # so the tunnel hostname has exactly one prefix to reason about. All three are
+    # overridden together: setting only `docs_url` leaves ReDoc at FastAPI's default
+    # `/redoc`, outside the prefix and reachable by anyone who guesses it.
     docs_url="/api/docs",
+    redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
 app.add_middleware(
