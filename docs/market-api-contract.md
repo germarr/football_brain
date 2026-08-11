@@ -35,6 +35,7 @@ Interactive schema: `/api/docs`.
 | `GET /api/fixtures?from=&to=&competition=` | which Fixtures have market data at all |
 | `GET /api/fixtures/{id}/markets` | **the dashboard** — everything for one Fixture |
 | `GET /api/fixtures/{id}/track?exchange=&resolution=` | just the probability lines |
+| `GET /api/fixtures/{id}/ohlc?exchange=&side=&series=&resolution=` | **candlestick data** — one leg, un-normalised |
 | `GET /api/fixtures/{id}/book?exchange=` | just the observed book |
 
 `from`/`to` are dates (`YYYY-MM-DD`), defaulting to a −3d/+14d window — the same window
@@ -183,6 +184,73 @@ roughly 1.005–1.025 on Kalshi and 0.995–1.065 on Polymarket, which is why th
 normalised; the raw `book` is beside them so the sum stays auditable.
 
 ---
+
+## `GET /api/fixtures/{id}/ohlc` — candlestick data
+
+**A different chart from `/track`, not a richer one.** `/track` gives the three-way
+**Market Probability**: ours, normalised across the legs so they sum to 1. This gives
+**one contract's raw price**, exactly as Kalshi published it, un-normalised. The response
+says `"normalised": false` so the two can never be confused. Do not put them on one axis.
+
+```jsonc
+{
+  "fixture_id": 1490136,
+  "exchange": "kalshi",
+  "state": "tracked",
+  "ohlc_state": "published",
+  "normalised": false,
+  "series": ["yes_bid", "yes_ask", "price"],
+  "resolution": "minute",
+  "volume_unit": "contracts",
+  "kickoff": 1786221000, "in_play_from": 1786220100, "in_play_to": 1786230000,
+  "sides": {
+    "away": {
+      "team_id": 1597,
+      "market_ticker": "KXMLSGAME-26AUG08NEHOU-HOU",
+      "candles": [
+        { "t": 1786224720, "period_s": 60, "volume": 4413, "open_interest": 41226,
+          "yes_bid": { "open": 0.58, "high": 0.60, "low": 0.58, "close": 0.59 },
+          "yes_ask": { "open": 0.60, "high": 0.61, "low": 0.59, "close": 0.60 },
+          "price":   { "open": 0.59, "high": 0.60, "low": 0.59, "close": 0.60 } }
+      ]
+    }
+  }
+}
+```
+
+| param | values | default |
+|---|---|---|
+| `exchange` | `kalshi`, `polymarket` | `kalshi` |
+| `side` | `home`, `draw`, `away` | all three |
+| `series` | `book`, `trades`, `both` | `book` |
+| `resolution` | `auto`, `hour`, `minute` | `auto` |
+
+- **`book`** → `yes_bid` and `yes_ask` OHLC. Quoted throughout, so **every** period has
+  them. The pair is also the spread over time.
+- **`trades`** → `price` OHLC, the traded price. **`null` on any period with no trade** —
+  about two in five across a whole market's life, though in-play it is closer to one in
+  ten. Skip those periods; do not draw them at zero.
+- **`both`** → all three blocks on each candle.
+
+### Three things this endpoint will not do
+
+**It is Kalshi-only, structurally.** Polymarket's `/prices-history` publishes one mid per
+point — no open, no high, no low, no volume. A Polymarket request returns
+`ohlc_state: "not_published"` with a note and empty series. That is the Exchange having
+nothing to give, not a hole in our collection, and it will never fill in. Render the
+candlestick panel for Kalshi and Polymarket's line from `/track` beside it.
+
+**There is no mid candle, and there never will be.** The mid's *open* and *close* are
+exact — bid and ask are both quoted at the period's edges, so their mean is the real mid
+there. Its **high and low are not recoverable**: the bid's high and the ask's high need
+not happen at the same moment inside the period, so `(yes_bid_high + yes_ask_high) / 2` is
+an upper bound on the mid rather than a price anyone saw. A mid *line* is exact and is
+what `/track` serves; a mid *candle* would be invented.
+
+**You cannot candlestick a probability.** Same reason, one level up. Open and close are
+single instants and normalise correctly; high and low do not, because the three legs'
+highs do not co-occur. Normalising them yields a high nobody quoted and four values that
+no longer agree with each other. If you want a candlestick, it is of one contract.
 
 ## Traps
 

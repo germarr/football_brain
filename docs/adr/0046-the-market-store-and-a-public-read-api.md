@@ -144,6 +144,20 @@ Four decisions were not obvious.
   sweep already carries `bestBid`, `bestAsk` and `spread`. If a depth ladder is ever wanted,
   it is a new decision with a new cost, not an extension of this one.
 
+- **A **Market Probability** cannot be candlesticked, so the API serves OHLC per leg and
+  un-normalised.** The store keeps Kalshi's full `yes_bid` / `yes_ask` / `price` OHLC per
+  period, and `/api/fixtures/{id}/ohlc` serves it verbatim — but only ever for **one
+  contract at a time**. Normalising open and close across the three legs is sound, since
+  each is a single instant; normalising **high and low is not**, because the three legs'
+  highs need not occur at the same moment inside the bucket, so the result is a high
+  nobody quoted and four values that no longer agree with one another. The same argument
+  rules out a *mid* candle even within one leg: the mid's open and close are exact, its
+  high and low are not, and `(yes_bid_high + yes_ask_high) / 2` is an upper bound rather
+  than a price. It is the gap rule again — a series that cannot be built honestly is not
+  built. The endpoint is also Kalshi-only by construction, and says so with
+  `ohlc_state: "not_published"` rather than an empty array, because Polymarket publishes
+  one mid per point and that will not change.
+
 - **Event markers on the chart carry the Published Store's nightly vintage.** The overlay
   joins `public.event` at read time and adds no storage, but the Published Store's scores
   and events only advance at 04:00 and only for **Final** Fixtures. So a chart watched live

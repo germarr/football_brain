@@ -172,26 +172,33 @@ def _markets(conn, fixture_id: int) -> dict[str, dict]:
     return {r["exchange"]: r for r in rows}
 
 
-def _candle_mids(conn, fixture_id: int, exchange: str, resolution: str,
-                 in_play_from: Optional[int]) -> tuple[dict[str, dict[int, float]], int]:
-    """`{side: {bucket: mid}}` from **Market Candles**, plus the period actually used.
+def _resolution_clause(resolution: str,
+                       in_play_from: Optional[int]) -> tuple[str, list]:
+    """The `period_seconds` filter for a requested resolution, as SQL and params.
 
     `auto` stitches the two resolutions at the left edge of the In-Play Window: hourly
     before it, per-minute inside it. The two never overlap in the output, so a reader
-    plotting `t` gets one continuous line that simply gets denser at kickoff.
-    """
-    if resolution == "hour":
-        clause, params = "period_seconds = %s", [store.RESOLUTION_RUNUP_S]
-    elif resolution == "minute":
-        clause, params = "period_seconds = %s", [store.RESOLUTION_IN_PLAY_S]
-    elif in_play_from is None:
-        clause, params = "period_seconds = %s", [store.RESOLUTION_RUNUP_S]
-    else:
-        edge = datetime.fromtimestamp(in_play_from, tz=timezone.utc)
-        clause = ("((period_seconds = %s AND period_start < %s) OR "
-                  " (period_seconds = %s AND period_start >= %s))")
-        params = [store.RESOLUTION_RUNUP_S, edge, store.RESOLUTION_IN_PLAY_S, edge]
+    plotting `t` gets one continuous series that simply gets denser at kickoff.
 
+    Shared by every candle reader here, so the probability line and the OHLC series can
+    never end up describing different periods of the same match.
+    """
+    if resolution == "hour" or (resolution == "auto" and in_play_from is None):
+        return "period_seconds = %s", [store.RESOLUTION_RUNUP_S]
+    if resolution == "minute":
+        return "period_seconds = %s", [store.RESOLUTION_IN_PLAY_S]
+    edge = datetime.fromtimestamp(in_play_from, tz=timezone.utc)
+    return (
+        "((period_seconds = %s AND period_start < %s) OR "
+        " (period_seconds = %s AND period_start >= %s))",
+        [store.RESOLUTION_RUNUP_S, edge, store.RESOLUTION_IN_PLAY_S, edge],
+    )
+
+
+def _candle_mids(conn, fixture_id: int, exchange: str, resolution: str,
+                 in_play_from: Optional[int]) -> tuple[dict[str, dict[int, float]], int]:
+    """`{side: {bucket: mid}}` from **Market Candles**, plus the rows behind them."""
+    clause, params = _resolution_clause(resolution, in_play_from)
     with conn.cursor(row_factory=dict_row) as cur:
         rows = cur.execute(
             f"SELECT side, period_start, period_seconds, mid_close, volume, open_interest "
@@ -229,6 +236,62 @@ def _candle_depth(conn, fixture_id: int, exchange: str) -> list[dict]:
              "open_interest": float(r["open_interest"])
              if r["open_interest"] is not None else None}
             for r in rows]
+
+
+#: The OHLC blocks a **Market Candle** can carry, and the column prefix each reads.
+#: `yes_bid`/`yes_ask` are the book, quoted throughout; `price` is the traded price and
+#: is absent on any period with no trade.
+OHLC_SERIES = {"book": ("yes_bid", "yes_ask"), "trades": ("price",),
+               "both": ("yes_bid", "yes_ask", "price")}
+
+
+def _ohlc(row: dict, prefix: str) -> Optional[dict]:
+    """One OHLC block, verbatim, or None when the Exchange published no such period.
+
+    None rather than four zeros: on these series `price` is `{}` on 42% of periods
+    because nobody traded, and a candle drawn at 0 is a claim the market collapsed.
+    """
+    values = {k: row.get(f"{prefix}_{k}") for k in ("open", "high", "low", "close")}
+    return None if all(v is None for v in values.values()) else values
+
+
+def _candle_ohlc(conn, fixture_id: int, exchange: str, resolution: str,
+                 in_play_from: Optional[int], sides: tuple[str, ...],
+                 series: str) -> dict[str, list[dict]]:
+    """Per-leg OHLC, one row per period, carrying whichever blocks were asked for.
+
+    **Nothing here is derived, and that is the point of the endpoint.** Every number is a
+    column the Exchange published. In particular there is no mid OHLC: the mid's *open*
+    and *close* are exact — bid and ask are both quoted at the period's edges, so their
+    mean is the real mid there — but its **high and low are not recoverable**. The bid's
+    high and the ask's high need not occur at the same moment inside the period, so
+    `(yes_bid_high + yes_ask_high) / 2` is an upper bound on the mid, not a price anyone
+    ever saw. A mid *line* is exact and is what `/track` serves; a mid *candle* is a
+    fabrication, so it is not offered.
+    """
+    prefixes = OHLC_SERIES[series]
+    clause, params = _resolution_clause(resolution, in_play_from)
+    columns = ", ".join(f"{p}_{k}" for p in prefixes
+                        for k in ("open", "high", "low", "close"))
+    with conn.cursor(row_factory=dict_row) as cur:
+        rows = cur.execute(
+            f"SELECT side, period_start, period_seconds, volume, open_interest, {columns} "
+            f"FROM market_candle "
+            f"WHERE fixture_id = %s AND exchange = %s AND side = ANY(%s) AND {clause} "
+            f"ORDER BY period_start",
+            [fixture_id, exchange, list(sides), *params],
+        ).fetchall()
+
+    out: dict[str, list[dict]] = {s: [] for s in sides}
+    for r in rows:
+        if r["side"] not in out:
+            continue
+        candle = {"t": _ts(r["period_start"]), "period_s": r["period_seconds"],
+                  "volume": r["volume"], "open_interest": r["open_interest"]}
+        for prefix in prefixes:
+            candle[prefix] = _ohlc(r, prefix)
+        out[r["side"]].append(candle)
+    return out
 
 
 def _book(conn, fixture_id: int, exchange: str) -> list[dict]:
@@ -456,6 +519,75 @@ def track(fixture_id: int,
             ex: {k: payload["exchanges"][ex][k]
                  for k in ("state", "listed_from", "gaps", "resolution", "probability")}
             for ex in wanted
+        },
+    }
+
+
+@app.get("/api/fixtures/{fixture_id}/ohlc")
+def ohlc(fixture_id: int,
+         exchange: str = Query("kalshi", pattern="^(kalshi|polymarket)$"),
+         side: Optional[str] = Query(None, pattern="^(home|draw|away)$"),
+         series: str = Query("book", pattern="^(book|trades|both)$"),
+         resolution: str = Query("auto", pattern="^(auto|hour|minute)$")) -> Any:
+    """Candlestick data: one leg's price per period, exactly as the Exchange published it.
+
+    A **different chart from `/track`**, not a richer one. `/track` serves the three-way
+    **Market Probability** — ours, normalised across the three legs so they sum to 1.
+    This serves one contract's raw price, un-normalised, and the response says
+    `"normalised": false` so the two can never be mistaken for each other.
+
+    **Why a probability cannot be candlesticked.** Open and close are single instants and
+    normalise correctly. High and low do not: the three legs' highs do not occur at the
+    same moment inside a bucket, so normalising them yields a high nobody quoted and four
+    values that no longer agree with one another. It is the same refusal that drops a
+    bucket missing a leg rather than normalising over two of three.
+
+    **Kalshi only, structurally.** Polymarket's `/prices-history` publishes one mid per
+    point — no open, no high, no low, no volume — so a Polymarket request returns
+    `ohlc_state: "not_published"` and an empty series rather than a silent nothing. That is
+    the Exchange being quiet, not a collection gap.
+
+    `series`:
+      * `book`   — `yes_bid` and `yes_ask` OHLC. Quoted throughout, so every period has
+                   them; the pair is also the spread over time.
+      * `trades` — `price` OHLC, the traded price. `null` on any period with no trade,
+                   which on these thin markets is about two periods in five.
+      * `both`   — all three blocks on each candle.
+    """
+    conn = store.get_conn()
+    market = _markets(conn, fixture_id).get(exchange)
+    if market is None:
+        return JSONResponse(
+            {"error": f"Fixture {fixture_id} has no enrolled {exchange} Winner Market."},
+            status_code=404)
+
+    sides = (side,) if side else SIDES
+    legs = {leg["side"]: leg for leg in store.legs_for(conn, fixture_id, exchange)}
+    kickoff = _ts(market["kickoff_utc"])
+    in_play_from = kickoff - store.IN_PLAY_LEAD_S if kickoff else None
+    published = exchange == "kalshi"
+    candles = (_candle_ohlc(conn, fixture_id, exchange, resolution, in_play_from,
+                            sides, series) if published else {s: [] for s in sides})
+
+    return {
+        "fixture_id": fixture_id,
+        "exchange": exchange,
+        "state": market["state"],
+        "ohlc_state": "published" if published else "not_published",
+        "ohlc_note": None if published else
+        "Polymarket publishes one mid per point and no OHLC — see /track for its line.",
+        "normalised": False,
+        "series": list(OHLC_SERIES[series]),
+        "resolution": resolution,
+        "volume_unit": VOLUME_UNIT[exchange],
+        "kickoff": kickoff,
+        "in_play_from": in_play_from,
+        "in_play_to": kickoff + store.IN_PLAY_TAIL_S if kickoff else None,
+        "sides": {
+            s: {"team_id": (legs.get(s) or {}).get("team_id"),
+                "market_ticker": (legs.get(s) or {}).get("market_ticker"),
+                "candles": candles.get(s, [])}
+            for s in sides
         },
     }
 

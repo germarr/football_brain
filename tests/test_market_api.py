@@ -240,8 +240,121 @@ def test_an_event_marker_is_flagged_as_an_estimate():
 
 
 # --------------------------------------------------------------------------- #
+# OHLC — verbatim, or not at all                                               #
+# --------------------------------------------------------------------------- #
+def test_every_ohlc_series_names_columns_that_exist():
+    """A typo in a prefix yields four nulls on every candle — an empty chart that looks
+    exactly like a market nobody traded."""
+    from markets import store
+    for prefixes in api.OHLC_SERIES.values():
+        for prefix in prefixes:
+            for k in ("open", "high", "low", "close"):
+                assert f"{prefix}_{k}" in store.SCHEMA, f"{prefix}_{k} is not a column"
+
+
+def test_no_ohlc_series_offers_a_mid():
+    """The mid's open and close are exact; its high and low are not recoverable, because
+    the bid's high and the ask's high need not occur at the same moment in the period.
+    `(yes_bid_high + yes_ask_high) / 2` is an upper bound, not a price anyone saw."""
+    named = {p for prefixes in api.OHLC_SERIES.values() for p in prefixes}
+    assert "mid" not in named
+    assert named == {"yes_bid", "yes_ask", "price"}
+
+
+def test_a_period_with_no_trade_is_null_not_four_zeros():
+    row = {"price_open": None, "price_high": None, "price_low": None, "price_close": None}
+    assert api._ohlc(row, "price") is None, "a candle drawn at 0 claims the market "\
+                                            "collapsed; no trade is not a price"
+
+
+def test_a_period_with_a_trade_survives_a_zero_component():
+    """A leg genuinely quoted at 0.00 is a real price — it must not be swallowed by the
+    same check that drops an empty block."""
+    row = {"price_open": 0.0, "price_high": 0.02, "price_low": 0.0, "price_close": 0.01}
+    assert api._ohlc(row, "price") == {"open": 0.0, "high": 0.02, "low": 0.0,
+                                       "close": 0.01}
+
+
+def test_ohlc_is_declared_un_normalised():
+    """`/track` is ours and sums to 1; `/ohlc` is the Exchange's and does not. A client
+    that mixes them up draws one as the other without anything failing."""
+    import inspect
+    assert '"normalised": False' in inspect.getsource(api.ohlc)
+
+
+def test_polymarket_ohlc_is_typed_absence_not_an_empty_series(monkeypatch):
+    """Polymarket publishes one mid per point. An empty array alone reads as 'we have no
+    data', when the fact is that the Exchange has none to give."""
+    market = {"state": "tracked", "backfill_state": "complete", "kickoff_utc": None,
+              "series_ticker": None, "event_ticker": None, "event_slug": "s",
+              "league": "mls", "enrolled_at": None, "last_seen_at": None}
+    monkeypatch.setattr(api.store, "get_conn", lambda: _FakeConn({}))
+    monkeypatch.setattr(api, "_markets", lambda conn, fid: {"polymarket": market})
+    monkeypatch.setattr(api.store, "legs_for", lambda conn, fid, ex: [])
+
+    def _fail(*a, **k):
+        raise AssertionError("Polymarket has no OHLC to query — this must not run")
+    monkeypatch.setattr(api, "_candle_ohlc", _fail)
+
+    # Every argument is passed explicitly: calling the handler directly skips FastAPI's
+    # default resolution, so an omitted one arrives as the `Query(...)` object itself.
+    payload = api.ohlc(1, exchange="polymarket", side=None, series="book",
+                       resolution="auto")
+    assert payload["ohlc_state"] == "not_published"
+    assert payload["ohlc_note"]
+    assert payload["volume_unit"] == "usd"
+
+
+def test_kalshi_ohlc_reports_published(monkeypatch):
+    market = {"state": "tracked", "backfill_state": "complete", "kickoff_utc": None,
+              "series_ticker": "KXMLSGAME", "event_ticker": "E", "event_slug": None,
+              "league": None, "enrolled_at": None, "last_seen_at": None}
+    monkeypatch.setattr(api.store, "get_conn", lambda: _FakeConn({}))
+    monkeypatch.setattr(api, "_markets", lambda conn, fid: {"kalshi": market})
+    monkeypatch.setattr(api.store, "legs_for", lambda conn, fid, ex:
+                        [{"side": "home", "team_id": 1, "market_ticker": "T"}])
+    monkeypatch.setattr(api, "_candle_ohlc",
+                        lambda *a, **k: {"home": [{"t": 0, "yes_bid": {}}]})
+    payload = api.ohlc(1, exchange="kalshi", side="home", series="book",
+                       resolution="auto")
+    assert payload["ohlc_state"] == "published"
+    assert payload["volume_unit"] == "contracts"
+    assert payload["sides"]["home"]["market_ticker"] == "T"
+
+
+# --------------------------------------------------------------------------- #
 # Resolution stitching                                                         #
 # --------------------------------------------------------------------------- #
+def test_every_candle_reader_shares_one_resolution_clause():
+    """The probability line and the OHLC series must describe the same periods of the
+    same match; two copies of the stitching rule would drift."""
+    import inspect
+    for fn in (api._candle_mids, api._candle_ohlc):
+        assert "_resolution_clause" in inspect.getsource(fn)
+
+
+@pytest.mark.parametrize("resolution,expected", [
+    ("hour", [3600]), ("minute", [60]),
+])
+def test_an_explicit_resolution_asks_for_exactly_one_period(resolution, expected):
+    _clause, params = api._resolution_clause(resolution, 1_000_000)
+    assert params == expected
+
+
+def test_auto_stitches_both_periods_at_the_window_edge():
+    clause, params = api._resolution_clause("auto", 1_000_000)
+    assert "OR" in clause
+    assert params[0] == 3600 and params[2] == 60
+    assert params[1] == params[3], "both halves must pivot on the same instant, or the "\
+                                   "stitched series overlaps or holes at kickoff"
+
+
+def test_auto_without_a_kickoff_falls_back_to_hourly():
+    _clause, params = api._resolution_clause("auto", None)
+    assert params == [3600]
+
+
+
 @pytest.mark.parametrize("resolution", ["auto", "hour", "minute"])
 def test_every_documented_resolution_is_accepted(resolution):
     route = next(r for r in api.app.routes
