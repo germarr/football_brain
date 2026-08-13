@@ -8506,5 +8506,7 @@
 {"id":8505,"name":"Estadio Centenario","city":"Cuernavaca"},
 {"id":8506,"name":"Corum Stadyumu","city":"Corum"},
 {"id":8507,"name":"Diyarbakir Stadium","city":null},
-{"id":8508,"name":"Estadio de São Miguel","city":"Ponta Delgada"}
+{"id":8508,"name":"Estadio de São Miguel","city":"Ponta Delgada"},
+{"id":8509,"name":"Allwyn Arena","city":"Athens"},
+{"id":8510,"name":"Superbet Arena - Giulesti","city":"Bucharest"}
 ]
