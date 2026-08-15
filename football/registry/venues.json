@@ -8508,5 +8508,12 @@
 {"id":8507,"name":"Diyarbakir Stadium","city":null},
 {"id":8508,"name":"Estadio de São Miguel","city":"Ponta Delgada"},
 {"id":8509,"name":"Allwyn Arena","city":"Athens"},
-{"id":8510,"name":"Superbet Arena - Giulesti","city":"Bucharest"}
+{"id":8510,"name":"Superbet Arena - Giulesti","city":"Bucharest"},
+{"id":8511,"name":"Al-Ettifaq Club Stadium","city":"Dammam"},
+{"id":8512,"name":"Ernst Abbe Sportfeld","city":"Jena"},
+{"id":8513,"name":"Grotenburg-Stadion","city":"Krefeld"},
+{"id":8514,"name":"King Khalid Sport City Stadium","city":"Tabuk"},
+{"id":8515,"name":"National Stadium Vasil Levski","city":"Sofia"},
+{"id":8516,"name":"Sportpark Krieschow","city":"Kolkwitz"},
+{"id":8517,"name":"Stadion auf dem Wurfplatz","city":"Berlin"}
 ]
