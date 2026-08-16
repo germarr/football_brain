@@ -8515,5 +8515,13 @@
 {"id":8514,"name":"King Khalid Sport City Stadium","city":"Tabuk"},
 {"id":8515,"name":"National Stadium Vasil Levski","city":"Sofia"},
 {"id":8516,"name":"Sportpark Krieschow","city":"Kolkwitz"},
-{"id":8517,"name":"Stadion auf dem Wurfplatz","city":"Berlin"}
+{"id":8517,"name":"Stadion auf dem Wurfplatz","city":"Berlin"},
+{"id":8518,"name":"Complexo Desportivo FC Alverca","city":"Alverca do Ribatejo"},
+{"id":8519,"name":"Estádio Municipal do Fontelo","city":"Viseu"},
+{"id":8520,"name":"Estádio do Rio Ave FC","city":"Vila do Conde"},
+{"id":8521,"name":"Medas Konya Büyüksehir Belediyesi Stadium","city":"Konya"},
+{"id":8522,"name":"Rams Park Stadyumu","city":"Istanbul"},
+{"id":8523,"name":"Ramón Sánchez Pizjuán","city":"Seville"},
+{"id":8524,"name":"Recep Tayyip Erdogan Stadium","city":"Istanbul"},
+{"id":8525,"name":"The King Power AT Den Dreef Stadium","city":"Heverlee"}
 ]
