@@ -8527,5 +8527,9 @@
 {"id":8526,"name":"Bingoal Stadium","city":"Den Haag"},
 {"id":8527,"name":"Diyarbakir Stadium","city":"Diyarbakır"},
 {"id":8528,"name":"Ramón Sánchez Pizjuán","city":"Sevilla"},
-{"id":8529,"name":"Veoliastadion Achter De Kazerne","city":"Mechelen"}
+{"id":8529,"name":"Veoliastadion Achter De Kazerne","city":"Mechelen"},
+{"id":8530,"name":"Alinma Stadium","city":"Buraidah"},
+{"id":8531,"name":"BUKO Stadion","city":"Velsen"},
+{"id":8532,"name":"Estadio Municipal de Riazor","city":"La Coruna"},
+{"id":8533,"name":"Mapei Stadium","city":"Reggio Emilia"}
 ]
