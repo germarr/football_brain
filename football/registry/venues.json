@@ -8531,5 +8531,8 @@
 {"id":8530,"name":"Alinma Stadium","city":"Buraidah"},
 {"id":8531,"name":"BUKO Stadion","city":"Velsen"},
 {"id":8532,"name":"Estadio Municipal de Riazor","city":"La Coruna"},
-{"id":8533,"name":"Mapei Stadium","city":"Reggio Emilia"}
+{"id":8533,"name":"Mapei Stadium","city":"Reggio Emilia"},
+{"id":8534,"name":"Stadio Danilo Martelli","city":"Mantova"},
+{"id":8535,"name":"Stadio Marco Druso","city":"Bolzano"},
+{"id":8536,"name":"Tüpraş Stadyumu","city":"Istanbul"}
 ]
