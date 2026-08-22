@@ -8535,5 +8535,10 @@
 {"id":8534,"name":"Stadio Danilo Martelli","city":"Mantova"},
 {"id":8535,"name":"Stadio Marco Druso","city":"Bolzano"},
 {"id":8536,"name":"Tüpraş Stadyumu","city":"Istanbul"},
-{"id":8537,"name":"Estadio Cincuentenario","city":"Rionegro"}
+{"id":8537,"name":"Estadio Cincuentenario","city":"Rionegro"},
+{"id":8538,"name":"Al Majma'ah Sport City","city":"Al Majmaah"},
+{"id":8539,"name":"CEPAC Vélodrome","city":"Marseille"},
+{"id":8540,"name":"Estadio Riazor","city":"La Coruna"},
+{"id":8541,"name":"K's Denki Stadium Mito","city":"Mito"},
+{"id":8542,"name":"Kazim Karabekir Stadyumu","city":"Erzurum"}
 ]
