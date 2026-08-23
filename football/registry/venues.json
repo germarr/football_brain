@@ -8540,5 +8540,9 @@
 {"id":8539,"name":"CEPAC Vélodrome","city":"Marseille"},
 {"id":8540,"name":"Estadio Riazor","city":"La Coruna"},
 {"id":8541,"name":"K's Denki Stadium Mito","city":"Mito"},
-{"id":8542,"name":"Kazim Karabekir Stadyumu","city":"Erzurum"}
+{"id":8542,"name":"Kazim Karabekir Stadyumu","city":"Erzurum"},
+{"id":8543,"name":"Bosuilstadion","city":"Antwerp"},
+{"id":8544,"name":"LVM-Preußenstadion","city":"Munster"},
+{"id":8545,"name":"Ludwigspark-Stadion","city":"Saarbrücken"},
+{"id":8546,"name":"Stad. a. d. Grünwalder Str.","city":"Munich"}
 ]
