@@ -8544,5 +8544,11 @@
 {"id":8543,"name":"Bosuilstadion","city":"Antwerp"},
 {"id":8544,"name":"LVM-Preußenstadion","city":"Munster"},
 {"id":8545,"name":"Ludwigspark-Stadion","city":"Saarbrücken"},
-{"id":8546,"name":"Stad. a. d. Grünwalder Str.","city":"Munich"}
+{"id":8546,"name":"Stad. a. d. Grünwalder Str.","city":"Munich"},
+{"id":8547,"name":"Bahcesehir Okullari Stadium","city":"Alanya"},
+{"id":8548,"name":"Estadio Martínez Valero","city":"Elche"},
+{"id":8549,"name":"Ludwigspark Stadion","city":"Saarbrücken"},
+{"id":8550,"name":"Stade Oceane","city":"Le Havre"},
+{"id":8551,"name":"Stadium Airfield","city":"Lubeck"},
+{"id":8552,"name":"Şilbe Spor Kompleksi","city":"Diyarbakır"}
 ]
