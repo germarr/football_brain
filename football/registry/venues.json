@@ -8550,5 +8550,8 @@
 {"id":8549,"name":"Ludwigspark Stadion","city":"Saarbrücken"},
 {"id":8550,"name":"Stade Oceane","city":"Le Havre"},
 {"id":8551,"name":"Stadium Airfield","city":"Lubeck"},
-{"id":8552,"name":"Şilbe Spor Kompleksi","city":"Diyarbakır"}
+{"id":8552,"name":"Şilbe Spor Kompleksi","city":"Diyarbakır"},
+{"id":8553,"name":"Amateurstadion","city":"Berlin"},
+{"id":8554,"name":"Estadio La Rosaleda","city":"Malaga"},
+{"id":8555,"name":"Leuna-Chemie-Stadion","city":"Halle"}
 ]
