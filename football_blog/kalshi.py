@@ -330,7 +330,7 @@ def label_sides(market: WinnerMarket, home_team_id: int, away_team_id: int) -> W
 #: is never consulted again. Kept here rather than in the file's absence so `--propose`
 #: has somewhere to start on a machine with no registry at all.
 BOOTSTRAP_SERIES = {"KXMLSGAME": 253, "KXLIGAMXGAME": 262, "KXLEAGUESCUPGAME": 772,
-                    "KXLALIGAGAME": 140}
+                    "KXLALIGAGAME": 140, "KXEPLGAME": 39}
 
 
 def _our_teams(competition_ids: list[int]) -> dict[int, str]:

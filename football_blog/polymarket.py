@@ -471,6 +471,11 @@ BOOTSTRAP_LEAGUES = {
     # (`lal-cel-osa-2026-08-16`). `laliga-2025`, `lal-2025`, `soccer-lal` and `la-liga`
     # all return zero events without erroring, which is the failure ADR 0043 records.
     "lal": {"competition_id": 140, "series_slug": "la-liga-2025"},
+    # The Premier League repeats the lesson: the league key is `epl`, the slug
+    # that enumerates it is `premier-league-2025`, and `epl-2025`, `epl-2026`,
+    # `soccer-epl` and `english-premier-league-2025` all return zero events
+    # without erroring.
+    "epl": {"competition_id": 39, "series_slug": "premier-league-2025"},
 }
 
 

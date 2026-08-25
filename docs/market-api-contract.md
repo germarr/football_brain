@@ -275,9 +275,9 @@ drawn at the timestamps it happened.
 frequently `0.3333 / 0.3333 / 0.3333` — an opened book with no trading. It is real, and it
 is not a placeholder.
 
-**Only four Competitions exist here.** La Liga (140), MLS (253), Liga MX (262) and
-Leagues Cup (772) are what either Exchange lists. Anything else is `not_covered`,
-permanently.
+**Only five Competitions exist here.** The Premier League (39), La Liga (140), MLS (253),
+Liga MX (262) and Leagues Cup (772) are what either Exchange lists. Anything else is
+`not_covered`, permanently.
 
 **Payload size.** A played Fixture's dashboard is a few hundred KB — up to ~840 probability
 points per Exchange plus the book. Use `/track` when only the line is needed, and cache on

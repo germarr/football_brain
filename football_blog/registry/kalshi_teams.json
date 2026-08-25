@@ -1,6 +1,7 @@
 {
   "_comment": "Kalshi team registry (ADR 0041). Kalshi soccer_team UUID -> our team id. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each kalshi_name and our_name name the same club.",
   "series": {
+    "KXEPLGAME": 39,
     "KXLALIGAGAME": 140,
     "KXLEAGUESCUPGAME": 772,
     "KXLIGAMXGAME": 262,
@@ -17,6 +18,16 @@
       "team_id": 2287,
       "kalshi_name": "America",
       "our_name": "Club America"
+    },
+    "246a91c5-f145-401f-bf0d-2a436e25a5f6": {
+      "team_id": 42,
+      "kalshi_name": "Arsenal",
+      "our_name": "Arsenal"
+    },
+    "bfb98900-9759-436c-bc1f-8bf8c5ae249f": {
+      "team_id": 66,
+      "kalshi_name": "Aston Villa",
+      "our_name": "Aston Villa"
     },
     "067b4757-7229-4966-9878-7fb386b90b86": {
       "team_id": 1608,
@@ -53,6 +64,21 @@
       "kalshi_name": "Bilbao",
       "our_name": "Athletic Club"
     },
+    "845da653-13fc-4d80-b0e0-a48179c37ffa": {
+      "team_id": 35,
+      "kalshi_name": "Bournemouth",
+      "our_name": "Bournemouth"
+    },
+    "244308db-fa16-4065-905e-9053d68370e6": {
+      "team_id": 55,
+      "kalshi_name": "Brentford",
+      "our_name": "Brentford"
+    },
+    "75575478-e8c9-4d59-ae3b-b117c1d42890": {
+      "team_id": 51,
+      "kalshi_name": "Brighton",
+      "our_name": "Brighton"
+    },
     "baa76ca7-2ea3-407a-a699-cb6bc1a3835f": {
       "team_id": 538,
       "kalshi_name": "Celta Vigo",
@@ -62,6 +88,11 @@
       "team_id": 18310,
       "kalshi_name": "Charlotte",
       "our_name": "Charlotte"
+    },
+    "894cf22a-8360-49a1-812c-7556fb97cbcd": {
+      "team_id": 49,
+      "kalshi_name": "Chelsea",
+      "our_name": "Chelsea"
     },
     "a6f918b2-1142-4bd5-93b5-241aeb00c0d1": {
       "team_id": 1607,
@@ -83,10 +114,20 @@
       "kalshi_name": "Columbus",
       "our_name": "Columbus Crew"
     },
+    "6fe2874c-1926-4182-b52c-c223bf8b4c2c": {
+      "team_id": 1346,
+      "kalshi_name": "Coventry",
+      "our_name": "Coventry"
+    },
     "024a51df-df92-443c-b264-8c9759179650": {
       "team_id": 2295,
       "kalshi_name": "Cruz Azul",
       "our_name": "Cruz Azul"
+    },
+    "7fd3376e-2256-4010-95a5-5b2a29a73e09": {
+      "team_id": 52,
+      "kalshi_name": "Crystal Palace",
+      "our_name": "Crystal Palace"
     },
     "889fe1d4-492d-42a2-8b3e-d9cbffc4d405": {
       "team_id": 1615,
@@ -113,6 +154,16 @@
       "kalshi_name": "Espanyol",
       "our_name": "Espanyol"
     },
+    "7abb495c-193e-4baf-b3d3-108e99eab8ed": {
+      "team_id": 45,
+      "kalshi_name": "Everton",
+      "our_name": "Everton"
+    },
+    "664077ba-242b-43e3-975d-cd754a774727": {
+      "team_id": 36,
+      "kalshi_name": "Fulham",
+      "our_name": "Fulham"
+    },
     "d8edf5f1-fafb-4875-8587-d8b5f5829e57": {
       "team_id": 546,
       "kalshi_name": "Getafe",
@@ -128,6 +179,16 @@
       "kalshi_name": "Houston",
       "our_name": "Houston Dynamo"
     },
+    "56d3f546-aa7e-436d-a7f3-0d71a96a5168": {
+      "team_id": 64,
+      "kalshi_name": "Hull City",
+      "our_name": "Hull City"
+    },
+    "0a9eca41-bd4f-415c-b804-58214e97a77f": {
+      "team_id": 57,
+      "kalshi_name": "Ipswich Town",
+      "our_name": "Ipswich"
+    },
     "db036857-8a77-473f-83c8-7805cb772d57": {
       "team_id": 2298,
       "kalshi_name": "Juarez",
@@ -138,6 +199,11 @@
       "kalshi_name": "Kansas City",
       "our_name": "Sporting Kansas City"
     },
+    "98aa1226-ef50-4226-9216-33a1096b597f": {
+      "team_id": 63,
+      "kalshi_name": "Leeds United",
+      "our_name": "Leeds"
+    },
     "c685350f-fc0d-474d-b88c-d208d3eba973": {
       "team_id": 2289,
       "kalshi_name": "Leon",
@@ -147,6 +213,11 @@
       "team_id": 539,
       "kalshi_name": "Levante",
       "our_name": "Levante"
+    },
+    "cfd4b999-b080-4c2b-8a5b-640c992aff6e": {
+      "team_id": 40,
+      "kalshi_name": "Liverpool",
+      "our_name": "Liverpool"
     },
     "9600f0ab-7854-4067-8692-77a3ee22128a": {
       "team_id": 1616,
@@ -162,6 +233,16 @@
       "team_id": 535,
       "kalshi_name": "Malaga",
       "our_name": "Malaga"
+    },
+    "f5d3f1b2-8ff6-4165-835f-45406eae5fb6": {
+      "team_id": 50,
+      "kalshi_name": "Manchester City",
+      "our_name": "Manchester City"
+    },
+    "7e273345-6669-4db7-8a38-7f3ccb608937": {
+      "team_id": 33,
+      "kalshi_name": "Manchester United",
+      "our_name": "Manchester United"
     },
     "7e243b87-074f-4c80-8e50-5981c78a79a9": {
       "team_id": 9568,
@@ -207,6 +288,16 @@
       "team_id": 1602,
       "kalshi_name": "New York RB",
       "our_name": "New York Red Bulls"
+    },
+    "2f4b2ba6-f0dd-4d68-96eb-96cff8389c1a": {
+      "team_id": 34,
+      "kalshi_name": "Newcastle",
+      "our_name": "Newcastle"
+    },
+    "8d0773c5-7765-4da5-9be1-84707ae9ddce": {
+      "team_id": 65,
+      "kalshi_name": "Nottingham Forest",
+      "our_name": "Nottingham Forest"
     },
     "4fd53484-2aa9-4431-91b4-59ab6172fa1c": {
       "team_id": 1598,
@@ -308,6 +399,11 @@
       "kalshi_name": "Sevilla",
       "our_name": "Sevilla"
     },
+    "f0a69f43-b3c4-4049-bf6d-4717809000a1": {
+      "team_id": 746,
+      "kalshi_name": "Sunderland",
+      "our_name": "Sunderland"
+    },
     "e7f5c871-11c6-46cb-b7fa-1a1fbfd3bbf6": {
       "team_id": 2279,
       "kalshi_name": "Tigres",
@@ -327,6 +423,11 @@
       "team_id": 1601,
       "kalshi_name": "Toronto",
       "our_name": "Toronto FC"
+    },
+    "95c3aaf8-3f26-4129-b67c-c99562cb3dc9": {
+      "team_id": 47,
+      "kalshi_name": "Tottenham",
+      "our_name": "Tottenham"
     },
     "98d32524-388a-4862-96ea-6da9b8328d6c": {
       "team_id": 532,

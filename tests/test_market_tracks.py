@@ -424,7 +424,7 @@ def test_the_registry_file_on_disk_loads_and_names_every_covered_competition():
     """Guards the committed file, not a fake: a malformed key silently maps nothing."""
     registry = pm.load_registry()
     assert registry.teams, "the committed registry must not be empty"
-    assert set(registry.competition_ids) == {140, 253, 262, 772}
+    assert set(registry.competition_ids) == {39, 140, 253, 262, 772}
     for league in registry.league_keys:
         assert registry.series_slug(league), f"{league} needs a verified series slug"
     # A club in two leagues holds two rows, and they must not collide.

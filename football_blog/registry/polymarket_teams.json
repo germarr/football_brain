@@ -1,6 +1,10 @@
 {
   "_comment": "Polymarket team registry (ADR 0043). '<league>:<polymarket team id>' -> our team id. The key carries the league because a Polymarket team id is per league, not per club — CF Monterrey is 115320 in mex and 3268366 in lec. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each polymarket_name and our_name name the same club.",
   "leagues": {
+    "epl": {
+      "competition_id": 39,
+      "series_slug": "premier-league-2025"
+    },
     "lal": {
       "competition_id": 140,
       "series_slug": "la-liga-2025"
@@ -19,6 +23,131 @@
     }
   },
   "teams": {
+    "epl:100010": {
+      "team_id": 35,
+      "polymarket_name": "AFC Bournemouth",
+      "our_name": "Bournemouth"
+    },
+    "epl:100005": {
+      "team_id": 42,
+      "polymarket_name": "Arsenal FC",
+      "our_name": "Arsenal"
+    },
+    "epl:100009": {
+      "team_id": 66,
+      "polymarket_name": "Aston Villa FC",
+      "our_name": "Aston Villa"
+    },
+    "epl:100008": {
+      "team_id": 55,
+      "polymarket_name": "Brentford FC",
+      "our_name": "Brentford"
+    },
+    "epl:100015": {
+      "team_id": 51,
+      "polymarket_name": "Brighton & Hove Albion FC",
+      "our_name": "Brighton"
+    },
+    "epl:114265": {
+      "team_id": 44,
+      "polymarket_name": "Burnley FC",
+      "our_name": "Burnley"
+    },
+    "epl:100014": {
+      "team_id": 49,
+      "polymarket_name": "Chelsea FC",
+      "our_name": "Chelsea"
+    },
+    "epl:3284766": {
+      "team_id": 1346,
+      "polymarket_name": "Coventry City FC",
+      "our_name": "Coventry"
+    },
+    "epl:100006": {
+      "team_id": 52,
+      "polymarket_name": "Crystal Palace FC",
+      "our_name": "Crystal Palace"
+    },
+    "epl:100013": {
+      "team_id": 45,
+      "polymarket_name": "Everton FC",
+      "our_name": "Everton"
+    },
+    "epl:100011": {
+      "team_id": 36,
+      "polymarket_name": "Fulham FC",
+      "our_name": "Fulham"
+    },
+    "epl:3284806": {
+      "team_id": 64,
+      "polymarket_name": "Hull City AFC",
+      "our_name": "Hull City"
+    },
+    "epl:100019": {
+      "team_id": 57,
+      "polymarket_name": "Ipswich Town FC",
+      "our_name": "Ipswich"
+    },
+    "epl:114264": {
+      "team_id": 63,
+      "polymarket_name": "Leeds United FC",
+      "our_name": "Leeds"
+    },
+    "epl:100002": {
+      "team_id": 46,
+      "polymarket_name": "Leicester City FC",
+      "our_name": "Leicester"
+    },
+    "epl:100017": {
+      "team_id": 40,
+      "polymarket_name": "Liverpool FC",
+      "our_name": "Liverpool"
+    },
+    "epl:100004": {
+      "team_id": 50,
+      "polymarket_name": "Manchester City FC",
+      "our_name": "Manchester City"
+    },
+    "epl:100016": {
+      "team_id": 33,
+      "polymarket_name": "Manchester United FC",
+      "our_name": "Manchester United"
+    },
+    "epl:100000": {
+      "team_id": 34,
+      "polymarket_name": "Newcastle United FC",
+      "our_name": "Newcastle"
+    },
+    "epl:100007": {
+      "team_id": 65,
+      "polymarket_name": "Nottingham Forest FC",
+      "our_name": "Nottingham Forest"
+    },
+    "epl:100012": {
+      "team_id": 41,
+      "polymarket_name": "Southampton FC",
+      "our_name": "Southampton"
+    },
+    "epl:114263": {
+      "team_id": 746,
+      "polymarket_name": "Sunderland AFC",
+      "our_name": "Sunderland"
+    },
+    "epl:100018": {
+      "team_id": 47,
+      "polymarket_name": "Tottenham Hotspur FC",
+      "our_name": "Tottenham"
+    },
+    "epl:100003": {
+      "team_id": 48,
+      "polymarket_name": "West Ham United FC",
+      "our_name": "West Ham"
+    },
+    "epl:100001": {
+      "team_id": 39,
+      "polymarket_name": "Wolverhampton Wanderers FC",
+      "our_name": "Wolves"
+    },
     "lal:101047": {
       "team_id": 531,
       "polymarket_name": "Athletic Club",
