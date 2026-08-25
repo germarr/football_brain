@@ -466,6 +466,11 @@ BOOTSTRAP_LEAGUES = {
     "mls": {"competition_id": 253, "series_slug": "mls-2025"},
     "mex": {"competition_id": 262, "series_slug": "mex-2025"},
     "lec": {"competition_id": 772, "series_slug": "soccer-lec"},
+    # La Liga's series slug is `la-liga-2025` — spelled out, unlike `mex`/`mls`, and
+    # unrelated to the `lal` league key that keys its teams and heads its event slugs
+    # (`lal-cel-osa-2026-08-16`). `laliga-2025`, `lal-2025`, `soccer-lal` and `la-liga`
+    # all return zero events without erroring, which is the failure ADR 0043 records.
+    "lal": {"competition_id": 140, "series_slug": "la-liga-2025"},
 }
 
 

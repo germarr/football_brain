@@ -49,11 +49,11 @@ from psycopg.rows import dict_row
 
 from football.config import load_pg_url
 
-#: The Competitions both Exchanges list (ADR 0043): MLS, Liga MX, Leagues Cup. Every
-#: covered Fixture in these is enrolled — not only the ones with a Publication, because
-#: enrolment is the deadline and a Fixture nobody chose to write about today may be one
-#: somebody wants a chart of next week.
-COVERED_COMPETITIONS = (253, 262, 772)
+#: The Competitions both Exchanges list (ADR 0043): La Liga, MLS, Liga MX, Leagues Cup.
+#: Every covered Fixture in these is enrolled — not only the ones with a Publication,
+#: because enrolment is the deadline and a Fixture nobody chose to write about today may
+#: be one somebody wants a chart of next week.
+COVERED_COMPETITIONS = (140, 253, 262, 772)
 
 #: The four tables, in the order a reader meets them. Named here so the test that guards
 #: against a publish eating them has one list to check rather than a regex over the DDL.

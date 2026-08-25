@@ -1,12 +1,18 @@
 {
   "_comment": "Kalshi team registry (ADR 0041). Kalshi soccer_team UUID -> our team id. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each kalshi_name and our_name name the same club.",
   "series": {
+    "KXLALIGAGAME": 140,
     "KXLEAGUESCUPGAME": 772,
     "KXLIGAMXGAME": 262,
     "KXMLSGAME": 253
   },
   "draw_uuid": "111193d4-9b1f-4bd8-ab7c-9de252737f05",
   "teams": {
+    "55086684-5ead-4dea-ace6-4a82500856f2": {
+      "team_id": 542,
+      "kalshi_name": "Alaves",
+      "our_name": "Alaves"
+    },
     "b53e877f-6781-4417-b884-e08d340a8d14": {
       "team_id": 2287,
       "kalshi_name": "America",
@@ -27,10 +33,30 @@
       "kalshi_name": "Atlas",
       "our_name": "Atlas"
     },
+    "2f51845c-cdac-431c-9f0f-1ee7c8878331": {
+      "team_id": 530,
+      "kalshi_name": "Atletico",
+      "our_name": "Atletico Madrid"
+    },
     "a24c84e6-5d57-4cc9-a8ef-d7ea2f6a3750": {
       "team_id": 16489,
       "kalshi_name": "Austin",
       "our_name": "Austin"
+    },
+    "b8ae51bb-71ca-4ed3-9e9f-8904ee444d17": {
+      "team_id": 529,
+      "kalshi_name": "Barcelona",
+      "our_name": "Barcelona"
+    },
+    "8a82e30a-849f-4499-84bc-4efe695d28f1": {
+      "team_id": 531,
+      "kalshi_name": "Bilbao",
+      "our_name": "Athletic Club"
+    },
+    "baa76ca7-2ea3-407a-a699-cb6bc1a3835f": {
+      "team_id": 538,
+      "kalshi_name": "Celta Vigo",
+      "our_name": "Celta Vigo"
     },
     "a0d8250b-a13f-4849-9844-4106ae45671f": {
       "team_id": 18310,
@@ -72,6 +98,26 @@
       "kalshi_name": "Dallas",
       "our_name": "FC Dallas"
     },
+    "89015507-cd78-404d-a89c-edc2bc270e29": {
+      "team_id": 544,
+      "kalshi_name": "Deportivo De La Coruna",
+      "our_name": "Deportivo La Coruna"
+    },
+    "0353a2d0-c82f-45b1-a8e5-c0299bdb9922": {
+      "team_id": 797,
+      "kalshi_name": "Elche",
+      "our_name": "Elche"
+    },
+    "a3b795c3-bc80-427e-93a1-03f2883600a8": {
+      "team_id": 540,
+      "kalshi_name": "Espanyol",
+      "our_name": "Espanyol"
+    },
+    "d8edf5f1-fafb-4875-8587-d8b5f5829e57": {
+      "team_id": 546,
+      "kalshi_name": "Getafe",
+      "our_name": "Getafe"
+    },
     "2664b66b-b998-47d2-b1e6-d19295e11802": {
       "team_id": 2278,
       "kalshi_name": "Guadalajara",
@@ -97,6 +143,11 @@
       "kalshi_name": "Leon",
       "our_name": "Leon"
     },
+    "2c274499-d0e5-4b6c-83df-c1f0e424c899": {
+      "team_id": 539,
+      "kalshi_name": "Levante",
+      "our_name": "Levante"
+    },
     "9600f0ab-7854-4067-8692-77a3ee22128a": {
       "team_id": 1616,
       "kalshi_name": "Los Angeles F",
@@ -106,6 +157,11 @@
       "team_id": 1605,
       "kalshi_name": "Los Angeles G",
       "our_name": "Los Angeles Galaxy"
+    },
+    "70be5c42-f4eb-4f08-b9a3-fc2339d1b23d": {
+      "team_id": 535,
+      "kalshi_name": "Malaga",
+      "our_name": "Malaga"
     },
     "7e243b87-074f-4c80-8e50-5981c78a79a9": {
       "team_id": 9568,
@@ -157,6 +213,11 @@
       "kalshi_name": "Orlando",
       "our_name": "Orlando City SC"
     },
+    "c1b98a36-8093-4915-98b4-c40ab0dbcaaa": {
+      "team_id": 727,
+      "kalshi_name": "Osasuna",
+      "our_name": "Osasuna"
+    },
     "649e847f-571e-48ab-96f2-d3c0b45dfe7a": {
       "team_id": 2292,
       "kalshi_name": "Pachuca",
@@ -187,6 +248,21 @@
       "kalshi_name": "Queretaro",
       "our_name": "Club Queretaro"
     },
+    "cc146246-6569-4093-89e7-205fd21d7d17": {
+      "team_id": 543,
+      "kalshi_name": "Real Betis",
+      "our_name": "Real Betis"
+    },
+    "1858f693-87a8-4102-86c0-aa65c04f56ad": {
+      "team_id": 541,
+      "kalshi_name": "Real Madrid",
+      "our_name": "Real Madrid"
+    },
+    "34675e44-3b3c-4368-bb4d-03acabb2082a": {
+      "team_id": 548,
+      "kalshi_name": "Real Sociedad",
+      "our_name": "Real Sociedad"
+    },
     "26c2c786-7e85-4e51-ae96-8ccfa3c3f0b7": {
       "team_id": 20787,
       "kalshi_name": "Saint Louis",
@@ -212,6 +288,11 @@
       "kalshi_name": "San Luis",
       "our_name": "Atletico San Luis"
     },
+    "4f47af29-e06e-4759-8f0d-1501be7a41c3": {
+      "team_id": 4665,
+      "kalshi_name": "Santander",
+      "our_name": "Racing Santander"
+    },
     "c7839560-75ac-4c16-8cce-c7446207d6bc": {
       "team_id": 2285,
       "kalshi_name": "Santos Laguna",
@@ -221,6 +302,11 @@
       "team_id": 1595,
       "kalshi_name": "Seattle",
       "our_name": "Seattle Sounders"
+    },
+    "e26ffd15-b6c7-440b-859c-0693ac1d0a5c": {
+      "team_id": 536,
+      "kalshi_name": "Sevilla",
+      "our_name": "Sevilla"
     },
     "e7f5c871-11c6-46cb-b7fa-1a1fbfd3bbf6": {
       "team_id": 2279,
@@ -242,10 +328,25 @@
       "kalshi_name": "Toronto",
       "our_name": "Toronto FC"
     },
+    "98d32524-388a-4862-96ea-6da9b8328d6c": {
+      "team_id": 532,
+      "kalshi_name": "Valencia",
+      "our_name": "Valencia"
+    },
+    "f52bf332-d290-4b44-9a13-4217f88f7c00": {
+      "team_id": 728,
+      "kalshi_name": "Vallecano",
+      "our_name": "Rayo Vallecano"
+    },
     "b3fea460-61a1-48c7-a27e-9a01c39cd113": {
       "team_id": 1603,
       "kalshi_name": "Vancouver",
       "our_name": "Vancouver Whitecaps"
+    },
+    "e16880b0-2ac2-476a-8b82-6ef29655175c": {
+      "team_id": 533,
+      "kalshi_name": "Villarreal",
+      "our_name": "Villarreal"
     }
   }
 }

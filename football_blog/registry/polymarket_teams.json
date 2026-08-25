@@ -1,6 +1,10 @@
 {
   "_comment": "Polymarket team registry (ADR 0043). '<league>:<polymarket team id>' -> our team id. The key carries the league because a Polymarket team id is per league, not per club — CF Monterrey is 115320 in mex and 3268366 in lec. A Winner Market is attached only when BOTH clubs resolve here; nothing is guessed from names. Reviewed as a git diff before commit — check that each polymarket_name and our_name name the same club.",
   "leagues": {
+    "lal": {
+      "competition_id": 140,
+      "series_slug": "la-liga-2025"
+    },
     "lec": {
       "competition_id": 772,
       "series_slug": "soccer-lec"
@@ -15,6 +19,136 @@
     }
   },
   "teams": {
+    "lal:101047": {
+      "team_id": 531,
+      "polymarket_name": "Athletic Club",
+      "our_name": "Athletic Club"
+    },
+    "lal:101036": {
+      "team_id": 727,
+      "polymarket_name": "CA Osasuna",
+      "our_name": "Osasuna"
+    },
+    "lal:101039": {
+      "team_id": 537,
+      "polymarket_name": "CD Leganés",
+      "our_name": "Leganes"
+    },
+    "lal:101043": {
+      "team_id": 530,
+      "polymarket_name": "Club Atlético de Madrid",
+      "our_name": "Atletico Madrid"
+    },
+    "lal:101029": {
+      "team_id": 542,
+      "polymarket_name": "Deportivo Alavés",
+      "our_name": "Alaves"
+    },
+    "lal:114297": {
+      "team_id": 797,
+      "polymarket_name": "Elche CF",
+      "our_name": "Elche"
+    },
+    "lal:101042": {
+      "team_id": 529,
+      "polymarket_name": "FC Barcelona",
+      "our_name": "Barcelona"
+    },
+    "lal:101031": {
+      "team_id": 546,
+      "polymarket_name": "Getafe CF",
+      "our_name": "Getafe"
+    },
+    "lal:101035": {
+      "team_id": 547,
+      "polymarket_name": "Girona FC",
+      "our_name": "Girona"
+    },
+    "lal:114298": {
+      "team_id": 539,
+      "polymarket_name": "Levante UD",
+      "our_name": "Levante"
+    },
+    "lal:3284681": {
+      "team_id": 535,
+      "polymarket_name": "Málaga CF",
+      "our_name": "Malaga"
+    },
+    "lal:101044": {
+      "team_id": 538,
+      "polymarket_name": "RC Celta de Vigo",
+      "our_name": "Celta Vigo"
+    },
+    "lal:3284602": {
+      "team_id": 544,
+      "polymarket_name": "RC Deportivo A Coruña",
+      "our_name": "Deportivo La Coruna"
+    },
+    "lal:101033": {
+      "team_id": 540,
+      "polymarket_name": "RCD Espanyol de Barcelona",
+      "our_name": "Espanyol"
+    },
+    "lal:101037": {
+      "team_id": 798,
+      "polymarket_name": "RCD Mallorca",
+      "our_name": "Mallorca"
+    },
+    "lal:101046": {
+      "team_id": 728,
+      "polymarket_name": "Rayo Vallecano de Madrid",
+      "our_name": "Rayo Vallecano"
+    },
+    "lal:101030": {
+      "team_id": 543,
+      "polymarket_name": "Real Betis Balompié",
+      "our_name": "Real Betis"
+    },
+    "lal:101034": {
+      "team_id": 541,
+      "polymarket_name": "Real Madrid CF",
+      "our_name": "Real Madrid"
+    },
+    "lal:114296": {
+      "team_id": 718,
+      "polymarket_name": "Real Oviedo",
+      "our_name": "Oviedo"
+    },
+    "lal:3284301": {
+      "team_id": 4665,
+      "polymarket_name": "Real Racing Club",
+      "our_name": "Racing Santander"
+    },
+    "lal:101045": {
+      "team_id": 548,
+      "polymarket_name": "Real Sociedad de Fútbol",
+      "our_name": "Real Sociedad"
+    },
+    "lal:101105": {
+      "team_id": 720,
+      "polymarket_name": "Real Valladolid CF",
+      "our_name": "Valladolid"
+    },
+    "lal:101040": {
+      "team_id": 536,
+      "polymarket_name": "Sevilla FC",
+      "our_name": "Sevilla"
+    },
+    "lal:101032": {
+      "team_id": 534,
+      "polymarket_name": "UD Las Palmas",
+      "our_name": "Las Palmas"
+    },
+    "lal:101095": {
+      "team_id": 532,
+      "polymarket_name": "Valencia CF",
+      "our_name": "Valencia"
+    },
+    "lal:101038": {
+      "team_id": 533,
+      "polymarket_name": "Villarreal CF",
+      "our_name": "Villarreal"
+    },
     "lec:3282357": {
       "team_id": 2312,
       "polymarket_name": "Atlante FC",
